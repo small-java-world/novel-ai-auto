@@ -1,0 +1,399 @@
+NovelAI自動画像生成Chrome拡張機能の設計とタスク分解を行います。
+
+## 📋 プロジェクト概要
+
+NovelAIのWeb UIを自動化し、事前定義されたプロンプトで複数の画像を生成・保存する私用Chrome拡張機能
+
+## 🏗️ システム設計
+
+### アーキテクチャ構成
+
+```
+┌─────────────────────────────────────────┐
+│         Chrome Extension                 │
+├─────────────────────────────────────────┤
+│  ┌──────────────┐  ┌─────────────────┐ │
+│  │   Popup UI   │  │ Background/SW   │ │
+│  │              │  │                 │ │
+│  │ - 設定画面   │  │ - メッセージ中継 │ │
+│  │ - 実行ボタン │  │ - ダウンロード   │ │
+│  │ - 進捗表示   │  │ - 設定管理      │ │
+│  └──────────────┘  └─────────────────┘ │
+│           ↓                ↓            │
+│  ┌─────────────────────────────────┐   │
+│  │      Content Script              │   │
+│  │                                   │   │
+│  │  - DOM操作（プロンプト入力）      │   │
+│  │  - 生成ボタンクリック             │   │
+│  │  - 画像検出                      │   │
+│  │  - ループ制御                    │   │
+│  └─────────────────────────────────┘   │
+└─────────────────────────────────────────┘
+                    ↓
+         [NovelAI Web Interface]
+```
+
+### ファイル構成
+
+```
+novelai-auto-generator/
+├── manifest.json          # 拡張機能マニフェスト
+├── background.js          # Service Worker
+├── content.js            # Content Script
+├── popup/
+│   ├── popup.html        # ポップアップUI
+│   ├── popup.js          # ポップアップロジック
+│   └── popup.css         # スタイル
+├── config/
+│   └── prompts.json      # プロンプト設定
+└── utils/
+    ├── dom-helper.js     # DOM操作ユーティリティ
+    └── storage.js        # ストレージ管理
+```
+
+## 📝 タスク分解
+
+### Phase 1: 基本セットアップ（基盤構築）
+
+#### Task 1.1: プロジェクト初期化
+```javascript
+// manifest.json の作成
+{
+  "manifest_version": 3,
+  "name": "NovelAI Auto Generator",
+  "version": "1.0.0",
+  "permissions": ["storage", "downloads", "tabs"],
+  "host_permissions": ["https://novelai.net/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [{
+    "matches": ["https://novelai.net/*"],
+    "js": ["content.js"]
+  }],
+  "action": {
+    "default_popup": "popup/popup.html"
+  }
+}
+```
+
+#### Task 1.2: プロンプト設定ファイル作成
+```javascript
+// config/prompts.json
+[
+  {
+    "id": "fantasy_knight",
+    "name": "ファンタジー騎士",
+    "positive": "{best quality}, {{masterpiece}}, {highres}, 1girl, solo, full body, princess knight costume, medieval armor, flowing cape, castle courtyard",
+    "negative": "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped, worst quality, low quality",
+    "settings": {
+      "steps": 28,
+      "scale": 5,
+      "sampler": "k_euler",
+      "resolution": "512x768"
+    }
+  }
+]
+```
+
+### Phase 2: DOM操作機能（Content Script）
+
+#### Task 2.1: DOM要素セレクター定義
+```javascript
+// utils/dom-helper.js
+const SELECTORS = {
+  positivePrompt: 'textarea[placeholder*="prompt"]',
+  negativePrompt: 'textarea[placeholder*="negative"]',
+  generateButton: 'button:has-text("Generate")',
+  generatedImage: '.generated-image-container img',
+  stepsSlider: 'input[type="range"][aria-label*="steps"]',
+  scaleSlider: 'input[type="range"][aria-label*="scale"]'
+};
+
+class DOMHelper {
+  static async waitForElement(selector, timeout = 10000) {
+    // 要素が現れるまで待機
+  }
+  
+  static setInputValue(element, value) {
+    // React/Vueイベントを含む値設定
+  }
+}
+```
+
+#### Task 2.2: プロンプト入力自動化
+```javascript
+// content.js - プロンプト入力機能
+async function setPrompts(positive, negative) {
+  const posInput = await DOMHelper.waitForElement(SELECTORS.positivePrompt);
+  const negInput = await DOMHelper.waitForElement(SELECTORS.negativePrompt);
+  
+  DOMHelper.setInputValue(posInput, positive);
+  DOMHelper.setInputValue(negInput, negative);
+}
+```
+
+#### Task 2.3: 設定値の自動調整
+```javascript
+// content.js - 設定値調整機能
+async function applySettings(settings) {
+  // Steps設定
+  const stepsSlider = await DOMHelper.waitForElement(SELECTORS.stepsSlider);
+  DOMHelper.setInputValue(stepsSlider, settings.steps);
+  
+  // Scale設定
+  const scaleSlider = await DOMHelper.waitForElement(SELECTORS.scaleSlider);
+  DOMHelper.setInputValue(scaleSlider, settings.scale);
+  
+  // 解像度設定（ドロップダウンまたは入力フィールド）
+  // Sampler設定
+}
+```
+
+### Phase 3: 生成ループ機能
+
+#### Task 3.1: 生成状態監視
+```javascript
+// content.js - 生成状態監視
+class GenerationMonitor {
+  constructor() {
+    this.isGenerating = false;
+    this.observer = null;
+  }
+  
+  async waitForCompletion() {
+    return new Promise((resolve) => {
+      this.observer = new MutationObserver((mutations) => {
+        // 新しい画像要素の検出
+        // または生成ボタンの有効化を検出
+      });
+      
+      this.observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true
+      });
+    });
+  }
+}
+```
+
+#### Task 3.2: 複数画像生成ループ
+```javascript
+// content.js - 生成ループ
+async function generateMultipleImages(count) {
+  const monitor = new GenerationMonitor();
+  
+  for (let i = 0; i < count; i++) {
+    console.log(`Generating image ${i + 1}/${count}`);
+    
+    // 生成ボタンクリック
+    const genButton = await DOMHelper.waitForElement(SELECTORS.generateButton);
+    genButton.click();
+    
+    // 完了待機
+    await monitor.waitForCompletion();
+    
+    // 画像保存処理
+    await saveGeneratedImage(i);
+    
+    // 進捗を背景スクリプトに送信
+    chrome.runtime.sendMessage({
+      type: 'GENERATION_PROGRESS',
+      current: i + 1,
+      total: count
+    });
+  }
+}
+```
+
+### Phase 4: 画像保存機能
+
+#### Task 4.1: 画像データ取得
+```javascript
+// content.js - 画像取得
+async function getLatestImage() {
+  const imgElement = await DOMHelper.waitForElement(SELECTORS.generatedImage);
+  
+  // Data URLまたはBlob URLの取得
+  if (imgElement.src.startsWith('data:')) {
+    return imgElement.src;
+  } else if (imgElement.src.startsWith('blob:')) {
+    // Blob URLをData URLに変換
+    const response = await fetch(imgElement.src);
+    const blob = await response.blob();
+    return await blobToDataURL(blob);
+  }
+}
+```
+
+#### Task 4.2: ダウンロード処理
+```javascript
+// background.js - ダウンロード管理
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.type === 'DOWNLOAD_IMAGE') {
+    const { imageUrl, characterName, index } = request;
+    
+    const filename = `NovelAI/${characterName}/image_${Date.now()}_${index}.png`;
+    
+    chrome.downloads.download({
+      url: imageUrl,
+      filename: filename,
+      saveAs: false
+    }, (downloadId) => {
+      console.log(`Downloaded: ${filename}`);
+      sendResponse({ success: true, downloadId });
+    });
+    
+    return true; // 非同期応答のため
+  }
+});
+```
+
+### Phase 5: UI実装（Popup）
+
+#### Task 5.1: ポップアップHTML作成
+```html
+<!-- popup/popup.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <h2>NovelAI Auto Generator</h2>
+    
+    <!-- プロンプト選択 -->
+    <div class="form-group">
+      <label>プロンプトセット:</label>
+      <select id="promptSelect"></select>
+    </div>
+    
+    <!-- 生成枚数 -->
+    <div class="form-group">
+      <label>生成枚数:</label>
+      <input type="number" id="imageCount" min="1" max="100" value="10">
+    </div>
+    
+    <!-- 実行ボタン -->
+    <button id="startBtn">生成開始</button>
+    
+    <!-- 進捗表示 -->
+    <div id="progress" class="hidden">
+      <div class="progress-bar">
+        <div id="progressFill"></div>
+      </div>
+      <span id="progressText">0/0</span>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
+```
+
+#### Task 5.2: ポップアップロジック
+```javascript
+// popup/popup.js
+class PopupController {
+  constructor() {
+    this.loadPrompts();
+    this.bindEvents();
+  }
+  
+  async loadPrompts() {
+    const response = await fetch('../config/prompts.json');
+    const prompts = await response.json();
+    // セレクトボックスに追加
+  }
+  
+  bindEvents() {
+    document.getElementById('startBtn').addEventListener('click', () => {
+      this.startGeneration();
+    });
+  }
+  
+  async startGeneration() {
+    const selectedPrompt = this.getSelectedPrompt();
+    const imageCount = document.getElementById('imageCount').value;
+    
+    // Content Scriptに送信
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    chrome.tabs.sendMessage(tab.id, {
+      type: 'START_GENERATION',
+      prompt: selectedPrompt,
+      count: imageCount
+    });
+  }
+}
+```
+
+### Phase 6: 統合とエラーハンドリング
+
+#### Task 6.1: メッセージング統合
+```javascript
+// content.js - メッセージハンドラー
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  switch(request.type) {
+    case 'START_GENERATION':
+      handleGenerationStart(request);
+      break;
+    case 'STOP_GENERATION':
+      handleGenerationStop();
+      break;
+  }
+});
+
+async function handleGenerationStart({ prompt, count }) {
+  try {
+    await setPrompts(prompt.positive, prompt.negative);
+    await applySettings(prompt.settings);
+    await generateMultipleImages(count);
+    
+    chrome.runtime.sendMessage({ type: 'GENERATION_COMPLETE' });
+  } catch (error) {
+    chrome.runtime.sendMessage({ 
+      type: 'GENERATION_ERROR',
+      error: error.message 
+    });
+  }
+}
+```
+
+#### Task 6.2: エラーハンドリングとリトライ
+```javascript
+// utils/retry-helper.js
+async function retryWithBackoff(fn, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (i === maxRetries - 1) throw error;
+      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
+    }
+  }
+}
+```
+
+## 🔄 実装優先順位
+
+1. **最優先（MVP）**
+   - Task 1.1, 1.2: 基本セットアップ
+   - Task 2.1, 2.2: プロンプト入力自動化
+   - Task 3.2: 単純な生成ループ
+
+2. **高優先度**
+   - Task 4.1, 4.2: 画像保存機能
+   - Task 5.1, 5.2: 基本的なUI
+
+3. **中優先度**
+   - Task 2.3: 詳細設定の自動調整
+   - Task 3.1: 高度な生成状態監視
+   - Task 6.1: メッセージング統合
+
+4. **低優先度**
+   - Task 6.2: エラーハンドリング強化
+   - 追加機能（バッチ処理、スケジューリング等）
+
+この設計により、段階的に機能を実装でき、各フェーズで動作確認しながら開発を進められます。

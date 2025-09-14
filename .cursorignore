@@ -1,0 +1,9 @@
+Cursor AIが無視するファイル/ディレクトリ
+node_modules/
+.git/
+dist/
+build/
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
