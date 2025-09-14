@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NovelAI Auto Generator</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1 class="title">NovelAI Auto Generator</h1>
+            <div class="version">v0.1.0</div>
+        </header>
+
+        <main class="main">
+            <!-- Status Display -->
+            <section class="status-section">
+                <div class="status-indicator" id="statusIndicator">
+                    <span class="status-text" id="statusText">待機中</span>
+                </div>
+            </section>
+
+            <!-- Prompt Selection -->
+            <section class="prompt-section">
+                <label for="promptSelect" class="label">プロンプト選択:</label>
+                <select id="promptSelect" class="select">
+                    <option value="">プロンプトを選択してください</option>
+                </select>
+            </section>
+
+            <!-- Settings -->
+            <section class="settings-section">
+                <h3 class="section-title">設定</h3>
+                
+                <div class="setting-group">
+                    <label for="imageCount" class="label">生成枚数:</label>
+                    <input type="number" id="imageCount" class="input" min="1" max="10" value="1">
+                </div>
+
+                <div class="setting-group">
+                    <label for="seed" class="label">シード:</label>
+                    <input type="number" id="seed" class="input" value="-1" placeholder="-1 (ランダム)">
+                </div>
+
+                <div class="setting-group">
+                    <label for="filenameTemplate" class="label">ファイル名テンプレート:</label>
+                    <input type="text" id="filenameTemplate" class="input" value="{date}_{prompt}_{seed}_{idx}">
+                </div>
+            </section>
+
+            <!-- Progress Display -->
+            <section class="progress-section" id="progressSection" style="display: none;">
+                <h3 class="section-title">進捗</h3>
+                
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                
+                <div class="progress-info">
+                    <span id="progressText">0 / 0</span>
+                    <span id="etaText"></span>
+                </div>
+            </section>
+
+            <!-- Action Buttons -->
+            <section class="actions-section">
+                <button id="generateButton" class="button button-primary">
+                    生成開始
+                </button>
+                
+                <button id="cancelButton" class="button button-secondary" style="display: none;">
+                    キャンセル
+                </button>
+            </section>
+
+            <!-- Logs -->
+            <section class="logs-section">
+                <details>
+                    <summary class="logs-toggle">ログを表示</summary>
+                    <div class="logs-container" id="logsContainer">
+                        <div class="log-entry">
+                            <span class="log-time">[00:00:00]</span>
+                            <span class="log-message">拡張機能が読み込まれました</span>
+                        </div>
+                    </div>
+                </details>
+            </section>
+        </main>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>

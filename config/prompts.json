@@ -1,0 +1,52 @@
+[
+  {
+    "name": "美しい風景",
+    "prompt": "beautiful landscape, scenic view, natural lighting, high quality, detailed",
+    "negative": "blurry, low quality, distorted",
+    "parameters": {
+      "steps": 28,
+      "cfgScale": 7,
+      "sampler": "euler_a"
+    }
+  },
+  {
+    "name": "アニメ風キャラクター",
+    "prompt": "anime girl, masterpiece, best quality, detailed face, beautiful eyes, flowing hair",
+    "negative": "low quality, blurry, bad anatomy, deformed",
+    "parameters": {
+      "steps": 32,
+      "cfgScale": 8,
+      "sampler": "euler_a"
+    }
+  },
+  {
+    "name": "サイバーパンク都市",
+    "prompt": "cyberpunk city, neon lights, futuristic, night scene, detailed architecture, atmospheric",
+    "negative": "low quality, blurry, pixelated",
+    "parameters": {
+      "steps": 30,
+      "cfgScale": 7.5,
+      "sampler": "dpm_2m"
+    }
+  },
+  {
+    "name": "ファンタジー森",
+    "prompt": "fantasy forest, magical, mystical atmosphere, ancient trees, soft lighting, detailed",
+    "negative": "modern elements, low quality, blurry",
+    "parameters": {
+      "steps": 28,
+      "cfgScale": 7,
+      "sampler": "euler_a"
+    }
+  },
+  {
+    "name": "宇宙空間",
+    "prompt": "space scene, stars, galaxies, nebula, cosmic, beautiful colors, high detail",
+    "negative": "low quality, blurry, earth elements",
+    "parameters": {
+      "steps": 30,
+      "cfgScale": 6.5,
+      "sampler": "dpm_2m"
+    }
+  }
+]
