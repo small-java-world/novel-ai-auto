@@ -69,7 +69,7 @@ async function initializeDefaultSettings(): Promise<void> {
 async function handleStartGeneration(
   message: any,
   _sender: chrome.runtime.MessageSender,
-  sendResponse: (response: any) => void
+  _sendResponse: (_response: any) => void
 ): Promise<void> {
   try {
     console.log('Starting generation with prompt:', message.prompt);
@@ -86,10 +86,13 @@ async function handleStartGeneration(
       });
     }
 
-    sendResponse({ success: true });
+    _sendResponse({ success: true });
   } catch (error) {
     console.error('Failed to start generation:', error);
-    sendResponse({ success: false, error: error instanceof Error ? error.message : String(error) });
+    _sendResponse({
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 
@@ -99,15 +102,18 @@ async function handleStartGeneration(
 async function handleCancelJob(
   message: any,
   _sender: chrome.runtime.MessageSender,
-  sendResponse: (response: any) => void
+  _sendResponse: (_response: any) => void
 ): Promise<void> {
   try {
     console.log('Cancelling job:', message.jobId);
     // TODO: Implement job cancellation logic
-    sendResponse({ success: true });
+    _sendResponse({ success: true });
   } catch (error) {
     console.error('Failed to cancel job:', error);
-    sendResponse({ success: false, error: error instanceof Error ? error.message : String(error) });
+    _sendResponse({
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 
@@ -117,7 +123,7 @@ async function handleCancelJob(
 async function handleDownloadImage(
   message: any,
   _sender: chrome.runtime.MessageSender,
-  sendResponse: (response: any) => void
+  _sendResponse: (_response: any) => void
 ): Promise<void> {
   try {
     const { url, filename } = message;
@@ -129,10 +135,13 @@ async function handleDownloadImage(
       conflictAction: 'uniquify',
     });
 
-    sendResponse({ success: true, downloadId });
+    _sendResponse({ success: true, downloadId });
   } catch (error) {
     console.error('Failed to download image:', error);
-    sendResponse({ success: false, error: error instanceof Error ? error.message : String(error) });
+    _sendResponse({
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 

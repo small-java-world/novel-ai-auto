@@ -4,16 +4,34 @@
   "description": "Chrome extension for automating NovelAI image generation",
   "type": "module",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --project tsconfig.build.json",
+    "build:prod": "tsc --sourceMap false",
     "dev": "tsc --watch",
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:unit": "vitest run --reporter=verbose",
+    "type-check": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.js",
     "lint:fix": "eslint src --ext .ts,.js --fix",
-    "format": "prettier --write \"src/**/*.{ts,js,json}\"",
+    "format": "prettier --write \"src/**/*.{ts,js,json}\" \"test/**/*.{ts,js,json}\" \"*.{ts,js,json}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,js,json}\" \"test/**/*.{ts,js,json}\" \"*.{ts,js,json}\"",
     "clean": "rimraf dist",
-    "prebuild": "npm run clean"
+    "prebuild": "npm run clean",
+    "precommit": "lint-staged && npm run test:unit",
+    "prepush": "npm run test:coverage && npm run build",
+    "release": "npm run test:coverage && npm run build:prod",
+    "audit": "npm audit --audit-level=moderate",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,js}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
   },
   "devDependencies": {
     "@types/chrome": "^0.0.268",
@@ -25,6 +43,8 @@
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.1.0",
     "happy-dom": "^14.12.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.6",
     "prettier": "^3.3.0",
     "rimraf": "^5.0.7",
     "typescript": "^5.4.0",

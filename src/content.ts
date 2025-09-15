@@ -29,7 +29,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
  */
 async function handleApplyPrompt(
   message: any,
-  sendResponse: (response: any) => void
+  _sendResponse: (_response: any) => void
 ): Promise<void> {
   try {
     console.log('Applying prompt:', message.prompt);
@@ -37,7 +37,7 @@ async function handleApplyPrompt(
     // Check if user is logged in
     const isLoggedIn = await checkLoginStatus();
     if (!isLoggedIn) {
-      sendResponse({
+      _sendResponse({
         success: false,
         error: 'User not logged in',
         requiresLogin: true,
@@ -62,17 +62,20 @@ async function handleApplyPrompt(
     // Start generation
     await startGeneration();
 
-    sendResponse({ success: true });
+    _sendResponse({ success: true });
   } catch (error) {
     console.error('Failed to apply prompt:', error);
-    sendResponse({ success: false, error: error instanceof Error ? error.message : String(error) });
+    _sendResponse({
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 
 /**
  * Handle getting current page state
  */
-function handleGetPageState(sendResponse: (response: any) => void): void {
+function handleGetPageState(_sendResponse: (_response: any) => void): void {
   try {
     const state = {
       isNovelAIPage: window.location.hostname === 'novelai.net',
@@ -81,10 +84,13 @@ function handleGetPageState(sendResponse: (response: any) => void): void {
       currentUrl: window.location.href,
     };
 
-    sendResponse({ success: true, state });
+    _sendResponse({ success: true, state });
   } catch (error) {
     console.error('Failed to get page state:', error);
-    sendResponse({ success: false, error: error instanceof Error ? error.message : String(error) });
+    _sendResponse({
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 

@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run tests
+        run: npm run test:coverage
+        
+      - name: Build production
+        run: npm run build:prod
+        
+      - name: Create extension package
+        run: |
+          mkdir -p release
+          cp -r dist/* release/
+          cp manifest.json release/
+          cp -r popup release/
+          cp -r config release/
+          cd release && zip -r ../novelai-auto-generator.zip .
+          
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            Chrome Extension Package
+            
+            ## Installation
+            1. Download `novelai-auto-generator.zip`
+            2. Extract the zip file
+            3. Load as unpacked extension in Chrome
+            
+          draft: false
+          prerelease: false
+          
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./novelai-auto-generator.zip
+          asset_name: novelai-auto-generator.zip
+          asset_content_type: application/zip

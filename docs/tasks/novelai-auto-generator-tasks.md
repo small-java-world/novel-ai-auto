@@ -3,8 +3,24 @@
 ## 概要
 
 全タスク数: 26
-推定作業時間: 8.5〜12.5 人日
+推定作業時間: 8.5〜12.5 人日  
+**進捗**: 1/26 完了 (TASK-000 ✅)
 クリティカルパス: TASK-060 → TASK-061 → TASK-031 → TASK-030 → TASK-020 → TASK-021 → TASK-022 → TASK-033 → TASK-041 → TASK-043 → TASK-081
+
+### プロジェクト状況 📊
+
+- **完了**: TASK-000 (プロジェクト基盤) ✅ 2025-09-14
+- **次のタスク**: TASK-001 (CI/品質ゲート) 📍
+- **ブロッカー**: なし
+- **技術スタック**: TypeScript + Vitest + Chrome Extension MV3
+
+### 主要成果物 (TASK-000)
+
+- ✅ Chrome Extension Manifest V3 対応
+- ✅ TypeScript 厳密設定 + Vitest テスト環境
+- ✅ Service Worker、Content Script、Popup UI の基盤
+- ✅ Chrome API モック、型定義、ESLint/Prettier
+- ✅ 7/7 テスト合格、ビルド成功
 
 ## タスク一覧
 
@@ -12,42 +28,64 @@
 
 #### TASK-000: プロジェクト構成と基本ツール設定
 
-- [ ] **タスク完了**
+- [x] **タスク完了** ✅ **2025-09-14 完了**
 - **タスクタイプ**: DIRECT
 - **要件リンク**: REQ-401, REQ-403, REQ-404
 - **依存タスク**: なし
 - **実装詳細**:
-  - `manifest.json` 雛形、`background.js`(SW), `content.js`, `popup/` ディレクトリ作成
-  - TypeScript 設定（tsconfig, ビルドスクリプト）またはJSで開始し必要箇所TS導入
-  - 単体テスト環境（Vitest/Jest）とカバレッジ設定
+  - `manifest.json` Chrome Extension Manifest V3対応
+  - TypeScript + Vitest環境構築
+  - Service Worker (`background.ts`), Content Script (`content.ts`), Popup UI
+  - 型定義とChrome APIモック環境
 - **テスト要件**:
-  - [ ] ビルド/型チェックが成功する
-  - [ ] テスト実行とカバレッジ収集が可能
-- **完了条件**:
-  - [ ] 拡張が unpacked で読み込める最小構成が存在
+  - [x] ビルド/型チェックが成功する
+  - [x] テスト実行とカバレッジ収集が可能
+- **実装結果**:
+  - [x] 拡張が unpacked で読み込める最小構成が完成
+  - [x] TypeScript厳密設定でコンパイル成功
+  - [x] Vitest 7/7 テスト合格
+  - [x] ESLint + Prettier設定完了
+- **実装ファイル**:
+  - `manifest.json`, `package.json`, `tsconfig.json`, `vitest.config.ts`
+  - `src/background.ts`, `src/content.ts`, `src/types.ts`
+  - `popup/popup.html`, `popup/popup.css`, `popup/popup.js`
+  - `config/prompts.json`, `test/setup.ts`
+- **Next Step**: TASK-001 (CI/品質ゲート設定)
 
-#### TASK-001: CI/品質ゲート設定
+#### TASK-001: CI/品質ゲート設定 📍 **NEXT**
 
 - [ ] **タスク完了**
 - **タスクタイプ**: DIRECT
 - **要件リンク**: NFR-001, NFR-201
-- **依存タスク**: TASK-000
+- **依存タスク**: TASK-000 ✅
 - **実装詳細**:
-  - lint/format（ESLint/Prettier）
-  - CI でテスト・ビルド・lint を実行
+  - GitHub Actions ワークフロー設定
+  - 自動テスト・ビルド・lint実行
+  - コードカバレッジレポート生成
+  - 依存関係脆弱性チェック
+  - pre-commit/pre-push フック設定
 - **テスト要件**:
   - [ ] Lint ルール適用確認
-  - [ ] CI 成功
+  - [ ] CI 全ジョブ成功
+  - [ ] カバレッジ80%以上維持
 - **エラーハンドリング要件**:
   - [ ] Lint/テスト失敗時にCIが失敗し原因が明示される
   - [ ] フォーマット差分は自動修正コマンドで解決可能
+  - [ ] 依存関係の脆弱性検出時に警告
 - **完了条件**:
+  - [ ] GitHub ActionsでCI/CDパイプライン稼働
   - [ ] CIでビルド/テスト/リンターがグリーン
   - [ ] ローカルで`npm run test`/`lint`/`format`が成功
+  - [ ] Codecov等でカバレッジレポート確認可能
+- **実装予定ファイル**:
+  - `.github/workflows/ci.yml`
+  - `.github/workflows/release.yml`
+  - `package.json` (scripts拡張)
+  - `.husky/pre-commit`, `.husky/pre-push`
 
 ### フェーズ1: ストレージ・ユーティリティ
 
-#### TASK-010: ストレージラッパー実装（chrome.storage）
+#### TASK-010: ストレージラッパー実装（chrome.storage） 🔄 **待機中**
 
 - [ ] **タスク完了**
 - **タスクタイプ**: TDD
