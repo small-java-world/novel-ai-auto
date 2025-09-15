@@ -8,10 +8,10 @@ const mockChromeStorage = {
     get: vi.fn(),
     set: vi.fn(),
     clear: vi.fn(),
-    onChanged: {
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-    },
+  },
+  onChanged: {
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
   },
 };
 
@@ -33,6 +33,37 @@ describe('ストレージラッパー実装', () => {
     mockChromeStorage.local.get.mockResolvedValue({});
     mockChromeStorage.local.set.mockResolvedValue(undefined);
     storage = createStorage();
+  });
+
+  describe('境界条件と安定性', () => {
+    test('ジョブ件数上限近傍でも安定して保存・取得できる', async () => {
+      // 【テスト目的】: jobs配列が大きい場合（上限に近い）でも set/get が安定して動作することを確認
+      // 【テスト内容】: 1万件程度の軽量ジョブを保存 → 取得し、件数といくつかの要素が一致することを検証
+      // 【期待される動作】: MAX_DATA_SIZE_BYTES(8MB) 未満であれば success: true を返し、取得も正しく復元される
+      // 🟡 信頼性レベル: NFR-002 の実運用負荷境界に対する妥当な推測テスト
+
+      // 【テストデータ準備】: 軽量オブジェクトを用いて1万件を生成（JSONサイズは8MB未満想定）
+      const largeJobs = Array.from({ length: 10_000 }, (_, i) => ({
+        id: `job-${i}`,
+        status: 'done',
+        prompt: 'p',
+        createdAt: new Date(2025, 0, 1).toISOString(),
+      }));
+
+      // 【実際の処理実行】: 大量データを保存
+      const setResult = await storage.set('jobs', largeJobs);
+      expect(setResult.success).toBe(true); // 【確認内容】: 容量上限未満で成功する 🟢
+
+      // 取得時に大規模配列を返すようモック
+      mockChromeStorage.local.get.mockResolvedValueOnce({ namespace_jobs: largeJobs });
+
+      // 【実際の処理実行】: 取得して同等性を確認
+      const got = await storage.get('jobs');
+      expect(Array.isArray(got)).toBe(true);
+      expect(got.length).toBe(largeJobs.length);
+      expect(got[0]).toEqual(largeJobs[0]);
+      expect(got[9999]).toEqual(largeJobs[9999]);
+    });
   });
 
   afterEach(() => {
@@ -207,7 +238,7 @@ describe('ストレージラッパー実装', () => {
       storage.observe('settings', mockCallback);
 
       // Chrome storage onChanged イベントを手動で発火（テスト用）
-      const registeredCallback = mockChromeStorage.local.onChanged.addListener.mock.calls[0][0];
+      const registeredCallback = mockChromeStorage.onChanged.addListener.mock.calls[0][0];
       registeredCallback(changeData, 'local');
 
       // 【結果検証】: コールバック関数が正しい引数で実行されることを確認
@@ -216,7 +247,7 @@ describe('ストレージラッパー実装', () => {
         newValue: { imageCount: 3 },
         oldValue: { imageCount: 1 },
       }); // 【確認内容】: コールバックが変更データと共に呼び出されたことを確認 🟢
-      expect(mockChromeStorage.local.onChanged.addListener).toHaveBeenCalledTimes(1); // 【確認内容】: Chrome APIのイベントリスナーが1回だけ登録されたことを確認 🟢
+      expect(mockChromeStorage.onChanged.addListener).toHaveBeenCalledTimes(1); // 【確認内容】: Chrome APIのイベントリスナーが1回だけ登録されたことを確認 🟢
     });
 
     test('複数の名前空間を同時監視する場合の分離処理', async () => {
@@ -242,7 +273,7 @@ describe('ストレージラッパー実装', () => {
       storage.observe('jobs', jobsCallback);
 
       // Chrome storage onChanged イベントを手動で発火（settings変更のみ）
-      const registeredCallback = mockChromeStorage.local.onChanged.addListener.mock.calls[0][0];
+      const registeredCallback = mockChromeStorage.onChanged.addListener.mock.calls[0][0];
       registeredCallback(changeData, 'local');
 
       // 【結果検証】: 該当する名前空間のコールバックのみが実行されることを確認
@@ -301,8 +332,15 @@ describe('ストレージラッパー実装', () => {
       // 【期待値確認】: エラーの種類と理由が明確に示され、開発者が問題を特定できる
       expect(result).toEqual({
         success: false,
-        error: 'Failed to serialize data: Converting circular structure to JSON',
-        context: { namespace: 'settings' },
+        error: expect.stringContaining(
+          'Failed to serialize data: Converting circular structure to JSON'
+        ),
+        context: {
+          namespace: 'settings',
+          operation: 'set',
+          errorCode: 'SERIALIZATION_FAILED',
+          timestamp: expect.any(Number),
+        },
       }); // 【確認内容】: JSON シリアライズエラーが適切に検知されエラー情報が返されることを確認 🟢
     });
 
@@ -332,7 +370,12 @@ describe('ストレージラッパー実装', () => {
       expect(result).toEqual({
         success: false,
         error: 'Storage quota exceeded. Please reduce data size or clear old data.',
-        context: { namespace: 'settings', errorType: 'QuotaExceededError' },
+        context: {
+          namespace: 'settings',
+          operation: 'set',
+          errorCode: 'QUOTA_EXCEEDED',
+          timestamp: expect.any(Number),
+        },
       }); // 【確認内容】: 容量制限エラーが検知され適切なエラーメッセージが返されることを確認 🟡
     });
   });

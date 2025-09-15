@@ -84,6 +84,21 @@ export interface GenerationSettings {
   retrySettings: RetrySettings;
 }
 
+// File Name Template Types (TASK-011)
+export interface FileNameTemplateContext {
+  date: string; // YYYYMMDD-HHmmss format
+  prompt: string;
+  seed?: string;
+  idx?: number;
+}
+
+export interface FileNameSanitizeOptions {
+  maxLength?: number; // Default: 255 (excluding extension)
+  forbiddenChars?: RegExp | string[]; // Default: Windows compatible chars
+  replacement?: string; // Default: "_"
+  collisionResolver?: (_base: string, _i: number) => string;
+}
+
 export interface RetrySettings {
   maxRetries: number;
   baseDelay: number;
