@@ -13,6 +13,13 @@ const REGEX_PATTERNS = {
   UNCLOSED_BRACE: /\{[^}]*$/,
 } as const;
 
+// Internal: 正規化済みサニタイズ設定（型安全性向上のため）
+interface NormalizedSanitizeConfig {
+  maxLength: number;
+  forbiddenChars: RegExp | string[];
+  replacement: string;
+  collisionResolver?: (_base: string, _i: number) => string;
+}
 // 【設定管理】: デフォルト値を一元管理し保守性を向上 🟢
 const DEFAULT_CONFIG = {
   MAX_LENGTH: 255,
@@ -40,6 +47,32 @@ export function generateFileName(template: string, context: FileNameTemplateCont
   validateTemplateInputs(template, context);
   const expanded = expandTemplateTokens(template, context);
   return applyFallbackIfEmpty(expanded);
+}
+
+/**
+ * 【機能概要】: テンプレート展開とサニタイズ処理を一括で行い、拡張子保持や最大長などの制約に適合する安全なファイル名を生成する
+ * 【実装方針】: 既存の `generateFileName` と `sanitizeFileName` を最小限に合成し、Redフェーズで要求された総合関数のテストを通す
+ * 【テスト対応】: file-name-template-sanitization（RED）で追加した2つのテストケースを満たす（拡張子保持・最大長・禁止文字除去・凝集・フォールバック）
+ * 🟢 信頼性レベル: 仕様と実装（docs/design と本ファイルの既存関数）に基づく合成であり、推測をほぼ含まない
+ * @param template テンプレート文字列（例: "{date}_{prompt}_{seed}_{idx}.png"）
+ * @param context テンプレート展開に用いるコンテキスト
+ * @param options サニタイズ時のオプション（最大長・禁止文字集合・置換文字・衝突解決）
+ * @returns サニタイズ済みの安全なファイル名
+ */
+export function generateSanitizedFileName(
+  template: string,
+  context: FileNameTemplateContext,
+  options?: FileNameSanitizeOptions
+): string {
+  // 【入力値検証】: 既存の `generateFileName` がテンプレートとコンテキストを検証するため重複検証は行わない（最小実装）🟢
+  const name = generateFileName(template, context);
+
+  // 【データ処理開始】: 生成済みのファイル名に対してサニタイズ処理を適用 🟢
+  // 【処理方針】: 既存の `sanitizeFileName` をそのまま呼び出すことで禁止文字置換・凝集・末尾除去・最大長（拡張子保持）を満たす 🟢
+  const safe = sanitizeFileName(name, options);
+
+  // 【結果返却】: サニタイズ済みの安全なファイル名を返す 🟢
+  return safe;
 }
 
 /**
@@ -119,7 +152,10 @@ export function sanitizeFileName(input: string, options?: FileNameSanitizeOption
  * 【オプション正規化】: 入力値検証とデフォルト設定の適用
  * 【改善内容】: セキュリティ強化とバリデーションの分離
  */
-function validateAndNormalizeOptions(input: string, options?: FileNameSanitizeOptions) {
+function validateAndNormalizeOptions(
+  input: string,
+  options?: FileNameSanitizeOptions
+): NormalizedSanitizeConfig {
   if (typeof input !== 'string') {
     throw new Error('入力値は文字列である必要があります');
   }
@@ -129,7 +165,7 @@ function validateAndNormalizeOptions(input: string, options?: FileNameSanitizeOp
     throw new Error(`入力が長すぎます（最大${SECURITY_LIMITS.MAX_INPUT_LENGTH}文字）`);
   }
 
-  const config = {
+  const config: NormalizedSanitizeConfig = {
     maxLength: options?.maxLength || DEFAULT_CONFIG.MAX_LENGTH,
     forbiddenChars: options?.forbiddenChars || REGEX_PATTERNS.FORBIDDEN_CHARS,
     replacement: options?.replacement || DEFAULT_CONFIG.REPLACEMENT_CHAR,
@@ -147,7 +183,7 @@ function validateAndNormalizeOptions(input: string, options?: FileNameSanitizeOp
  * 【サニタイズパイプライン】: 禁止文字除去から長さ制御まで段階的処理
  * 【パフォーマンス】: 事前コンパイル済み正規表現を使用
  */
-function applySanitizePipeline(input: string, config: any): string {
+function applySanitizePipeline(input: string, config: NormalizedSanitizeConfig): string {
   let result = input;
 
   // 【禁止文字置換】: 効率的な置換処理 🟢
@@ -169,7 +205,7 @@ function applySanitizePipeline(input: string, config: any): string {
  * 【禁止文字置換】: Windows禁止文字の効率的な置換
  * 【パフォーマンス】: 事前コンパイル済み正規表現を活用
  */
-function replaceForbiddenChars(input: string, config: any): string {
+function replaceForbiddenChars(input: string, config: NormalizedSanitizeConfig): string {
   if (config.forbiddenChars instanceof RegExp) {
     const globalRegex = new RegExp(config.forbiddenChars.source, 'g');
     return input.replace(globalRegex, config.replacement);
@@ -219,7 +255,7 @@ function truncateWithExtensionPreservation(input: string, maxLength: number): st
  * 【衝突回避】: ファイル名重複時の解決処理
  * 【セキュリティ】: 無限ループ防止機能を追加
  */
-function resolveCollisions(input: string, config: any): string {
+function resolveCollisions(input: string, config: NormalizedSanitizeConfig): string {
   if (!config.collisionResolver) {
     return input;
   }

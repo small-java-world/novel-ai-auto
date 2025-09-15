@@ -3,16 +3,12 @@
   "name": "NovelAI Auto Generator",
   "version": "0.1.0",
   "description": "NovelAIのWeb UIを自動化し、事前定義されたプロンプトで複数の画像を生成・保存するChrome拡張機能",
-
   "permissions": ["activeTab", "scripting", "downloads", "storage", "tabs"],
-
   "host_permissions": ["https://novelai.net/*"],
-
   "background": {
     "service_worker": "dist/background.js",
     "type": "module"
   },
-
   "content_scripts": [
     {
       "matches": ["https://novelai.net/*"],
@@ -20,18 +16,15 @@
       "run_at": "document_end"
     }
   ],
-
   "action": {
     "default_popup": "popup/popup.html",
     "default_title": "NovelAI Auto Generator"
   },
-
   "web_accessible_resources": [
     {
-      "resources": ["config/prompts.json"],
+      "resources": ["config/prompts.json", "config/samplers.json"],
       "matches": ["https://novelai.net/*"]
     }
   ],
-
   "minimum_chrome_version": "96"
 }

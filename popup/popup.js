@@ -16,7 +16,7 @@ const elements = {
   etaText: document.getElementById('etaText'),
   generateButton: document.getElementById('generateButton'),
   cancelButton: document.getElementById('cancelButton'),
-  logsContainer: document.getElementById('logsContainer')
+  logsContainer: document.getElementById('logsContainer'),
 };
 
 // State
@@ -26,7 +26,6 @@ let isGenerating = false;
 // Initialize popup
 document.addEventListener('DOMContentLoaded', async () => {
   await loadSettings();
-  await loadPrompts();
   setupEventListeners();
   updateUI();
   addLog('ポップアップが初期化されました');
@@ -36,17 +35,8 @@ document.addEventListener('DOMContentLoaded', async () => {
  * Load settings from storage
  */
 async function loadSettings() {
-  try {
-    const result = await chrome.storage.local.get(['settings']);
-    const settings = result.settings || {};
-    
-    elements.imageCount.value = settings.imageCount || 1;
-    elements.seed.value = settings.seed || -1;
-    elements.filenameTemplate.value = settings.filenameTemplate || '{date}_{prompt}_{seed}_{idx}';
-  } catch (error) {
-    console.error('Failed to load settings:', error);
-    addLog('設定の読み込みに失敗しました', 'error');
-  }
+  // disabled: dummy presets removed. Real presets loaded via presets-validation.js
+  return;
 }
 
 /**
@@ -57,9 +47,9 @@ async function saveSettings() {
     const settings = {
       imageCount: parseInt(elements.imageCount.value) || 1,
       seed: parseInt(elements.seed.value) || -1,
-      filenameTemplate: elements.filenameTemplate.value || '{date}_{prompt}_{seed}_{idx}'
+      filenameTemplate: elements.filenameTemplate.value || '{date}_{prompt}_{seed}_{idx}',
     };
-    
+
     await chrome.storage.local.set({ settings });
     addLog('設定を保存しました');
   } catch (error) {
@@ -71,33 +61,6 @@ async function saveSettings() {
 /**
  * Load prompts from config file
  */
-async function loadPrompts() {
-  try {
-    // For now, add some example prompts
-    // TODO: Load from actual config/prompts.json
-    const examplePrompts = [
-      { name: 'テスト用プロンプト 1', prompt: 'a beautiful landscape' },
-      { name: 'テスト用プロンプト 2', prompt: 'anime girl, masterpiece' },
-      { name: 'テスト用プロンプト 3', prompt: 'cyberpunk city, neon lights' }
-    ];
-    
-    // Clear existing options except the first one
-    elements.promptSelect.innerHTML = '<option value="">プロンプトを選択してください</option>';
-    
-    // Add prompt options
-    examplePrompts.forEach((promptData, index) => {
-      const option = document.createElement('option');
-      option.value = JSON.stringify(promptData);
-      option.textContent = promptData.name;
-      elements.promptSelect.appendChild(option);
-    });
-    
-    addLog(`${examplePrompts.length}個のプロンプトを読み込みました`);
-  } catch (error) {
-    console.error('Failed to load prompts:', error);
-    addLog('プロンプトの読み込みに失敗しました', 'error');
-  }
-}
 
 /**
  * Setup event listeners
@@ -105,15 +68,15 @@ async function loadPrompts() {
 function setupEventListeners() {
   // Generate button
   elements.generateButton.addEventListener('click', startGeneration);
-  
+
   // Cancel button
   elements.cancelButton.addEventListener('click', cancelGeneration);
-  
+
   // Settings change handlers
   elements.imageCount.addEventListener('change', saveSettings);
   elements.seed.addEventListener('change', saveSettings);
   elements.filenameTemplate.addEventListener('change', saveSettings);
-  
+
   // Listen for background script messages
   chrome.runtime.onMessage.addListener(handleMessage);
 }
@@ -128,33 +91,32 @@ async function startGeneration() {
       addLog('プロンプトを選択してください', 'error');
       return;
     }
-    
+
     const promptData = JSON.parse(selectedPrompt);
     const settings = {
       imageCount: parseInt(elements.imageCount.value) || 1,
       seed: parseInt(elements.seed.value) || -1,
-      filenameTemplate: elements.filenameTemplate.value
+      filenameTemplate: elements.filenameTemplate.value,
     };
-    
+
     isGenerating = true;
     updateUI();
     addLog(`生成を開始します: ${promptData.name}`);
-    
+
     // Send generation request to background script
     const response = await chrome.runtime.sendMessage({
       type: 'START_GENERATION',
       prompt: promptData.prompt,
       parameters: {
         seed: settings.seed,
-        count: settings.imageCount
+        count: settings.imageCount,
       },
-      settings: settings
+      settings,
     });
-    
+
     if (!response.success) {
       throw new Error(response.error);
     }
-    
   } catch (error) {
     console.error('Failed to start generation:', error);
     addLog(`生成の開始に失敗しました: ${error.message}`, 'error');
@@ -171,10 +133,10 @@ async function cancelGeneration() {
     if (currentJob) {
       await chrome.runtime.sendMessage({
         type: 'CANCEL_JOB',
-        jobId: currentJob.id
+        jobId: currentJob.id,
       });
     }
-    
+
     isGenerating = false;
     currentJob = null;
     updateUI();
@@ -188,7 +150,7 @@ async function cancelGeneration() {
 /**
  * Handle messages from background script
  */
-function handleMessage(message, sender, sendResponse) {
+function handleMessage(message, _sender, _sendResponse) {
   switch (message.type) {
     case 'GENERATION_PROGRESS':
       updateProgress(message.progress);
@@ -207,10 +169,10 @@ function handleMessage(message, sender, sendResponse) {
  */
 function updateProgress(progress) {
   const { current, total, eta } = progress;
-  
+
   elements.progressFill.style.width = `${(current / total) * 100}%`;
   elements.progressText.textContent = `${current} / ${total}`;
-  
+
   if (eta) {
     elements.etaText.textContent = `残り時間: ${formatDuration(eta)}`;
   }
@@ -254,10 +216,15 @@ function updateUI() {
     elements.generateButton.style.display = 'block';
     elements.cancelButton.style.display = 'none';
   }
-  
+
   // Enable/disable controls
-  const controls = [elements.promptSelect, elements.imageCount, elements.seed, elements.filenameTemplate];
-  controls.forEach(control => {
+  const controls = [
+    elements.promptSelect,
+    elements.imageCount,
+    elements.seed,
+    elements.filenameTemplate,
+  ];
+  controls.forEach((control) => {
     control.disabled = isGenerating;
   });
 }
@@ -268,26 +235,26 @@ function updateUI() {
 function addLog(message, type = 'info') {
   const logEntry = document.createElement('div');
   logEntry.className = 'log-entry';
-  
-  const time = new Date().toLocaleTimeString('ja-JP', { 
+
+  const time = new Date().toLocaleTimeString('ja-JP', {
     hour12: false,
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit'
+    second: '2-digit',
   });
-  
+
   logEntry.innerHTML = `
     <span class="log-time">[${time}]</span>
     <span class="log-message">${message}</span>
   `;
-  
+
   if (type === 'error') {
     logEntry.style.color = '#dc3545';
   }
-  
+
   elements.logsContainer.appendChild(logEntry);
   elements.logsContainer.scrollTop = elements.logsContainer.scrollHeight;
-  
+
   // Keep only last 50 entries
   while (elements.logsContainer.children.length > 50) {
     elements.logsContainer.removeChild(elements.logsContainer.firstChild);

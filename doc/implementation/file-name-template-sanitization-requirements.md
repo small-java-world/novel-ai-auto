@@ -1,93 +1,57 @@
-# TDD要件定義・機能仕様（TASK-011）
+# TDD隕∽ｻｶ螳夂ｾｩ繝ｻ讖溯・莉墓ｧ假ｼ・ASK-011・・
 
-【機能名】: ファイル名テンプレート/サニタイズ（File Name Template & Sanitization）
+縲先ｩ溯・蜷阪・ 繝輔ぃ繧､繝ｫ蜷阪ユ繝ｳ繝励Ξ繝ｼ繝・繧ｵ繝九ち繧､繧ｺ・・ile Name Template & Sanitization・・
 
-## 1. 機能の概要（EARS要件定義書・設計文書ベース）
+## 1. 讖溯・縺ｮ讎りｦ・ｼ・ARS隕∽ｻｶ螳夂ｾｩ譖ｸ繝ｻ險ｭ險域枚譖ｸ繝吶・繧ｹ・・
 
-- 🟢 何をする機能か: ユーザ設定のファイル名テンプレートに基づき、画像保存用の安全なファイル名を生成する。テンプレートのトークン展開、禁止文字の除去、長さ制御、重複回避を行う。
-- 🟢 どのような問題を解決するか: As a 画像収集者, I want 自動ダウンロード時に所定の命名規則で保存 so that 手動命名の手間や命名ミス・衝突を防ぎ整理が容易になる（ストーリー2）。
-- 🟢 想定されるユーザー: NovelAIユーザ/画像収集者（エンドユーザ）。
-- 🟢 システム内での位置づけ: Service Workerのダウンロード処理およびメッセージルータから呼ばれるユーティリティ。`IMAGE_READY`受信時にファイル名を確定するアプリケーション層機能。
-- 🟢 参照したEARS要件: REQ-004, REQ-303, EDGE-103, NFR-103
-- 🟢 参照した設計文書: docs/design/novelai-auto-generator/{interfaces.ts, api-endpoints.md, architecture.md}
+- 泙 菴輔ｒ縺吶ｋ讖溯・縺・ 繝ｦ繝ｼ繧ｶ險ｭ螳壹・繝輔ぃ繧､繝ｫ蜷阪ユ繝ｳ繝励Ξ繝ｼ繝医↓蝓ｺ縺･縺阪∫判蜒丈ｿ晏ｭ倡畑縺ｮ螳牙・縺ｪ繝輔ぃ繧､繝ｫ蜷阪ｒ逕滓・縺吶ｋ縲ゅユ繝ｳ繝励Ξ繝ｼ繝医・繝医・繧ｯ繝ｳ螻暮幕縲∫ｦ∵ｭ｢譁・ｭ励・髯､蜴ｻ縲・聞縺募宛蠕｡縲・㍾隍・屓驕ｿ繧定｡後≧縲・- 泙 縺ｩ縺ｮ繧医≧縺ｪ蝠城｡後ｒ隗｣豎ｺ縺吶ｋ縺・ As a 逕ｻ蜒丞庶髮・・ I want 閾ｪ蜍輔ム繧ｦ繝ｳ繝ｭ繝ｼ繝画凾縺ｫ謇螳壹・蜻ｽ蜷崎ｦ丞援縺ｧ菫晏ｭ・so that 謇句虚蜻ｽ蜷阪・謇矩俣繧・多蜷阪Α繧ｹ繝ｻ陦晉ｪ√ｒ髦ｲ縺取紛逅・′螳ｹ譏薙↓縺ｪ繧具ｼ医せ繝医・繝ｪ繝ｼ2・峨・- 泙 諠ｳ螳壹＆繧後ｋ繝ｦ繝ｼ繧ｶ繝ｼ: NovelAI繝ｦ繝ｼ繧ｶ/逕ｻ蜒丞庶髮・・ｼ医お繝ｳ繝峨Θ繝ｼ繧ｶ・峨・- 泙 繧ｷ繧ｹ繝・Β蜀・〒縺ｮ菴咲ｽｮ縺･縺・ Service Worker縺ｮ繝繧ｦ繝ｳ繝ｭ繝ｼ繝牙・逅・♀繧医・繝｡繝・そ繝ｼ繧ｸ繝ｫ繝ｼ繧ｿ縺九ｉ蜻ｼ縺ｰ繧後ｋ繝ｦ繝ｼ繝・ぅ繝ｪ繝・ぅ縲ＡIMAGE_READY`蜿嶺ｿ｡譎ゅ↓繝輔ぃ繧､繝ｫ蜷阪ｒ遒ｺ螳壹☆繧九い繝励Μ繧ｱ繝ｼ繧ｷ繝ｧ繝ｳ螻､讖溯・縲・- 泙 蜿ら・縺励◆EARS隕∽ｻｶ: REQ-004, REQ-303, EDGE-103, NFR-103
+- 泙 蜿ら・縺励◆險ｭ險域枚譖ｸ: docs/design/novelai-auto-generator/{interfaces.ts, api-endpoints.md, architecture.md}
 
-## 2. 入力・出力の仕様（EARS機能要件・TypeScript型定義ベース）
+## 2. 蜈･蜉帙・蜃ｺ蜉帙・莉墓ｧ假ｼ・ARS讖溯・隕∽ｻｶ繝ｻTypeScript蝙句ｮ夂ｾｩ繝吶・繧ｹ・・
 
-- 🟢 入力パラメータ:
-  - template: `string`（`Settings.fileNameTemplate`。例: `{date}_{prompt}_{seed}_{idx}`）
-  - ctx: `FileNameTemplateContext`（interfaces.ts L24-L29）
-    - `date: string` YYYYMMDD-HHmmss
+- 泙 蜈･蜉帙ヱ繝ｩ繝｡繝ｼ繧ｿ:
+  - template: `string`・・Settings.fileNameTemplate`縲ゆｾ・ `{date}_{prompt}_{seed}\_{idx}`・・  - ctx: `FileNameTemplateContext`・・nterfaces.ts L24-L29・・    - `date: string` YYYYMMDD-HHmmss
     - `prompt: string`
     - `seed?: string`
     - `idx?: number`
   - options?:
-    - `maxLength?: number` デフォルト255（拡張子含まず/含むの定義は実装で明示）
-    - `forbiddenChars?: RegExp | string[]` OS依存禁止文字集合（デフォルト: Windows互換）
-    - `replacement?: string` デフォルト "\_"
-    - `collisionResolver?: (base:string, i:number)=>string` 重複時のサフィックス生成（例: `_001`）
-- 🟢 出力値:
-  - `string` サニタイズ・短縮・衝突回避後のファイル名（拡張子は呼び出し側で付与する想定。呼び出し側で付与済みの場合、拡張子保持のまま処理）。
-- 🟢 入出力の関係性: `template`内のトークンを`ctx`で解決→サニタイズ→長さ調整→衝突回避（必要なら）
-- 🟢 データフロー: Content Scriptが`IMAGE_READY`相当のURLを検出→SWへ`IMAGE_READY`送信→SWがテンプレート展開して`DOWNLOAD_IMAGE`実行（dataflow参照）
-- 🟢 参照したEARS要件: REQ-004, REQ-303, EDGE-103, NFR-103
-- 🟢 参照した設計文書: interfaces.ts（`FileNameTemplateContext`, `Settings`）, api-endpoints.md（`IMAGE_READY`, `DOWNLOAD_IMAGE`）
+    - `maxLength?: number` 繝・ヵ繧ｩ繝ｫ繝・55・域僑蠑ｵ蟄仙性縺ｾ縺・蜷ｫ繧縺ｮ螳夂ｾｩ縺ｯ螳溯｣・〒譏守､ｺ・・ - `forbiddenChars?: RegExp | string[]` OS萓晏ｭ倡ｦ∵ｭ｢譁・ｭ鈴寔蜷茨ｼ医ョ繝輔か繝ｫ繝・ Windows莠呈鋤・・ - `replacement?: string` 繝・ヵ繧ｩ繝ｫ繝・"\_"
+    - `collisionResolver?: (base:string, i:number)=>string` 驥崎､・凾縺ｮ繧ｵ繝輔ぅ繝・け繧ｹ逕滓・・井ｾ・ `_001`・・- 泙 蜃ｺ蜉帛､:
+  - `string` 繧ｵ繝九ち繧､繧ｺ繝ｻ遏ｭ邵ｮ繝ｻ陦晉ｪ∝屓驕ｿ蠕後・繝輔ぃ繧､繝ｫ蜷搾ｼ域僑蠑ｵ蟄舌・蜻ｼ縺ｳ蜃ｺ縺怜・縺ｧ莉倅ｸ弱☆繧区Φ螳壹ょ他縺ｳ蜃ｺ縺怜・縺ｧ莉倅ｸ取ｸ医∩縺ｮ蝣ｴ蜷医∵僑蠑ｵ蟄蝉ｿ晄戟縺ｮ縺ｾ縺ｾ蜃ｦ逅・ｼ峨・- 泙 蜈･蜃ｺ蜉帙・髢｢菫よｧ: `template`蜀・・繝医・繧ｯ繝ｳ繧蛋ctx`縺ｧ隗｣豎ｺ竊偵し繝九ち繧､繧ｺ竊帝聞縺戊ｪｿ謨ｴ竊定｡晉ｪ∝屓驕ｿ・亥ｿ・ｦ√↑繧会ｼ・- 泙 繝・・繧ｿ繝輔Ο繝ｼ: Content Script縺形IMAGE_READY`逶ｸ蠖薙・URL繧呈､懷・竊担W縺ｸ`IMAGE_READY`騾∽ｿ｡竊担W縺後ユ繝ｳ繝励Ξ繝ｼ繝亥ｱ暮幕縺励※`DOWNLOAD_IMAGE`螳溯｡鯉ｼ・ataflow蜿ら・・・- 泙 蜿ら・縺励◆EARS隕∽ｻｶ: REQ-004, REQ-303, EDGE-103, NFR-103
+- 泙 蜿ら・縺励◆險ｭ險域枚譖ｸ: interfaces.ts・・FileNameTemplateContext`, `Settings`・・ api-endpoints.md・・IMAGE_READY`, `DOWNLOAD_IMAGE`・・
 
-## 3. 制約条件（EARS非機能要件・アーキテクチャ設計ベース）
+## 3. 蛻ｶ邏・擅莉ｶ・・ARS髱樊ｩ溯・隕∽ｻｶ繝ｻ繧｢繝ｼ繧ｭ繝・け繝√Ε險ｭ險医・繝ｼ繧ｹ・・
 
-- 🟢 パフォーマンス要件: NFR-002（UI反映500ms以内）に影響しない同期処理。テンプレ展開/サニタイズは1ms〜数ms程度で完了すること。
-- 🟢 セキュリティ要件: NFR-103（サニタイズ）。パスインジェクションと不正文字を排除。ディレクトリ区切りや先頭・末尾のドット連続は安全に処理。
-- 🟢 互換性要件: REQ-404（最低サポートChrome）。ファイル名ルールはクロスプラットフォームだが、既定はWindows禁止文字ベース（<>:"/\|?\*）と制御文字、非推奨末尾（ピリオド/空白）を考慮。
-- 🟢 アーキテクチャ制約: MV3のService Worker内で純粋関数的に実行可能であること。副作用は持たない（衝突回避はコールバックで外部状態と連携）。
-- 🔴 データベース制約: 外部DBなし（chrome.downloadsの仕様に依存）。
-- 🟢 API制約: `chrome.downloads.download` の`filename`規約に準拠。長さと禁止文字を満たす必要。
-- 🟢 参照したEARS要件: NFR-103, REQ-004, REQ-404
-- 🟢 参照した設計文書: architecture.md（SWの責務）, api-endpoints.md（DOWNLOAD_IMAGE）
+- 泙 繝代ヵ繧ｩ繝ｼ繝槭Φ繧ｹ隕∽ｻｶ: NFR-002・・I蜿肴丐500ms莉･蜀・ｼ峨↓蠖ｱ髻ｿ縺励↑縺・酔譛溷・逅・ゅユ繝ｳ繝励Ξ螻暮幕/繧ｵ繝九ち繧､繧ｺ縺ｯ1ms縲懈焚ms遞句ｺｦ縺ｧ螳御ｺ・☆繧九％縺ｨ縲・- 泙 繧ｻ繧ｭ繝･繝ｪ繝・ぅ隕∽ｻｶ: NFR-103・医し繝九ち繧､繧ｺ・峨ゅヱ繧ｹ繧､繝ｳ繧ｸ繧ｧ繧ｯ繧ｷ繝ｧ繝ｳ縺ｨ荳肴ｭ｣譁・ｭ励ｒ謗帝勁縲ゅョ繧｣繝ｬ繧ｯ繝医Μ蛹ｺ蛻・ｊ繧・・鬆ｭ繝ｻ譛ｫ蟆ｾ縺ｮ繝峨ャ繝磯｣邯壹・螳牙・縺ｫ蜃ｦ逅・・- 泙 莠呈鋤諤ｧ隕∽ｻｶ: REQ-404・域怙菴弱し繝昴・繝・hrome・峨ゅヵ繧｡繧､繝ｫ蜷阪Ν繝ｼ繝ｫ縺ｯ繧ｯ繝ｭ繧ｹ繝励Λ繝・ヨ繝輔か繝ｼ繝縺縺後∵里螳壹・Windows遖∵ｭ｢譁・ｭ励・繝ｼ繧ｹ・・>:"/\|?\*・峨→蛻ｶ蠕｡譁・ｭ励・撼謗ｨ螂ｨ譛ｫ蟆ｾ・医ヴ繝ｪ繧ｪ繝・遨ｺ逋ｽ・峨ｒ閠・・縲・- 泙 繧｢繝ｼ繧ｭ繝・け繝√Ε蛻ｶ邏・ MV3縺ｮService Worker蜀・〒邏皮ｲ矩未謨ｰ逧・↓螳溯｡悟庄閭ｽ縺ｧ縺ゅｋ縺薙→縲ょ憶菴懃畑縺ｯ謖√◆縺ｪ縺・ｼ郁｡晉ｪ∝屓驕ｿ縺ｯ繧ｳ繝ｼ繝ｫ繝舌ャ繧ｯ縺ｧ螟夜Κ迥ｶ諷九→騾｣謳ｺ・峨・- 閥 繝・・繧ｿ繝吶・繧ｹ蛻ｶ邏・ 螟夜ΚDB縺ｪ縺暦ｼ・hrome.downloads縺ｮ莉墓ｧ倥↓萓晏ｭ假ｼ峨・- 泙 API蛻ｶ邏・ `chrome.downloads.download` 縺ｮ`filename`隕冗ｴ・↓貅匁侠縲る聞縺輔→遖∵ｭ｢譁・ｭ励ｒ貅縺溘☆蠢・ｦ√・- 泙 蜿ら・縺励◆EARS隕∽ｻｶ: NFR-103, REQ-004, REQ-404
+- 泙 蜿ら・縺励◆險ｭ險域枚譖ｸ: architecture.md・・W縺ｮ雋ｬ蜍呻ｼ・ api-endpoints.md・・OWNLOAD_IMAGE・・
 
-## 4. 想定される使用例（EARSEdgeケース・データフローベース）
+## 4. 諠ｳ螳壹＆繧後ｋ菴ｿ逕ｨ萓具ｼ・ARSEdge繧ｱ繝ｼ繧ｹ繝ｻ繝・・繧ｿ繝輔Ο繝ｼ繝吶・繧ｹ・・
 
-- 🟢 基本的な使用パターン:
+- 泙 蝓ｺ譛ｬ逧・↑菴ｿ逕ｨ繝代ち繝ｼ繝ｳ:
   - template: `{date}_{prompt}_{seed}_{idx}`
   - ctx: `{ date: "20240914-120000", prompt: "masterpiece, 1girl", seed: "12345", idx: 1 }`
-  - 出力例: `20240914-120000_masterpiece-1girl_12345_001`
-- 🟢 データフロー: Content Script→SW（IMAGE_READY）→テンプレ展開→DOWNLOAD_IMAGE。
-- 🟢 エッジケース:
-  - EDGE-103-1 禁止文字含有: `prompt="a<b>:\/|?*"` → `a_b________` に置換（連続はまとめて"\_")
-  - EDGE-103-2 長大名: 255超なら末尾優先で切詰め、拡張子保持（`.png`）。
-  - EDGE-103-3 未知トークン: `{unknown}` は空に解決し警告ログ。
-  - EDGE-103-4 空結果: すべて空となる場合は`untitled`にフォールバック。
-  - EDGE-103-5 末尾不正: 末尾の`.`/空白は除去。
-  - EDGE-103-6 衝突回避: 既存重複時は `_001`, `_002`…を付与（上限到達時は明示エラー）。
-- 🟢 エラーケース:
-  - 無効なテンプレ（未閉カール）→テンプレ解決エラー
-  - 非文字型入力や`maxLength<=0`→引数バリデーションエラー
-- 🟢 参照したEARS要件: EDGE-103, NFR-103, REQ-303
-- 🟢 参照した設計文書: dataflow.md（DOWNLOADフロー）
+  - 蜃ｺ蜉帑ｾ・ `20240914-120000_masterpiece-1girl_12345_001`
+- 泙 繝・・繧ｿ繝輔Ο繝ｼ: Content Script竊担W・・MAGE_READY・俄・繝・Φ繝励Ξ螻暮幕竊奪OWNLOAD_IMAGE縲・- 泙 繧ｨ繝・ず繧ｱ繝ｼ繧ｹ:
+  - EDGE-103-1 遖∵ｭ｢譁・ｭ怜性譛・ `prompt="a<b>:\/|?*"` 竊・`a_b________` 縺ｫ鄂ｮ謠幢ｼ磯｣邯壹・縺ｾ縺ｨ繧√※"\_")
+  - EDGE-103-2 髟ｷ螟ｧ蜷・ 255雜・↑繧画忰蟆ｾ蜆ｪ蜈医〒蛻・ｩｰ繧√∵僑蠑ｵ蟄蝉ｿ晄戟・・.png`・峨・  - EDGE-103-3 譛ｪ遏･繝医・繧ｯ繝ｳ: `{unknown}` 縺ｯ遨ｺ縺ｫ隗｣豎ｺ縺苓ｭｦ蜻翫Ο繧ｰ縲・  - EDGE-103-4 遨ｺ邨先棡: 縺吶∋縺ｦ遨ｺ縺ｨ縺ｪ繧句ｴ蜷医・`untitled`縺ｫ繝輔か繝ｼ繝ｫ繝舌ャ繧ｯ縲・  - EDGE-103-5 譛ｫ蟆ｾ荳肴ｭ｣: 譛ｫ蟆ｾ縺ｮ`.`/遨ｺ逋ｽ縺ｯ髯､蜴ｻ縲・  - EDGE-103-6 陦晉ｪ∝屓驕ｿ: 譌｢蟄倬㍾隍・凾縺ｯ `\_001`, `\_002`窶ｦ繧剃ｻ倅ｸ趣ｼ井ｸ企剞蛻ｰ驕疲凾縺ｯ譏守､ｺ繧ｨ繝ｩ繝ｼ・峨・- 泙 繧ｨ繝ｩ繝ｼ繧ｱ繝ｼ繧ｹ:
+  - 辟｡蜉ｹ縺ｪ繝・Φ繝励Ξ・域悴髢峨き繝ｼ繝ｫ・俄・繝・Φ繝励Ξ隗｣豎ｺ繧ｨ繝ｩ繝ｼ
+  - 髱樊枚蟄怜梛蜈･蜉帙ｄ`maxLength<=0`竊貞ｼ墓焚繝舌Μ繝・・繧ｷ繝ｧ繝ｳ繧ｨ繝ｩ繝ｼ
+- 泙 蜿ら・縺励◆EARS隕∽ｻｶ: EDGE-103, NFR-103, REQ-303
+- 泙 蜿ら・縺励◆險ｭ險域枚譖ｸ: dataflow.md・・OWNLOAD繝輔Ο繝ｼ・・
 
-## 5. EARS要件・設計文書との対応関係
+## 5. EARS隕∽ｻｶ繝ｻ險ｭ險域枚譖ｸ縺ｨ縺ｮ蟇ｾ蠢憺未菫・
 
-- 参照したユーザストーリー: ストーリー2「自動ダウンロードと命名」
-- 参照した機能要件: REQ-004（自動DL）, REQ-303（テンプレート）
-- 参照した非機能要件: NFR-103（サニタイズ）, NFR-002（更新周期への影響最小）
-- 参照したEdgeケース: EDGE-103（ファイル名制約/衝突）
-- 参照した受け入れ基準: 「単枚生成後に画像が自動ダウンロード」「ファイル名テンプレートの不正文字サニタイズ」
-- 参照した設計文書:
-  - アーキテクチャ: docs/design/novelai-auto-generator/architecture.md（SW責務）
-  - データフロー: docs/design/novelai-auto-generator/dataflow.md（IMAGE_READY→DOWNLOAD）
-  - 型定義: docs/design/novelai-auto-generator/interfaces.ts（FileNameTemplateContext, Settings）
-  - データベース: なし（概念スキーマのみ）
-  - API仕様: docs/design/novelai-auto-generator/api-endpoints.md（IMAGE_READY, DOWNLOAD_IMAGE）
+- 蜿ら・縺励◆繝ｦ繝ｼ繧ｶ繧ｹ繝医・繝ｪ繝ｼ: 繧ｹ繝医・繝ｪ繝ｼ2縲瑚・蜍輔ム繧ｦ繝ｳ繝ｭ繝ｼ繝峨→蜻ｽ蜷阪・- 蜿ら・縺励◆讖溯・隕∽ｻｶ: REQ-004・郁・蜍疋L・・ REQ-303・医ユ繝ｳ繝励Ξ繝ｼ繝茨ｼ・- 蜿ら・縺励◆髱樊ｩ溯・隕∽ｻｶ: NFR-103・医し繝九ち繧､繧ｺ・・ NFR-002・域峩譁ｰ蜻ｨ譛溘∈縺ｮ蠖ｱ髻ｿ譛蟆擾ｼ・- 蜿ら・縺励◆Edge繧ｱ繝ｼ繧ｹ: EDGE-103・医ヵ繧｡繧､繝ｫ蜷榊宛邏・陦晉ｪ・ｼ・- 蜿ら・縺励◆蜿励￠蜈･繧悟渕貅・ 縲悟腰譫夂函謌仙ｾ後↓逕ｻ蜒上′閾ｪ蜍輔ム繧ｦ繝ｳ繝ｭ繝ｼ繝峨阪後ヵ繧｡繧､繝ｫ蜷阪ユ繝ｳ繝励Ξ繝ｼ繝医・荳肴ｭ｣譁・ｭ励し繝九ち繧､繧ｺ縲・- 蜿ら・縺励◆險ｭ險域枚譖ｸ:
+  - 繧｢繝ｼ繧ｭ繝・け繝√Ε: docs/design/novelai-auto-generator/architecture.md・・W雋ｬ蜍呻ｼ・ - 繝・・繧ｿ繝輔Ο繝ｼ: docs/design/novelai-auto-generator/dataflow.md・・MAGE_READY竊奪OWNLOAD・・ - 蝙句ｮ夂ｾｩ: docs/design/novelai-auto-generator/interfaces.ts・・ileNameTemplateContext, Settings・・ - 繝・・繧ｿ繝吶・繧ｹ: 縺ｪ縺暦ｼ域ｦょｿｵ繧ｹ繧ｭ繝ｼ繝槭・縺ｿ・・ - API莉墓ｧ・ docs/design/novelai-auto-generator/api-endpoints.md・・MAGE_READY, DOWNLOAD_IMAGE・・
 
 ---
 
-## 品質判定
+## 蜩∬ｳｪ蛻､螳・
 
-✅ 高品質 判定
+笨・鬮伜刀雉ｪ 蛻､螳・
 
-- 要件の曖昧さ: なし（EARS/設計に直接対応）
-- 入出力定義: 完全（型とオプション定義）
-- 制約条件: 明確（禁止文字/長さ/拡張子/衝突）
-- 実装可能性: 確実（純粋関数+コールバック方針）
+- 隕∽ｻｶ縺ｮ譖匁乂縺・ 縺ｪ縺暦ｼ・ARS/險ｭ險医↓逶ｴ謗･蟇ｾ蠢懶ｼ・- 蜈･蜃ｺ蜉帛ｮ夂ｾｩ: 螳悟・・亥梛縺ｨ繧ｪ繝励す繝ｧ繝ｳ螳夂ｾｩ・・- 蛻ｶ邏・擅莉ｶ: 譏守｢ｺ・育ｦ∵ｭ｢譁・ｭ・髟ｷ縺・諡｡蠑ｵ蟄・陦晉ｪ・ｼ・- 螳溯｣・庄閭ｽ諤ｧ: 遒ｺ螳滂ｼ育ｴ皮ｲ矩未謨ｰ+繧ｳ繝ｼ繝ｫ繝舌ャ繧ｯ譁ｹ驥晢ｼ・
 
-## 次のステップ
+## 谺｡縺ｮ繧ｹ繝・ャ繝・
 
-- 次のお勧めステップ: `/tdd-testcases` でテストケースの洗い出しを行います。
+- 谺｡縺ｮ縺雁匡繧√せ繝・ャ繝・ `/tdd-testcases` 縺ｧ繝・せ繝医こ繝ｼ繧ｹ縺ｮ豢励＞蜃ｺ縺励ｒ陦後＞縺ｾ縺吶・
