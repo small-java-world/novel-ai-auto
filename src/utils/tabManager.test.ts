@@ -1,5 +1,6 @@
 // テストファイル: src/utils/tabManager.test.ts
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
+import { guardRejection } from '../../test/helpers';
 
 // 【テストファイル概要】: TASK-030 タブ管理機能の失敗テストを作成（TDD Red フェーズ）
 // 【対象機能】: NovelAI タブの検出・作成・アクティブ化およびエラーハンドリング
@@ -97,7 +98,7 @@ describe('TabManager - TASK-030 タブ管理機能', () => {
 
       // 【実際の処理実行】: まだ実装されていない ensureNovelAITab 関数を呼び出す
       // 【処理内容】: エラー状況での処理実行
-      const resultPromise = ensureNovelAITab();
+      const resultPromise = guardRejection(ensureNovelAITab());
 
       // 【結果検証】: エラーが適切にハンドリングされるかを確認
       // 【期待値確認】: 関数がエラーを再投げし、適切なエラーメッセージが含まれること
@@ -118,7 +119,7 @@ describe('TabManager - TASK-030 タブ管理機能', () => {
 
       // 【実際の処理実行】: まだ実装されていない ensureNovelAITab 関数を呼び出す
       // 【処理内容】: タブ作成エラー状況での処理実行
-      const resultPromise = ensureNovelAITab();
+      const resultPromise = guardRejection(ensureNovelAITab());
 
       // 【結果検証】: エラーが適切にハンドリングされるかを確認
       // 【期待値確認】: 関数がエラーを再投げし、適切なエラーメッセージが含まれること
@@ -140,7 +141,7 @@ describe('TabManager - TASK-030 タブ管理機能', () => {
 
       // 【実際の処理実行】: まだ実装されていない ensureNovelAITab 関数を呼び出す
       // 【処理内容】: タブアクティブ化エラー状況での処理実行
-      const resultPromise = ensureNovelAITab();
+      const resultPromise = guardRejection(ensureNovelAITab());
 
       // 【結果検証】: エラーが適切にハンドリングされるかを確認
       // 【期待値確認】: 関数がエラーを再投げし、適切なエラーメッセージが含まれること
@@ -160,7 +161,7 @@ describe('TabManager - TASK-030 タブ管理機能', () => {
 
       // 【実際の処理実行】: まだ実装されていない ensureNovelAITab 関数を呼び出す
       // 【処理内容】: 無効なタブデータの処理実行
-      const resultPromise = ensureNovelAITab();
+      const resultPromise = guardRejection(ensureNovelAITab());
 
       // 【結果検証】: 無効なタブデータが適切に処理されるかを確認
       // 【期待値確認】: 無効なタブID検出時にエラーが投げられること
@@ -180,7 +181,7 @@ describe('TabManager - TASK-030 タブ管理機能', () => {
 
       // 【実際の処理実行】: まだ実装されていない ensureNovelAITab 関数を呼び出す
       // 【処理内容】: Chrome API不可環境での処理実行
-      const resultPromise = ensureNovelAITab();
+      const resultPromise = guardRejection(ensureNovelAITab());
 
       // 【結果検証】: API利用不可時の適切なエラーハンドリングを確認
       // 【期待値確認】: Chrome API利用不可時の明確なエラーメッセージが表示されること

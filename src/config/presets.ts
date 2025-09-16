@@ -138,7 +138,10 @@ export function loadPresetsFromFile(
   const result = validatePresets(parsed, allowed);
   if (!result.ok) {
     // Build descriptive error
-    const details = result.issues.map((i) => `${i.path}: ${i.message}`).join('\n');
+    const errorResult = result as { ok: false; issues: ValidationIssue[] };
+    const details = errorResult.issues
+      .map((i: ValidationIssue) => `${i.path}: ${i.message}`)
+      .join('\n');
     throw new Error(`Invalid presets in ${filePath}:\n${details}`);
   }
   return result.value;

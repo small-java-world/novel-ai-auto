@@ -7,6 +7,7 @@ import {
   waitForElementWithTimeout,
   validateElementInteractable,
 } from './dom-selector-strategy';
+import { guardRejection } from '../../test/helpers';
 
 describe('DOM セレクタ戦略とフォールバック', () => {
   beforeEach(() => {
@@ -124,7 +125,9 @@ describe('DOM セレクタ戦略とフォールバック', () => {
 
       // 【実際の処理実行】: タイムアウト機能付き要素待機処理の実行
       // 【処理内容】: 設定タイムアウト時間内での要素探索とタイムアウトエラー発生を確認
-      const promise = waitForElementWithTimeout('prompt-input' as ElementType, config);
+      const promise = guardRejection(
+        waitForElementWithTimeout('prompt-input' as ElementType, config)
+      );
 
       // 【結果検証】: タイムアウト時間経過後にTimeoutErrorが発生することを確認
       // 【期待値確認】: 正確なエラータイプと要素タイプ情報が含まれることを検証

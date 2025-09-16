@@ -8,49 +8,53 @@ const mockChrome = {
       get: vi.fn(),
       set: vi.fn(),
       remove: vi.fn(),
-      clear: vi.fn()
+      clear: vi.fn(),
     },
     sync: {
       get: vi.fn(),
       set: vi.fn(),
       remove: vi.fn(),
-      clear: vi.fn()
+      clear: vi.fn(),
     },
     onChanged: {
       addListener: vi.fn(),
-      removeListener: vi.fn()
-    }
+      removeListener: vi.fn(),
+    },
   },
   runtime: {
     sendMessage: vi.fn(),
+    onInstalled: {
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+    },
     onMessage: {
       addListener: vi.fn(),
-      removeListener: vi.fn()
+      removeListener: vi.fn(),
     },
-    getManifest: vi.fn(() => ({ version: '0.1.0' }))
+    getManifest: vi.fn(() => ({ version: '0.1.0' })),
   },
   tabs: {
     create: vi.fn(),
     update: vi.fn(),
     query: vi.fn(),
-    sendMessage: vi.fn()
+    sendMessage: vi.fn(),
   },
   downloads: {
     download: vi.fn(),
     onChanged: {
       addListener: vi.fn(),
-      removeListener: vi.fn()
-    }
+      removeListener: vi.fn(),
+    },
   },
   scripting: {
-    executeScript: vi.fn()
-  }
+    executeScript: vi.fn(),
+  },
 };
 
 // Setup global Chrome mock
 Object.defineProperty(globalThis, 'chrome', {
   value: mockChrome,
-  writable: true
+  writable: true,
 });
 
 // Reset all mocks before each test

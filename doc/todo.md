@@ -1,5 +1,10 @@
 # TODO
 
+### 更新履歴（自動）
+- 2025-09-15: テストケース洗い出し completed（messaging-router）
+  - 品質判定: ✅ 高品質（正常系/異常系/境界値を網羅、TS+Vitest 確定、実装可能）
+  - 次のフェーズを追加: Redフェーズ（失敗テスト作成）開始予定 → コマンド `/tdd-red messaging-router`
+
 ## TDD: messaging-router�i���b�Z�[�W���[�^/�v���g�R�������j
 
 - ���: �e�X�g�P�[�X�􂢏o�� ���� ?�imessaging-router-testcases.md �ǉ��j
@@ -34,3 +39,19 @@
 - [x] Greenフェーズ（最小実装）
 - [x] Refactorフェーズ（品質改善）
 - [x] Verify（完全性検証）
+
+
+## TDD: download-handler（ダウンロードハンドラー） ✅ **完了** (TDD開発完了 - 6テストケース全通過)
+
+- [x] テストケース作成（6件）
+- [x] Red（失敗テスト先行）
+- [x] Green（最小実装で合格）
+- [x] Refactor（品質改善・Abort対応強化・メッセージ整流化）
+- [x] Verify（完全性検証、要件網羅 100%）
+
+### TDD: TASK-023 Image URL Extraction（画像URL抽出） ✅ **完了** (TDD開発完了 - 11テストケース全通過)
+
+- [x] Red（失敗テスト作成）
+- [x] Green（最小実装）
+- [x] Refactor（アーキテクチャ改善・セキュリティ強化・パフォーマンス最適化）
+- [x] Verify（完全性検証、要件網羅 100%）

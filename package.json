@@ -7,7 +7,7 @@
     "build": "tsc --project tsconfig.build.json",
     "build:prod": "tsc --sourceMap false",
     "dev": "tsc --watch",
-    "test": "vitest",
+    "test": "vitest run",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:unit": "vitest run --reporter=verbose",

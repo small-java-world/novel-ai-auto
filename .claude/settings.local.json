@@ -18,7 +18,12 @@
       "Bash(npx vitest run:*)",
       "Bash(npx tsc:*)",
       "Bash(npx eslint:*)",
-      "Read(//d/**)"
+      "Read(//d/**)",
+      "Bash(dir:*)",
+      "Bash(mkdir:*)",
+      "Bash(npx vitest:*)",
+      "Bash(findstr:*)",
+      "Bash(npx prettier:*)"
     ],
     "deny": [],
     "ask": []

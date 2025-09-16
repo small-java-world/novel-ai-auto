@@ -260,7 +260,10 @@ export function createMessagingRouter(): MessagingRouter {
       }
       const targetId = await pickTargetTabId();
       if (targetId == null) {
-        // 【フォールバック】: タブが無い場合は何もしない（将来: タブ生成/フォーカスへ拡張） 🟡
+        // 【フォールバック】: タブが無い場合はOPEN_OR_FOCUS_TABメッセージを送信（REQ-101対応） 🟢
+        await forwardToRuntime(MESSAGE_TYPES.OPEN_OR_FOCUS_TAB, {
+          url: 'https://novelai.net/*'
+        });
         return;
       }
 
