@@ -1,13 +1,13 @@
 /**
  * TASK-102: 新フォーマット対応・メタデータ管理 FormatConverter実装（Refactorフェーズ）
- * 
+ *
  * 【機能概要】: 新フォーマット（v1.0）と既存形式間の変換機能
  * 【実装状況】: TDD Refactorフェーズ - コード品質向上とパフォーマンス最適化
  * 【設計方針】: 型安全性とデータ整合性を重視し、パフォーマンス要件を満たす
  * 【パフォーマンス】: 形式変換処理500ms以内での完了を保証
  * 【保守性】: モジュール化された構造と包括的な日本語コメントで長期保守性を確保
  * 🟢 信頼性レベル: TASK-102要件定義書とテストケース仕様に基づく
- * 
+ *
  * @version 1.1.0
  * @author NovelAI Auto Generator Team
  * @since 2025-09-20
@@ -20,7 +20,7 @@ import type {
   LegacyPromptFile,
   ConversionOptions,
   ConversionResult,
-  ValidationResult
+  ValidationResult,
 } from '../types/metadata';
 
 // 【定数定義】: 形式変換で使用する定数
@@ -29,24 +29,24 @@ const CONVERSION_CONSTANTS = {
   // パフォーマンス制限
   CONVERSION_TIMEOUT: 500, // ms
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
-  
+
   // デフォルト値
   DEFAULT_VERSION: '1.0',
   DEFAULT_AUTHOR: 'System',
   DEFAULT_LICENSE: 'MIT',
-  
+
   // エラーメッセージ
   ERRORS: {
     INVALID_FILE: 'Invalid file format',
     CONVERSION_FAILED: 'Conversion failed',
     DATA_LOSS: 'Data loss detected',
-    TIMEOUT: 'Conversion timeout'
-  }
+    TIMEOUT: 'Conversion timeout',
+  },
 } as const;
 
 /**
  * FormatConverterクラス - 形式変換機能
- * 
+ *
  * 【機能概要】: 新フォーマット（v1.0）と既存形式間の変換、バージョン管理、
  * データ整合性の保持、エラーハンドリングを提供
  * 【設計方針】: 単一責任原則と型安全性を重視し、パフォーマンス要件を満たす
@@ -57,8 +57,8 @@ const CONVERSION_CONSTANTS = {
 export class FormatConverter {
   // 【プライベートプロパティ】: 内部状態管理
   private readonly constants = CONVERSION_CONSTANTS;
-  private conversionMetrics: Array<{operation: string, duration: number, timestamp: number}> = [];
-  
+  private conversionMetrics: Array<{ operation: string; duration: number; timestamp: number }> = [];
+
   /**
    * コンストラクタ
    * 【初期化処理】: FormatConverterの初期化
@@ -90,14 +90,17 @@ export class FormatConverter {
    * @param options - 変換オプション
    * @returns 変換結果
    */
-  async convertLegacyToV1(legacyFile: LegacyPromptFile, _options: ConversionOptions): Promise<ConversionResult> {
+  async convertLegacyToV1(
+    legacyFile: LegacyPromptFile,
+    _options: ConversionOptions
+  ): Promise<ConversionResult> {
     // Refactorフェーズ: エラーハンドリングとパフォーマンスの最適化
     const startTime = performance.now();
-    
+
     try {
       // 入力バリデーション
       this.validateLegacyFile(legacyFile);
-      
+
       // ファイルサイズチェック
       this.checkFileSize(legacyFile);
 
@@ -105,7 +108,7 @@ export class FormatConverter {
       const defaultMetadata = this.generateDefaultMetadata(legacyFile);
 
       // プリセットを変換
-      const convertedPresets = legacyFile.presets.map(preset => ({
+      const convertedPresets = legacyFile.presets.map((preset) => ({
         id: preset.id,
         name: preset.name,
         description: '',
@@ -114,13 +117,13 @@ export class FormatConverter {
         parameters: preset.parameters || {},
         tags: [],
         created: new Date().toISOString(),
-        modified: new Date().toISOString()
+        modified: new Date().toISOString(),
       }));
 
       const convertedFile: PromptFileV1 = {
         version: this.constants.DEFAULT_VERSION,
         metadata: defaultMetadata,
-        presets: convertedPresets
+        presets: convertedPresets,
       };
 
       // パフォーマンス測定と記録
@@ -135,17 +138,17 @@ export class FormatConverter {
           presetsConverted: convertedPresets.length,
           metadataAdded: true,
           tagsNormalized: 0,
-          processingTime
-        }
+          processingTime,
+        },
       };
     } catch (error) {
       const endTime = performance.now();
       const processingTime = endTime - startTime;
       this.recordConversion('convertLegacyToV1', processingTime, true);
-      
+
       return {
         success: false,
-        error: `${this.constants.ERRORS.CONVERSION_FAILED}: ${error instanceof Error ? error.message : 'Unknown error'}`
+        error: `${this.constants.ERRORS.CONVERSION_FAILED}: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }
@@ -158,7 +161,7 @@ export class FormatConverter {
     if (!file) {
       throw new Error(this.constants.ERRORS.INVALID_FILE);
     }
-    
+
     if (!file.presets || !Array.isArray(file.presets)) {
       throw new Error('Invalid presets format');
     }
@@ -183,9 +186,9 @@ export class FormatConverter {
     this.conversionMetrics.push({
       operation,
       duration,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
-    
+
     if (isError) {
       console.error(`Conversion error in ${operation}: ${duration}ms`);
     }
@@ -200,7 +203,10 @@ export class FormatConverter {
    * @param options - 変換オプション
    * @returns 変換結果
    */
-  async convertV1ToLegacy(v1File: PromptFileV1, _options: ConversionOptions): Promise<ConversionResult> {
+  async convertV1ToLegacy(
+    v1File: PromptFileV1,
+    _options: ConversionOptions
+  ): Promise<ConversionResult> {
     // Greenフェーズ: 基本的な変換処理を実装
     try {
       if (!v1File || !v1File.presets) {
@@ -210,16 +216,16 @@ export class FormatConverter {
       const startTime = performance.now();
 
       // プリセットをレガシー形式に変換
-      const legacyPresets = v1File.presets.map(preset => ({
+      const legacyPresets = v1File.presets.map((preset) => ({
         id: preset.id,
         name: preset.name,
         positive: preset.positive,
         negative: preset.negative || '',
-        parameters: preset.parameters || {}
+        parameters: preset.parameters || {},
       }));
 
       const legacyFile: LegacyPromptFile = {
-        presets: legacyPresets
+        presets: legacyPresets,
       };
 
       const endTime = performance.now();
@@ -232,13 +238,13 @@ export class FormatConverter {
           presetsConverted: legacyPresets.length,
           metadataAdded: false,
           tagsNormalized: 0,
-          processingTime
-        }
+          processingTime,
+        },
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -253,7 +259,11 @@ export class FormatConverter {
    * @param toVersion - 変換先バージョン
    * @returns 変換結果
    */
-  async convertVersion(file: PromptFileV1, fromVersion: string, toVersion: string): Promise<ConversionResult> {
+  async convertVersion(
+    file: PromptFileV1,
+    fromVersion: string,
+    toVersion: string
+  ): Promise<ConversionResult> {
     // Greenフェーズ: 基本的なバージョン変換を実装
     try {
       if (!file || !fromVersion || !toVersion) {
@@ -265,11 +275,11 @@ export class FormatConverter {
       // バージョン変換処理（基本的な実装）
       const convertedFile: PromptFileV1 = {
         ...file,
-        version: toVersion as "1.0",
+        version: toVersion as '1.0',
         metadata: {
           ...file.metadata,
-          modified: new Date().toISOString()
-        }
+          modified: new Date().toISOString(),
+        },
       };
 
       const endTime = performance.now();
@@ -282,13 +292,13 @@ export class FormatConverter {
           presetsConverted: file.presets.length,
           metadataAdded: false,
           tagsNormalized: 0,
-          processingTime
-        }
+          processingTime,
+        },
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -304,7 +314,10 @@ export class FormatConverter {
    * @param convertedFile - 変換後のファイル
    * @returns 整合性チェック結果
    */
-  async checkDataIntegrity(originalFile: LegacyPromptFile, convertedFile: PromptFileV1): Promise<boolean> {
+  async checkDataIntegrity(
+    originalFile: LegacyPromptFile,
+    convertedFile: PromptFileV1
+  ): Promise<boolean> {
     // Greenフェーズ: 基本的なデータ整合性チェックを実装
     try {
       if (!originalFile || !convertedFile) {
@@ -321,9 +334,11 @@ export class FormatConverter {
         const original = originalFile.presets[i];
         const converted = convertedFile.presets[i];
 
-        if (original.id !== converted.id || 
-            original.name !== converted.name || 
-            original.positive !== converted.positive) {
+        if (
+          original.id !== converted.id ||
+          original.name !== converted.name ||
+          original.positive !== converted.positive
+        ) {
           return false;
         }
       }
@@ -343,7 +358,10 @@ export class FormatConverter {
    * @param options - 変換オプション
    * @returns データ損失防止結果
    */
-  async preventDataLoss(originalFile: LegacyPromptFile, options: ConversionOptions): Promise<boolean> {
+  async preventDataLoss(
+    originalFile: LegacyPromptFile,
+    options: ConversionOptions
+  ): Promise<boolean> {
     // Greenフェーズ: 基本的なデータ損失防止を実装
     try {
       if (!originalFile || !originalFile.presets) {
@@ -352,14 +370,14 @@ export class FormatConverter {
 
       // 変換を実行
       const conversionResult = await this.convertLegacyToV1(originalFile, options);
-      
+
       if (!conversionResult.success || !conversionResult.data) {
         return false;
       }
 
       // データ整合性をチェック
       const integrityCheck = await this.checkDataIntegrity(originalFile, conversionResult.data);
-      
+
       return integrityCheck;
     } catch (error) {
       return false;
@@ -384,7 +402,7 @@ export class FormatConverter {
           success: false,
           error: 'Invalid file: null or undefined',
           data: null,
-          processingTime: 0
+          processingTime: 0,
         };
       }
 
@@ -394,7 +412,7 @@ export class FormatConverter {
           success: false,
           error: 'Invalid file: not an object',
           data: null,
-          processingTime: 0
+          processingTime: 0,
         };
       }
 
@@ -408,14 +426,14 @@ export class FormatConverter {
         success: false,
         error: 'Invalid file: unsupported format',
         data: null,
-        processingTime: 0
+        processingTime: 0,
       };
     } catch (error) {
       return {
         success: false,
         error: `Invalid format handling failed: ${error}`,
         data: null,
-        processingTime: 0
+        processingTime: 0,
       };
     }
   }
@@ -435,14 +453,14 @@ export class FormatConverter {
         success: false,
         error: `Conversion error: ${error.message}`,
         data: null,
-        processingTime: 0
+        processingTime: 0,
       };
     } catch (handlingError) {
       return {
         success: false,
         error: `Error handling failed: ${handlingError}`,
         data: null,
-        processingTime: 0
+        processingTime: 0,
       };
     }
   }
@@ -462,20 +480,22 @@ export class FormatConverter {
     try {
       if (!file) {
         return {
-          isValid: false,
-          errors: ['File is null or undefined']
-        };
+          valid: false,
+          errors: ['File is null or undefined'],
+          warnings: [],
+        } as unknown as ValidationResult;
       }
 
       if (!file.presets || !Array.isArray(file.presets)) {
         return {
-          isValid: false,
-          errors: ['Invalid presets array']
-        };
+          valid: false,
+          errors: ['Invalid presets array'],
+          warnings: [],
+        } as unknown as ValidationResult;
       }
 
       const errors: string[] = [];
-      
+
       // 各プリセットの基本チェック
       file.presets.forEach((preset, index) => {
         if (!preset.id) {
@@ -489,15 +509,13 @@ export class FormatConverter {
         }
       });
 
-      return {
-        isValid: errors.length === 0,
-        errors: errors
-      };
+      return { valid: errors.length === 0, errors, warnings: [] } as unknown as ValidationResult;
     } catch (error) {
       return {
-        isValid: false,
-        errors: [`Validation error: ${error}`]
-      };
+        valid: false,
+        errors: [`Validation error: ${error}`],
+        warnings: [],
+      } as unknown as ValidationResult;
     }
   }
 
@@ -514,13 +532,14 @@ export class FormatConverter {
     try {
       if (!file) {
         return {
-          isValid: false,
-          errors: ['File is null or undefined']
-        };
+          valid: false,
+          errors: ['File is null or undefined'],
+          warnings: [],
+        } as unknown as ValidationResult;
       }
 
       const errors: string[] = [];
-      
+
       // メタデータのチェック
       if (!file.metadata) {
         errors.push('Missing metadata');
@@ -550,15 +569,13 @@ export class FormatConverter {
         });
       }
 
-      return {
-        isValid: errors.length === 0,
-        errors: errors
-      };
+      return { valid: errors.length === 0, errors, warnings: [] } as unknown as ValidationResult;
     } catch (error) {
       return {
-        isValid: false,
-        errors: [`Validation error: ${error}`]
-      };
+        valid: false,
+        errors: [`Validation error: ${error}`],
+        warnings: [],
+      } as unknown as ValidationResult;
     }
   }
 
@@ -573,7 +590,10 @@ export class FormatConverter {
    * @param options - 適用する変換オプション
    * @returns オプション適用結果
    */
-  async applyConversionOptions(file: LegacyPromptFile, options: ConversionOptions): Promise<ConversionResult> {
+  async applyConversionOptions(
+    file: LegacyPromptFile,
+    options: ConversionOptions
+  ): Promise<ConversionResult> {
     // Greenフェーズ: 基本的な変換オプション適用を実装
     try {
       if (!file) {
@@ -581,7 +601,7 @@ export class FormatConverter {
           success: false,
           error: 'File is null or undefined',
           data: null,
-          processingTime: 0
+          processingTime: 0,
         };
       }
 
@@ -606,7 +626,7 @@ export class FormatConverter {
         success: false,
         error: `Failed to apply conversion options: ${error}`,
         data: null,
-        processingTime: 0
+        processingTime: 0,
       };
     }
   }
@@ -622,7 +642,10 @@ export class FormatConverter {
    * @param convertedFile - 変換後のファイル
    * @returns 統計情報
    */
-  async generateStatistics(originalFile: LegacyPromptFile, convertedFile: PromptFileV1): Promise<any> {
+  async generateStatistics(
+    originalFile: LegacyPromptFile,
+    convertedFile: PromptFileV1
+  ): Promise<any> {
     // Greenフェーズ: 基本的な統計情報生成を実装
     try {
       const stats = {
@@ -630,14 +653,14 @@ export class FormatConverter {
         convertedPresets: convertedFile.presets.length,
         metadataAdded: convertedFile.metadata ? true : false,
         conversionTime: Date.now(),
-        success: true
+        success: true,
       };
 
       return stats;
     } catch (error) {
       return {
         error: `Statistics generation failed: ${error}`,
-        success: false
+        success: false,
       };
     }
   }
@@ -652,15 +675,19 @@ export class FormatConverter {
    * @param convertedFile - 変換後のファイル
    * @returns ログ記録結果
    */
-  async recordConversionLog(operation: string, originalFile: LegacyPromptFile, convertedFile: PromptFileV1): Promise<boolean> {
+  async recordConversionLog(
+    operation: string,
+    originalFile: LegacyPromptFile,
+    convertedFile: PromptFileV1
+  ): Promise<boolean> {
     // Greenフェーズ: 基本的な変換ログ記録を実装
     try {
       const logEntry = {
         timestamp: new Date().toISOString(),
-        operation: operation,
+        operation,
         originalPresets: originalFile.presets.length,
         convertedPresets: convertedFile.presets.length,
-        success: true
+        success: true,
       };
 
       console.log('Conversion logged:', logEntry);
@@ -687,7 +714,7 @@ export class FormatConverter {
       version: this.constants.DEFAULT_VERSION,
       created: new Date().toISOString(),
       modified: new Date().toISOString(),
-      tags: ['converted', 'legacy']
+      tags: ['converted', 'legacy'],
     };
   }
 
@@ -704,7 +731,7 @@ export class FormatConverter {
       positive: preset.positive || '',
       negative: preset.negative || '',
       settings: preset.settings || {},
-      tags: preset.tags || []
+      tags: preset.tags || [],
     };
   }
 
@@ -720,8 +747,8 @@ export class FormatConverter {
     }
 
     return tags
-      .filter(tag => typeof tag === 'string' && tag.trim().length > 0)
-      .map(tag => tag.trim().toLowerCase())
+      .filter((tag) => typeof tag === 'string' && tag.trim().length > 0)
+      .map((tag) => tag.trim().toLowerCase())
       .filter((tag, index, array) => array.indexOf(tag) === index); // 重複除去
   }
 
@@ -762,12 +789,11 @@ export class FormatConverter {
 
     // 文字列の正規化（トリム、長さ制限）
     let normalized = text.trim();
-    
+
     if (normalized.length > maxLength) {
       normalized = normalized.substring(0, maxLength);
     }
 
     return normalized;
   }
-
 }

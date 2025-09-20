@@ -1,13 +1,13 @@
 /**
  * TASK-102: 新フォーマット対応・メタデータ管理 実装（Refactorフェーズ）
- * 
+ *
  * 【機能概要】: 新フォーマット（v1.0）とメタデータ管理機能
  * 【実装状況】: TDD Refactorフェーズ - コード品質向上とパフォーマンス最適化
  * 【設計方針】: 型安全性と拡張性を重視し、既存形式との互換性を確保
  * 【パフォーマンス】: メタデータ読み込み200ms以内、タグフィルタリング100ms以内、形式変換500ms以内
  * 【保守性】: モジュール化された構造と包括的な日本語コメントで長期保守性を確保
  * 🟢 信頼性レベル: TASK-102要件定義書とテストケース仕様に基づく
- * 
+ *
  * @version 1.1.0
  * @author NovelAI Auto Generator Team
  * @since 2025-09-20
@@ -26,7 +26,7 @@ import type {
   ConversionOptions,
   ConversionResult,
   LegacyPromptFile,
-  PerformanceMetrics
+  PerformanceMetrics,
 } from '../types/metadata';
 
 // 【定数定義】: メタデータ管理で使用する定数
@@ -38,31 +38,31 @@ const METADATA_CONSTANTS = {
   MAX_AUTHOR_LENGTH: 50,
   MAX_TAG_LENGTH: 30,
   MAX_TAGS_COUNT: 20,
-  
+
   // パフォーマンス制限
   MAX_METADATA_SIZE: 1024 * 1024, // 1MB
   METADATA_LOAD_TIMEOUT: 200, // ms
   TAG_FILTER_TIMEOUT: 100, // ms
   CONVERSION_TIMEOUT: 500, // ms
-  
+
   // デフォルト値
   DEFAULT_VERSION: '1.0',
   DEFAULT_AUTHOR: 'Unknown',
   DEFAULT_LICENSE: 'MIT',
-  
+
   // エラーメッセージ
   ERRORS: {
     INVALID_FILE: 'Invalid file format',
     MISSING_METADATA: 'Missing required metadata',
     INVALID_VERSION: 'Invalid version format',
     SIZE_LIMIT_EXCEEDED: 'File size exceeds limit',
-    TIMEOUT: 'Operation timeout'
-  }
+    TIMEOUT: 'Operation timeout',
+  },
 } as const;
 
 /**
  * MetadataManagerクラス - 新フォーマット対応・メタデータ管理
- * 
+ *
  * 【機能概要】: 新フォーマット（v1.0）のプロンプトファイルの読み込み、メタデータ管理、
  * 既存形式との互換性確保、バージョン管理、タグベースフィルタリングを提供
  * 【設計方針】: 単一責任原則と型安全性を重視し、パフォーマンス要件を満たす
@@ -74,7 +74,7 @@ export class MetadataManager {
   // 【プライベートプロパティ】: 内部状態管理
   private readonly constants = METADATA_CONSTANTS;
   private performanceMetrics: PerformanceMetrics[] = [];
-  
+
   /**
    * コンストラクタ
    * 【初期化処理】: MetadataManagerの初期化
@@ -108,27 +108,29 @@ export class MetadataManager {
   async loadPromptFile(file: PromptFileV1): Promise<PromptFileV1> {
     // Refactorフェーズ: エラーハンドリングとパフォーマンスの最適化
     const startTime = performance.now();
-    
+
     try {
       // 入力バリデーション
       this.validateFileInput(file);
-      
+
       // ファイルサイズチェック
       this.checkFileSize(file);
-      
+
       // メタデータの正規化
-      const normalizedFile = this.normalizeFileData(file);
-      
+      const normalizedFile = await this.normalizeFileData(file);
+
       // パフォーマンス測定
       const endTime = performance.now();
       this.recordPerformance('loadPromptFile', endTime - startTime);
-      
+
       return normalizedFile;
     } catch (error) {
       const endTime = performance.now();
       this.recordPerformance('loadPromptFile', endTime - startTime, true);
-      
-      throw new Error(`Failed to load prompt file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+
+      throw new Error(
+        `Failed to load prompt file: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -140,11 +142,11 @@ export class MetadataManager {
     if (!file) {
       throw new Error(this.constants.ERRORS.INVALID_FILE);
     }
-    
+
     if (!file.version || !file.metadata || !file.presets) {
       throw new Error(this.constants.ERRORS.MISSING_METADATA);
     }
-    
+
     if (!Array.isArray(file.presets)) {
       throw new Error('Invalid presets format');
     }
@@ -165,11 +167,11 @@ export class MetadataManager {
    * 【ファイルデータ正規化】: ファイルデータの正規化処理
    * 【最適化】: データ整合性の向上
    */
-  private normalizeFileData(file: PromptFileV1): PromptFileV1 {
+  private async normalizeFileData(file: PromptFileV1): Promise<PromptFileV1> {
     return {
       ...file,
-      metadata: this.normalizeMetadata(file.metadata),
-      presets: file.presets.map(preset => this.normalizePreset(preset))
+      metadata: await this.normalizeMetadata(file.metadata),
+      presets: file.presets.map((preset) => this.normalizePreset(preset)),
     };
   }
 
@@ -180,7 +182,7 @@ export class MetadataManager {
   private normalizePreset(preset: PresetV1): PresetV1 {
     return {
       ...preset,
-      tags: this.normalizeTags(preset.tags || [])
+      tags: this.normalizeTags(preset.tags || []),
     };
   }
 
@@ -189,13 +191,13 @@ export class MetadataManager {
    * 【最適化】: パフォーマンス監視の強化
    */
   private recordPerformance(operation: string, duration: number, isError: boolean = false): void {
-    this.performanceMetrics.push({
-      operation,
-      duration,
-      timestamp: Date.now(),
-      isError,
-      memoryUsage: this.getMemoryUsage()
-    });
+    const perf: PerformanceMetrics = {
+      processingTime: duration,
+      memoryUsage: this.getMemoryUsage(),
+      itemsProcessed: isError ? 0 : 1,
+      successRate: isError ? 0 : 100,
+    };
+    this.performanceMetrics.push(perf);
   }
 
   /**
@@ -236,8 +238,8 @@ export class MetadataManager {
     }
 
     return tags
-      .filter(tag => typeof tag === 'string' && tag.trim().length > 0)
-      .map(tag => this.normalizeString(tag.trim(), this.constants.MAX_TAG_LENGTH))
+      .filter((tag) => typeof tag === 'string' && tag.trim().length > 0)
+      .map((tag) => this.normalizeString(tag.trim(), this.constants.MAX_TAG_LENGTH))
       .filter((tag, index, array) => array.indexOf(tag) === index); // 重複除去
   }
 
@@ -276,11 +278,13 @@ export class MetadataManager {
       if (!metadata) {
         throw new Error('Metadata is required');
       }
-      
+
       // メタデータの表示処理（コンソールログで代用）
       console.log('Displaying metadata:', metadata);
     } catch (error) {
-      throw new Error(`Failed to display metadata: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to display metadata: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -296,17 +300,19 @@ export class MetadataManager {
       if (!metadata) {
         throw new Error('Metadata is required');
       }
-      
+
       // メタデータの編集処理
       const editedMetadata: MetadataV1 = {
         ...metadata,
         ...changes,
-        modified: new Date().toISOString()
+        modified: new Date().toISOString(),
       };
-      
+
       return editedMetadata;
     } catch (error) {
-      throw new Error(`Failed to edit metadata: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to edit metadata: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -321,13 +327,15 @@ export class MetadataManager {
       if (!metadata) {
         throw new Error('Metadata is required');
       }
-      
+
       // メタデータの保存処理（コンソールログで代用）
       console.log('Saving metadata:', metadata);
-      
+
       return true;
     } catch (error) {
-      throw new Error(`Failed to save metadata: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to save metadata: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -347,14 +355,14 @@ export class MetadataManager {
       if (!legacyFile || !legacyFile.presets) {
         return false;
       }
-      
+
       // プリセットの基本構造をチェック
       for (const preset of legacyFile.presets) {
         if (!preset.id || !preset.name || !preset.positive) {
           return false;
         }
       }
-      
+
       return true;
     } catch (error) {
       return false;
@@ -384,42 +392,39 @@ export class MetadataManager {
         author: 'System',
         created: new Date().toISOString(),
         modified: new Date().toISOString(),
-        tags: []
+        tags: [] as string[],
       };
 
       // プリセットを変換
-      const convertedPresets: PresetV1[] = legacyFile.presets.map(preset => ({
+      const convertedPresets: PresetV1[] = legacyFile.presets.map((preset) => ({
         id: preset.id,
         name: preset.name,
         description: '',
         positive: preset.positive,
         negative: preset.negative || '',
         parameters: preset.parameters || {},
-        tags: [],
+        tags: [] as string[],
         created: new Date().toISOString(),
-        modified: new Date().toISOString()
+        modified: new Date().toISOString(),
       }));
 
       const convertedFile: PromptFileV1 = {
         version: '1.0',
         metadata: defaultMetadata,
-        presets: convertedPresets
+        presets: convertedPresets,
       };
 
       return {
         success: true,
         data: convertedFile,
-        statistics: {
-          presetsConverted: convertedPresets.length,
-          metadataAdded: true,
-          tagsNormalized: 0,
-          processingTime: 0
-        }
+        warnings: [],
+        errors: [],
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        warnings: [],
+        errors: [error instanceof Error ? error.message : 'Unknown error'],
       };
     }
   }
@@ -443,7 +448,8 @@ export class MetadataManager {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        warnings: [],
+        errors: [error instanceof Error ? error.message : 'Unknown error'],
       };
     }
   }
@@ -464,10 +470,12 @@ export class MetadataManager {
       if (!file || !file.version) {
         throw new Error('Invalid file format');
       }
-      
+
       return file.version;
     } catch (error) {
-      throw new Error(`Failed to get version: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to get version: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -486,45 +494,28 @@ export class MetadataManager {
 
       // 現在のバージョンを取得
       const currentVersion = await this.getVersion(file);
-      
+
       // 同じバージョンの場合はそのまま返す
       if (currentVersion === targetVersion) {
-        return {
-          success: true,
-          data: file,
-          statistics: {
-            presetsConverted: file.presets.length,
-            metadataAdded: false,
-            tagsNormalized: 0,
-            processingTime: 0
-          }
-        };
+        return { success: true, data: file, warnings: [], errors: [] };
       }
 
       // バージョン変換処理（基本的な実装）
       const convertedFile: PromptFileV1 = {
         ...file,
-        version: targetVersion as "1.0",
+        version: targetVersion as '1.0',
         metadata: {
           ...file.metadata,
-          modified: new Date().toISOString()
-        }
+          modified: new Date().toISOString(),
+        },
       };
 
-      return {
-        success: true,
-        data: convertedFile,
-        statistics: {
-          presetsConverted: file.presets.length,
-          metadataAdded: false,
-          tagsNormalized: 0,
-          processingTime: 0
-        }
-      };
+      return { success: true, data: convertedFile, warnings: [], errors: [] };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        warnings: [],
+        errors: [error instanceof Error ? error.message : 'Unknown error'],
       };
     }
   }
@@ -547,7 +538,7 @@ export class MetadataManager {
       }
 
       const allTags = new Set<string>();
-      
+
       for (const preset of presets) {
         if (preset.tags && Array.isArray(preset.tags)) {
           for (const tag of preset.tags) {
@@ -560,7 +551,9 @@ export class MetadataManager {
 
       return Array.from(allTags);
     } catch (error) {
-      throw new Error(`Failed to extract tags: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to extract tags: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -585,18 +578,20 @@ export class MetadataManager {
         return presets; // タグが指定されていない場合は全プリセットを返す
       }
 
-      const filteredPresets = presets.filter(preset => {
+      const filteredPresets = presets.filter((preset) => {
         if (!preset.tags || !Array.isArray(preset.tags)) {
           return false;
         }
 
         // 指定されたタグのいずれかがプリセットのタグに含まれているかチェック
-        return tags.some(tag => preset.tags!.includes(tag));
+        return tags.some((tag) => preset.tags!.includes(tag));
       });
 
       return filteredPresets;
     } catch (error) {
-      throw new Error(`Failed to filter by tags: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to filter by tags: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -621,10 +616,12 @@ export class MetadataManager {
 
       return {
         ...preset,
-        tags: uniqueTags
+        tags: uniqueTags,
       };
     } catch (error) {
-      throw new Error(`Failed to remove duplicate tags: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to remove duplicate tags: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -641,18 +638,26 @@ export class MetadataManager {
   async normalizeMetadata(metadata: Partial<MetadataV1>): Promise<NormalizedMetadata> {
     // Refactorフェーズ: 定数使用とパフォーマンス最適化
     const startTime = performance.now();
-    
+
     try {
       const now = new Date().toISOString();
-      
+
       const normalized: NormalizedMetadata = {
-        name: this.normalizeString(metadata.name || 'Untitled Prompt Set', this.constants.MAX_NAME_LENGTH),
-        description: this.normalizeString(metadata.description || '', this.constants.MAX_DESCRIPTION_LENGTH),
-        author: this.normalizeString(metadata.author || this.constants.DEFAULT_AUTHOR, this.constants.MAX_AUTHOR_LENGTH),
-        version: metadata.version || this.constants.DEFAULT_VERSION,
+        name: this.normalizeString(
+          metadata.name || 'Untitled Prompt Set',
+          this.constants.MAX_NAME_LENGTH
+        ),
+        description: this.normalizeString(
+          metadata.description || '',
+          this.constants.MAX_DESCRIPTION_LENGTH
+        ),
+        author: this.normalizeString(
+          metadata.author || this.constants.DEFAULT_AUTHOR,
+          this.constants.MAX_AUTHOR_LENGTH
+        ),
         created: this.normalizeDateTime(metadata.created || now),
         modified: this.normalizeDateTime(metadata.modified || now),
-        tags: this.normalizeTags(metadata.tags || [])
+        tags: this.normalizeTags(metadata.tags || []),
       };
 
       // パフォーマンス測定
@@ -663,8 +668,10 @@ export class MetadataManager {
     } catch (error) {
       const endTime = performance.now();
       this.recordPerformance('normalizeMetadata', endTime - startTime, true);
-      
-      throw new Error(`Failed to normalize metadata: ${error instanceof Error ? error.message : 'Unknown error'}`);
+
+      throw new Error(
+        `Failed to normalize metadata: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -697,8 +704,13 @@ export class MetadataManager {
       // オプションフィールドのチェック
       if (metadata.description && typeof metadata.description !== 'string') {
         errors.push('Description must be a string');
-      } else if (metadata.description && metadata.description.length > this.constants.MAX_DESCRIPTION_LENGTH) {
-        errors.push(`Description must be ${this.constants.MAX_DESCRIPTION_LENGTH} characters or less`);
+      } else if (
+        metadata.description &&
+        metadata.description.length > this.constants.MAX_DESCRIPTION_LENGTH
+      ) {
+        errors.push(
+          `Description must be ${this.constants.MAX_DESCRIPTION_LENGTH} characters or less`
+        );
       }
 
       if (metadata.author && typeof metadata.author !== 'string') {
@@ -716,13 +728,13 @@ export class MetadataManager {
       return {
         valid: errors.length === 0,
         errors,
-        warnings
+        warnings,
       };
     } catch (error) {
       return {
         valid: false,
         errors: [`Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`],
-        warnings: []
+        warnings: [],
       };
     }
   }
@@ -772,13 +784,15 @@ export class MetadataManager {
       return {
         valid: errors.length === 0,
         errors,
-        warnings
+        warnings,
       };
     } catch (error) {
       return {
         valid: false,
-        errors: [`Schema validation error: ${error instanceof Error ? error.message : 'Unknown error'}`],
-        warnings: []
+        errors: [
+          `Schema validation error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        ],
+        warnings: [],
       };
     }
   }
@@ -799,14 +813,18 @@ export class MetadataManager {
       const normalized: MetadataV1 = {
         ...metadata,
         name: metadata.name ? metadata.name.normalize('NFC') : metadata.name,
-        description: metadata.description ? metadata.description.normalize('NFC') : metadata.description,
+        description: metadata.description
+          ? metadata.description.normalize('NFC')
+          : metadata.description,
         author: metadata.author ? metadata.author.normalize('NFC') : metadata.author,
-        tags: metadata.tags ? metadata.tags.map(tag => tag.normalize('NFC')) : metadata.tags
+        tags: metadata.tags ? metadata.tags.map((tag) => tag.normalize('NFC')) : metadata.tags,
       };
 
       return normalized;
     } catch (error) {
-      throw new Error(`Failed to normalize Unicode: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to normalize Unicode: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -830,7 +848,7 @@ export class MetadataManager {
       }
 
       // 名前の文字数チェック（1-100文字）
-      if (metadata.name) {
+      if (typeof metadata.name === 'string') {
         if (metadata.name.length < 1) {
           errors.push('Name must be at least 1 character');
         } else if (metadata.name.length > 100) {
@@ -856,13 +874,15 @@ export class MetadataManager {
       return {
         valid: errors.length === 0,
         errors,
-        warnings
+        warnings,
       };
     } catch (error) {
       return {
         valid: false,
-        errors: [`Character limit check error: ${error instanceof Error ? error.message : 'Unknown error'}`],
-        warnings: []
+        errors: [
+          `Character limit check error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        ],
+        warnings: [],
       };
     }
   }
@@ -893,14 +913,16 @@ export class MetadataManager {
           author: 'System',
           created: new Date().toISOString(),
           modified: new Date().toISOString(),
-          tags: []
+          tags: [],
         },
-        presets: file.presets || []
+        presets: file.presets || [],
       };
 
       return repairedFile;
     } catch (error) {
-      throw new Error(`Failed to repair version info: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to repair version info: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -922,13 +944,15 @@ export class MetadataManager {
         ...file,
         metadata: {
           ...file.metadata,
-          modified: new Date().toISOString()
-        }
+          modified: new Date().toISOString(),
+        },
       };
 
       return processedFile;
     } catch (error) {
-      throw new Error(`Failed to handle encoding: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to handle encoding: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -962,13 +986,15 @@ export class MetadataManager {
       return {
         valid: errors.length === 0,
         errors,
-        warnings
+        warnings,
       };
     } catch (error) {
       return {
         valid: false,
-        errors: [`Size limit check error: ${error instanceof Error ? error.message : 'Unknown error'}`],
-        warnings: []
+        errors: [
+          `Size limit check error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        ],
+        warnings: [],
       };
     }
   }
@@ -995,9 +1021,10 @@ export class MetadataManager {
       // テキスト検索
       if (query.text) {
         const searchText = query.text.toLowerCase();
-        filteredPresets = filteredPresets.filter(preset => 
-          preset.name.toLowerCase().includes(searchText) ||
-          (preset.description && preset.description.toLowerCase().includes(searchText))
+        filteredPresets = filteredPresets.filter(
+          (preset) =>
+            preset.name.toLowerCase().includes(searchText) ||
+            (preset.description && preset.description.toLowerCase().includes(searchText))
         );
       }
 
@@ -1008,7 +1035,7 @@ export class MetadataManager {
 
       // 作成者フィルタリング
       if (query.author) {
-        filteredPresets = filteredPresets.filter(preset => 
+        filteredPresets = filteredPresets.filter((preset) =>
           preset.name.toLowerCase().includes(query.author!.toLowerCase())
         );
       }
@@ -1024,16 +1051,14 @@ export class MetadataManager {
       }
 
       return {
-        presets: filteredPresets,
-        matchedTags: Array.from(matchedTags),
-        statistics: {
-          total: presets.length,
-          matched: filteredPresets.length,
-          filtered: presets.length - filteredPresets.length
-        }
+        filteredPresets,
+        matchCount: filteredPresets.length,
+        appliedTags: Array.from(matchedTags),
       };
     } catch (error) {
-      throw new Error(`Failed to search by metadata: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to search by metadata: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -1059,7 +1084,7 @@ export class MetadataManager {
 
       // 作成者フィルタリング
       if (filters.author) {
-        filteredPresets = filteredPresets.filter(preset => 
+        filteredPresets = filteredPresets.filter((preset) =>
           preset.name.toLowerCase().includes(filters.author.toLowerCase())
         );
       }
@@ -1075,16 +1100,14 @@ export class MetadataManager {
       }
 
       return {
-        presets: filteredPresets,
-        matchedTags: Array.from(matchedTags),
-        statistics: {
-          total: presets.length,
-          matched: filteredPresets.length,
-          filtered: presets.length - filteredPresets.length
-        }
+        filteredPresets,
+        matchCount: filteredPresets.length,
+        appliedTags: Array.from(matchedTags),
       };
     } catch (error) {
-      throw new Error(`Failed to filter presets: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to filter presets: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -1104,7 +1127,9 @@ export class MetadataManager {
 
       return file.metadata;
     } catch (error) {
-      throw new Error(`Failed to load metadata: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to load metadata: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -1125,13 +1150,15 @@ export class MetadataManager {
         ...data,
         metadata: {
           ...data.metadata,
-          modified: new Date().toISOString()
-        }
+          modified: new Date().toISOString(),
+        },
       };
 
       return processedData;
     } catch (error) {
-      throw new Error(`Failed to process data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to process data: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -1168,10 +1195,12 @@ export class MetadataManager {
         processingTime,
         memoryUsage,
         itemsProcessed,
-        successRate
+        successRate,
       };
     } catch (error) {
-      throw new Error(`Failed to measure performance: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to measure performance: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 }

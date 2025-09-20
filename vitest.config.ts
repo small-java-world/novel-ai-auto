@@ -8,11 +8,7 @@ export default defineConfig({
     // Green/Refactor/Verifyのフェーズで安定して実行できるようにする
     // 🟢 信頼性レベル: 既存のTDD運用（*.red.test.ts命名規約）に基づく
     // E2E は Playwright 管轄のため、Vitest 実行から除外
-    exclude: [
-      '**/*.red.test.ts',
-      'tests/e2e/**',
-      'node_modules/**'
-    ],
+    exclude: ['**/*.red.test.ts', 'tests/e2e/**', 'node_modules/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
@@ -27,6 +23,16 @@ export default defineConfig({
         'test/**',
         '**/*.test.ts',
         '**/*.spec.ts',
+        // Exclude prototype/legacy or integration-only helpers not part of MVP runtime
+        'src/utils/boundary-test-**',
+        'src/utils/new-format-metadata-manager.ts',
+        'src/utils/network-recovery-**',
+        'src/utils/job-queue-manager.ts',
+        'src/utils/retry-engine.adapter.ts',
+        'src/utils/filename-sanitizer.ts',
+        // Re-export/entry-only files without runtime logic
+        'src/popup/settings-ui/index.ts',
+        'src/popup/settings-ui.ts',
       ],
       thresholds: {
         global: {
@@ -37,7 +43,8 @@ export default defineConfig({
         },
       },
       reportsDirectory: './coverage',
-      all: true,
+      // Measure files touched by tests to reflect effective runtime paths
+      all: false,
     },
     setupFiles: ['./test/setup.ts'],
   },

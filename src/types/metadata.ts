@@ -1,11 +1,11 @@
 /**
  * TASK-102: 新フォーマット対応・メタデータ管理 型定義
- * 
+ *
  * 【機能概要】: 新フォーマット（v1.0）とメタデータ管理の型定義
  * 【設計方針】: 型安全性と拡張性を重視し、既存形式との互換性を確保
  * 【バージョン管理】: 後方互換性を保持しつつ、新機能を段階的に追加
  * 🟢 信頼性レベル: TASK-102要件定義書の技術仕様に基づく
- * 
+ *
  * @version 1.0.0
  * @author NovelAI Auto Generator Team
  * @since 2025-09-20
@@ -20,7 +20,7 @@
  */
 export interface PromptFileV1 {
   /** ファイルバージョン */
-  version: "1.0";
+  version: '1.0';
   /** メタデータ */
   metadata: MetadataV1;
   /** 共通プロンプト（オプション） */
@@ -234,12 +234,14 @@ export interface ConversionOptions {
 export interface ConversionResult {
   /** 変換成功フラグ */
   success: boolean;
-  /** 変換されたデータ */
+  /** 変換されたデータ（互換：以前は data というキー名を使用） */
+  data?: PromptFileV1;
+  /** 従来インターフェース互換フィールド（convertedData の別名） */
   convertedData?: PromptFileV1;
   /** 警告メッセージ配列 */
-  warnings: string[];
+  warnings?: string[];
   /** エラーメッセージ配列 */
-  errors: string[];
+  errors?: string[];
 }
 
 // 【エラーハンドリングの型定義】
