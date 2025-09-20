@@ -82,6 +82,14 @@ const VALID_TEMPLATE_VARIABLES = ['{date}', '{prompt}', '{seed}', '{idx}'] as co
  * 【テスト対応】: Green フェーズのテストケースを維持しつつ、実用性を向上
  * 🟢 信頼性レベル: 要件定義書REQ-005, NFR-201, NFR-202 に基づく本格実装
  */
+/**
+ * 【機能概要】: Chrome拡張のPopup UI全体の状態遷移と表示制御を担う管理クラス
+ * 【改善内容】: 外部依存（chrome.storage）の存在判定を共通化し、重複ロジックを削減
+ * 【設計方針】: 単一責任・明確な副作用範囲・DOM操作の例外安全性を重視
+ * 【パフォーマンス】: DOM再計算を抑えるため、必要最小限の更新に限定
+ * 【保守性】: 主要メソッドへ日本語Docコメントを付与し、意図を明確化
+ * 🟢 信頼性レベル: 既存コードとGreenテストに基づく安全な内部整理
+ */
 export class UIStateManager {
   private elements: Record<string, HTMLElement>;
   private isInitialized: boolean = false;
@@ -107,6 +115,22 @@ export class UIStateManager {
   }
 
   /**
+   * 【ヘルパー関数】: chrome.storage.local の利用可否を安全に判定
+   * 【再利用性】: 設定の保存/読込/初期化で共通利用
+   * 【単一責任】: 外部依存の有無判定のみを担当
+   */
+  private isChromeStorageAvailable(): boolean {
+    // 【処理効率化】: 条件式を関数化して重複を排除 🟢
+    // 【可読性向上】: 命名で意図を明確化 🟢
+    // 【セキュリティ】: 未定義アクセスの防止（実行時エラー予防） 🟢
+    return (
+      typeof chrome !== 'undefined' &&
+      !!chrome.storage &&
+      !!chrome.storage.local
+    );
+  }
+
+  /**
    * 【機能概要】: 設定の初期化処理（デフォルト値の設定）
    * 【実装方針】: Chrome Storage APIと連携してデフォルト値を設定
    * 【テスト対応】: TC-001 初回起動時の設定デフォルト値読み込み
@@ -117,7 +141,7 @@ export class UIStateManager {
       // 【Chrome Storage 連携】: 設定データを取得し、デフォルト値で初期化
       // 【テスト環境対応】: chrome API が存在しない場合はデフォルト値を使用
       let result: any = {};
-      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      if (this.isChromeStorageAvailable()) {
         result = await chrome.storage.local.get(['namespace_settings']);
       }
       const settings = result.namespace_settings || DEFAULT_SETTINGS;
@@ -151,7 +175,7 @@ export class UIStateManager {
 
       // 【Chrome Storage 保存】: 取得した設定をストレージに保存
       // 【テスト環境対応】: chrome API が存在する場合のみ保存実行
-      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      if (this.isChromeStorageAvailable()) {
         await chrome.storage.local.set({ namespace_settings: settings });
       }
 
@@ -177,7 +201,7 @@ export class UIStateManager {
       // 【Chrome Storage 読み込み】: 保存済み設定を取得
       // 【テスト環境対応】: chrome API が存在しない場合は何もしない
       let result: any = {};
-      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      if (this.isChromeStorageAvailable()) {
         result = await chrome.storage.local.get(['namespace_settings']);
       }
       const settings = result.namespace_settings;

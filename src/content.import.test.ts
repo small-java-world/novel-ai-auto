@@ -58,9 +58,26 @@ describe('content.ts import and message handling', () => {
       sendResponse
     );
     expect(returned).toBe(true);
-    await Promise.resolve();
-    await Promise.resolve();
-    expect((textarea as HTMLTextAreaElement).value).toBe('Hello');
+
+    await vi.waitFor(() => {
+      expect(sendResponse).toHaveBeenCalled();
+    });
+
+    try {
+      expect((textarea as HTMLTextAreaElement).value).toBe('Hello');
+    } catch (error) {
+      const allTextareas = Array.from(document.querySelectorAll('textarea')).map((node, index) => ({
+        index,
+        value: (node as HTMLTextAreaElement).value,
+      }));
+      console.error('Assertion failed: expected textarea value to be "Hello"', {
+        actual: (textarea as HTMLTextAreaElement).value,
+        allTextareas,
+        sendResponseCalls: sendResponse.mock.calls,
+      });
+      console.error('Stack trace:', error instanceof Error ? error.stack : error);
+      throw error;
+    }
   });
 
   it('APPLY_PROMPT responds requiresLogin when not logged in', async () => {

@@ -25,6 +25,7 @@ export interface StartGenerationMessage extends Message {
 export interface CancelJobMessage extends Message {
   type: 'CANCEL_JOB';
   jobId: string;
+  reason?: 'user_requested' | 'timeout' | 'error';
 }
 
 export interface DownloadImageMessage extends Message {
@@ -35,8 +36,13 @@ export interface DownloadImageMessage extends Message {
 
 // Progress Messages
 export interface ProgressUpdateMessage extends Message {
-  type: 'GENERATION_PROGRESS';
-  progress: GenerationProgress;
+  type: 'PROGRESS_UPDATE';
+  currentIndex: number;
+  totalCount: number;
+  status: 'waiting' | 'generating' | 'downloading' | 'completed' | 'error' | 'cancelled';
+  eta?: number;
+  error?: string;
+  timestamp: number;
 }
 
 export interface GenerationCompleteMessage extends Message {
@@ -139,8 +145,225 @@ export interface StorageData {
 }
 
 export interface LogEntry {
-  timestamp: Date;
-  level: 'info' | 'warn' | 'error';
+  timestamp: number;
+  type: 'success' | 'warning' | 'error';
   message: string;
   context?: any;
+}
+
+// TASK-070: Login Detection and Job Resumption Types
+export interface LoginRequiredMessage extends Message {
+  type: 'LOGIN_REQUIRED';
+  currentJobId?: string;
+  detectedAt: number;
+  redirectUrl: string;
+}
+
+export interface JobResumeMessage extends Message {
+  type: 'RESUME_JOB';
+  jobId: string;
+  resumePoint: 'prompt_application' | 'generation_start' | 'download_start';
+}
+
+export interface LoginCompletedMessage extends Message {
+  type: 'LOGIN_COMPLETED';
+  detectedAt: number;
+  availableForResume: boolean;
+}
+
+// Login Detection Result Types
+export interface LoginDetectionResult {
+  detected: boolean;
+  message?: LoginRequiredMessage;
+  fallbackResult?: string;
+  warning?: string;
+  reason?: string;
+}
+
+export interface JobPauseResult {
+  success: boolean;
+  pausedJob: GenerationJob & { pausedAt: number };
+}
+
+export interface SaveStateResult {
+  storageResult: 'success' | 'failed';
+  fallbackResult?: 'memory_only';
+  warning?: string;
+  memoryState?: any;
+}
+
+export interface LoginCompletedResult {
+  completed: boolean;
+  message: LoginCompletedMessage;
+}
+
+export interface JobResumeResult {
+  success: boolean;
+  resumedJob?: {
+    id: string;
+    resumePoint: string;
+  };
+  message?: JobResumeMessage;
+  validationResult?: string;
+  action?: string;
+  cleanupResult?: string;
+}
+
+export interface PageTransition {
+  previousUrl: string;
+  currentUrl: string;
+  pageState: PageState;
+}
+
+export interface TabFailureResult {
+  tabResult: string;
+  userAction: string;
+  message: string;
+  instructions: string[];
+}
+
+export interface DetectionResult {
+  detected: boolean;
+  reason: string;
+}
+
+export interface RateLimitResult {
+  blocked: boolean;
+  autoResumeEnabled: boolean;
+  reason?: string;
+}
+
+export interface TimeoutResult {
+  completed: boolean;
+  withinSLA: boolean;
+  warning: boolean;
+}
+
+export interface UrlChangeResult {
+  handled: boolean;
+  fallback: string;
+}
+
+// TASK-071: Network Recovery Handler Types
+export interface NetworkStateMessage extends Message {
+  type: 'NETWORK_STATE_CHANGED';
+  isOnline: boolean;
+  timestamp: number;
+  affectedJobs?: string[];
+}
+
+export interface JobPausedMessage extends Message {
+  type: 'JOB_PAUSED';
+  jobId: string;
+  reason: 'network_offline';
+  pausedAt: number;
+}
+
+export interface JobResumedMessage extends Message {
+  type: 'JOB_RESUMED';
+  jobId: string;
+  reason: 'network_restored';
+  resumedAt: number;
+}
+
+// Network Recovery Result Types
+export interface NetworkStateDetectionResult {
+  detected: boolean;
+  message?: NetworkStateMessage;
+  fallbackMode?: boolean;
+  assumedState?: 'online' | 'offline';
+  warning?: string;
+  monitoringDisabled?: boolean;
+}
+
+export interface JobPauseCollectiveResult {
+  success: boolean;
+  pausedJobs: GenerationJob[];
+  messages: JobPausedMessage[];
+  pauseResult?: 'success' | 'failed';
+  fallbackAction?: 'force_stop';
+  errorLog?: string;
+  jobStatus?: string;
+  userNotification?: string;
+}
+
+export interface JobResumeCollectiveResult {
+  success: boolean;
+  resumedJobs: GenerationJob[];
+  messages: JobResumedMessage[];
+  resumeResult?: 'success' | 'failed';
+  delegatedTo?: 'retry_engine';
+  retryScheduled?: boolean;
+  maxRetries?: number;
+  nextRetryAt?: number;
+  userMessage?: string;
+}
+
+export interface FlappingPreventionResult {
+  detected: boolean;
+  reason: 'flapping_prevention' | 'threshold_met' | 'stable_state';
+}
+
+export interface StagedResumeResult {
+  success: boolean;
+  resumeSchedule: Array<{
+    jobId: string;
+    delayMs: number;
+  }>;
+  totalJobs: number;
+  immediate?: number;
+  queued?: number;
+  batchCount?: number;
+}
+
+// Additional Network Recovery Types
+export interface NetworkState {
+  isOnline: boolean;
+}
+
+export interface PausedJob {
+  id: string;
+  status: 'paused';
+  reason?: string;
+  pausedAt: number;
+  progress?: GenerationProgress;
+  data?: any;
+}
+
+export interface BroadcastResult {
+  success: boolean;
+  deliveryResults: Array<{
+    target: string;
+    success: boolean;
+  }>;
+  totalDelivered: number;
+}
+
+export interface DirectNotificationResult {
+  routerUsed: boolean;
+  directNotificationSent: boolean;
+  notificationTargets: string[];
+  fallbackMethod: string;
+  deliveryConfirmed: boolean;
+}
+
+export interface IntervalSettingResult {
+  applied: number;
+  acceptable: boolean;
+  capped?: boolean;
+  warning?: string;
+}
+
+export interface NetworkStateChange {
+  isOnline: boolean;
+  timestamp: number;
+}
+
+// TASK-100: Local File Selection Types
+export interface LocalFileLoadResult {
+  success: boolean;
+  data?: PromptData[];
+  error?: string;
+  fileSize?: number;
+  fileName?: string;
 }

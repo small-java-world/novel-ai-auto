@@ -1,3 +1,5 @@
+import { createLoginDetectionChannel } from './router/loginDetectionChannel';
+
 /**
  * Service Worker for NovelAI Auto Generator
  * Handles background tasks, messaging, and downloads
@@ -15,23 +17,33 @@ chrome.runtime.onInstalled.addListener((details) => {
   }
 });
 
+const loginDetectionChannel = createLoginDetectionChannel();
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Background received message:', message);
 
-  // Handle different message types
-  switch (message.type) {
-    case 'START_GENERATION':
-      handleStartGeneration(message, sender, sendResponse);
-      break;
-    case 'CANCEL_JOB':
-      handleCancelJob(message, sender, sendResponse);
-      break;
-    case 'DOWNLOAD_IMAGE':
-      handleDownloadImage(message, sender, sendResponse);
-      break;
-    default:
-      console.warn('Unknown message type:', message.type);
-  }
+  (async () => {
+    const handled = await loginDetectionChannel.handle(message);
+    if (handled) {
+      return;
+    }
+
+    switch (message?.type) {
+      case 'START_GENERATION':
+        await handleStartGeneration(message, sender, sendResponse);
+        break;
+      case 'CANCEL_JOB':
+        await handleCancelJob(message, sender, sendResponse);
+        break;
+      case 'DOWNLOAD_IMAGE':
+        await handleDownloadImage(message, sender, sendResponse);
+        break;
+      default:
+        console.warn('Unknown message type:', message?.type);
+    }
+  })().catch((error) => {
+    console.error('Failed to handle background message:', error);
+  });
 
   // Return true to keep the message channel open for async response
   return true;
@@ -40,7 +52,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 /**
  * Initialize default settings
  */
-async function initializeDefaultSettings(): Promise<void> {
+export async function initializeDefaultSettings(): Promise<void> {
   try {
     const defaultSettings = {
       imageCount: 1,
@@ -66,7 +78,7 @@ async function initializeDefaultSettings(): Promise<void> {
 /**
  * Handle start generation message
  */
-async function handleStartGeneration(
+export async function handleStartGeneration(
   message: any,
   _sender: chrome.runtime.MessageSender,
   _sendResponse: (_response: any) => void
@@ -99,7 +111,7 @@ async function handleStartGeneration(
 /**
  * Handle cancel job message
  */
-async function handleCancelJob(
+export async function handleCancelJob(
   message: any,
   _sender: chrome.runtime.MessageSender,
   _sendResponse: (_response: any) => void
@@ -120,7 +132,7 @@ async function handleCancelJob(
 /**
  * Handle download image message
  */
-async function handleDownloadImage(
+export async function handleDownloadImage(
   message: any,
   _sender: chrome.runtime.MessageSender,
   _sendResponse: (_response: any) => void
@@ -148,7 +160,7 @@ async function handleDownloadImage(
 /**
  * Ensure NovelAI tab is open and active
  */
-async function ensureNovelAITab(): Promise<chrome.tabs.Tab> {
+export async function ensureNovelAITab(): Promise<chrome.tabs.Tab> {
   try {
     // Check for existing NovelAI tab
     const tabs = await chrome.tabs.query({ url: 'https://novelai.net/*' });
@@ -170,3 +182,8 @@ async function ensureNovelAITab(): Promise<chrome.tabs.Tab> {
     throw error;
   }
 }
+
+
+
+
+

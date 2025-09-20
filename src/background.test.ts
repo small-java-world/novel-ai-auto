@@ -1,139 +1,243 @@
-/**
- * Tests for background script
- */
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+const loginDetectionMessages = {
+  LOGIN_REQUIRED_CHECK: 'LOGIN_REQUIRED_CHECK',
+  LOGIN_REQUIRED_RESULT: 'LOGIN_REQUIRED_RESULT',
+  LOGIN_COMPLETED_CHECK: 'LOGIN_COMPLETED_CHECK',
+  LOGIN_COMPLETED_RESULT: 'LOGIN_COMPLETED_RESULT',
+  PAUSE_RUNNING_JOB: 'PAUSE_RUNNING_JOB',
+  JOB_PAUSE_RESULT: 'JOB_PAUSE_RESULT',
+  SAVE_JOB_STATE: 'SAVE_JOB_STATE',
+  JOB_SAVE_RESULT: 'JOB_SAVE_RESULT',
+  RESUME_SAVED_JOB: 'RESUME_SAVED_JOB',
+  JOB_RESUME_RESULT: 'JOB_RESUME_RESULT',
+  LOGIN_CACHE_RESET: 'LOGIN_CACHE_RESET',
+  LOGIN_CACHE_CLEARED: 'LOGIN_CACHE_CLEARED',
+  LOGIN_DETECTION_ERROR: 'LOGIN_DETECTION_ERROR',
+} as const;
 
-// Mock chrome APIs - these are set up in test/setup.ts
-const mockChrome = globalThis.chrome as any;
+const handleMock = vi.fn().mockResolvedValue(false);
+const createLoginDetectionChannelMock = vi.fn(() => ({ handle: handleMock }));
 
-describe('Background Script', () => {
+vi.mock('./router/loginDetectionChannel', () => ({
+  LOGIN_DETECTION_MESSAGES: loginDetectionMessages,
+  createLoginDetectionChannel: createLoginDetectionChannelMock,
+}));
+
+type ChromeMock = typeof globalThis.chrome;
+const chromeMock = globalThis.chrome as ChromeMock & {
+  permissions?: { contains: ReturnType<typeof vi.fn> };
+};
+
+async function loadBackgroundModule() {
+  vi.resetModules();
+  return await import('./background');
+}
+
+describe('background.ts handlers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    handleMock.mockReset();
+    handleMock.mockResolvedValue(false);
+    createLoginDetectionChannelMock.mockReset();
+    createLoginDetectionChannelMock.mockImplementation(() => ({ handle: handleMock }));
   });
 
-  describe('Service Worker Initialization', () => {
-    it('should initialize with console log', () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-
-      // Import/execute the background script logic here
-      // For now, just test that console.log would be called
-      console.log('NovelAI Auto Generator Service Worker loaded');
-
-      expect(consoleSpy).toHaveBeenCalledWith('NovelAI Auto Generator Service Worker loaded');
-      consoleSpy.mockRestore();
-    });
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
-  describe('Message Handling', () => {
-    it('should handle START_GENERATION message', async () => {
-      const _message = {
-        type: 'START_GENERATION',
-        prompt: 'test prompt',
-        parameters: { seed: 123 },
-      };
+  it('initializes default settings on first install', async () => {
+    const { initializeDefaultSettings } = await loadBackgroundModule();
+    const expectedSettings = {
+      imageCount: 1,
+      seed: -1,
+      filenameTemplate: '{date}_{prompt}_{seed}_{idx}',
+      retrySettings: {
+        maxRetries: 5,
+        baseDelay: 500,
+        factor: 2,
+      },
+    };
 
-      const _sender = { tab: { id: 1 } };
-      const _sendResponse = vi.fn();
+    (chromeMock.storage.local.set as any).mockResolvedValueOnce(undefined);
 
-      // Mock tab operations
-      mockChrome.tabs.query.mockResolvedValue([{ id: 1, url: 'https://novelai.net/' }]);
-      mockChrome.tabs.update.mockResolvedValue({});
-      mockChrome.tabs.sendMessage.mockResolvedValue({});
+    await initializeDefaultSettings();
 
-      // Here we would test the actual message handler
-      // For now, just verify the mocks are set up correctly
-      expect(mockChrome.tabs.query).toBeDefined();
-      expect(mockChrome.tabs.sendMessage).toBeDefined();
-    });
-
-    it('should handle CANCEL_JOB message', async () => {
-      const message = {
-        type: 'CANCEL_JOB',
-        jobId: 'test-job-123',
-      };
-
-      const _sendResponse = vi.fn();
-
-      // Test cancel job logic would go here
-      expect(message.type).toBe('CANCEL_JOB');
-      expect(message.jobId).toBe('test-job-123');
-    });
-
-    it('should handle DOWNLOAD_IMAGE message', async () => {
-      const _message = {
-        type: 'DOWNLOAD_IMAGE',
-        url: 'https://example.com/image.png',
-        filename: 'test_image.png',
-      };
-
-      const _sendResponse = vi.fn();
-
-      // Mock download API
-      mockChrome.downloads.download.mockResolvedValue(123);
-
-      // Test download logic would go here
-      expect(mockChrome.downloads.download).toBeDefined();
+    expect(chromeMock.storage.local.set).toHaveBeenCalledWith({
+      settings: expectedSettings,
     });
   });
 
-  describe('Settings Management', () => {
-    it('should initialize default settings on install', async () => {
-      const defaultSettings = {
-        imageCount: 1,
-        seed: -1,
-        filenameTemplate: '{date}_{prompt}_{seed}_{idx}',
-        retrySettings: {
-          maxRetries: 5,
-          baseDelay: 500,
-          factor: 2.0,
-        },
-      };
+  it('logs error when default settings initialization fails', async () => {
+    const { initializeDefaultSettings } = await loadBackgroundModule();
+    const error = new Error('storage failure');
+    (chromeMock.storage.local.set as any).mockRejectedValueOnce(error);
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      mockChrome.storage.local.set.mockResolvedValue(undefined);
+    await initializeDefaultSettings();
 
-      // Test default settings initialization
-      await mockChrome.storage.local.set({ settings: defaultSettings });
-
-      expect(mockChrome.storage.local.set).toHaveBeenCalledWith({
-        settings: defaultSettings,
-      });
-    });
+    expect(consoleSpy).toHaveBeenCalledWith('Failed to initialize default settings:', error.message);
   });
 
-  describe('Tab Management', () => {
-    it('should create new NovelAI tab if none exists', async () => {
-      mockChrome.tabs.query.mockResolvedValue([]);
-      mockChrome.tabs.create.mockResolvedValue({ id: 1, url: 'https://novelai.net/' });
+  it('ensures existing NovelAI tab is focused', async () => {
+    const { ensureNovelAITab } = await loadBackgroundModule();
+    const tab = { id: 7, url: 'https://novelai.net/generate' };
 
-      // Test tab creation logic
-      const tabs = await mockChrome.tabs.query({ url: 'https://novelai.net/*' });
-      expect(tabs).toHaveLength(0);
+    (chromeMock.tabs.query as any).mockResolvedValueOnce([tab]);
+    (chromeMock.tabs.update as any).mockResolvedValueOnce(tab);
 
-      const newTab = await mockChrome.tabs.create({
-        url: 'https://novelai.net/',
-        active: true,
-      });
+    const result = await ensureNovelAITab();
 
-      expect(mockChrome.tabs.create).toHaveBeenCalledWith({
-        url: 'https://novelai.net/',
-        active: true,
-      });
-      expect(newTab.id).toBe(1);
+    expect(chromeMock.tabs.update).toHaveBeenCalledWith(tab.id, { active: true });
+    expect(result).toEqual(tab);
+  });
+
+  it('opens new NovelAI tab when none exist', async () => {
+    const { ensureNovelAITab } = await loadBackgroundModule();
+    const createdTab = { id: 99, url: 'https://novelai.net/' };
+
+    (chromeMock.tabs.query as any).mockResolvedValueOnce([]);
+    (chromeMock.tabs.create as any).mockResolvedValueOnce(createdTab);
+
+    const result = await ensureNovelAITab();
+
+    expect(chromeMock.tabs.create).toHaveBeenCalledWith({ url: 'https://novelai.net/', active: true });
+    expect(result).toEqual(createdTab);
+  });
+
+  it('propagates errors when ensuring NovelAI tab fails', async () => {
+    const { ensureNovelAITab } = await loadBackgroundModule();
+    const failure = new Error('query failed');
+    (chromeMock.tabs.query as any).mockRejectedValueOnce(failure);
+
+    await expect(ensureNovelAITab()).rejects.toThrow('query failed');
+  });
+
+  it('handles START_GENERATION success path', async () => {
+    const background = await loadBackgroundModule();
+    const message = {
+      type: 'START_GENERATION',
+      prompt: 'A cozy cabin',
+      parameters: { seed: 42 },
+    };
+    const sendResponse = vi.fn();
+    const tab = { id: 3 };
+
+    (chromeMock.tabs.query as any).mockResolvedValueOnce([tab]);
+    (chromeMock.tabs.update as any).mockResolvedValueOnce(tab);
+    (chromeMock.tabs.sendMessage as any).mockResolvedValueOnce(undefined);
+
+    await background.handleStartGeneration(message, {} as chrome.runtime.MessageSender, sendResponse);
+
+    expect(chromeMock.tabs.sendMessage).toHaveBeenCalledWith(tab.id, {
+      type: 'APPLY_PROMPT',
+      prompt: 'A cozy cabin',
+      parameters: { seed: 42 },
     });
+    expect(sendResponse).toHaveBeenCalledWith({ success: true });
+  });
 
-    it('should focus existing NovelAI tab if available', async () => {
-      const existingTab = { id: 1, url: 'https://novelai.net/generate' };
-      mockChrome.tabs.query.mockResolvedValue([existingTab]);
-      mockChrome.tabs.update.mockResolvedValue(existingTab);
+  it('handles errors during START_GENERATION', async () => {
+    const background = await loadBackgroundModule();
+    const message = { type: 'START_GENERATION', prompt: 'error', parameters: {} };
+    const sendResponse = vi.fn();
+    const error = new Error('no tab');
+    (chromeMock.tabs.query as any).mockRejectedValueOnce(error);
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      // Test focusing existing tab
-      const tabs = await mockChrome.tabs.query({ url: 'https://novelai.net/*' });
-      expect(tabs).toHaveLength(1);
+    await background.handleStartGeneration(message, {} as chrome.runtime.MessageSender, sendResponse);
 
-      await mockChrome.tabs.update(tabs[0].id, { active: true });
+    expect(
+      consoleSpy.mock.calls.some(
+        ([label, err]) => label === 'Failed to start generation:' && err instanceof Error && err.message === 'no tab',
+      ),
+    ).toBe(true);
+    expect(sendResponse).toHaveBeenCalledWith({ success: false, error: 'no tab' });
+  });
 
-      expect(mockChrome.tabs.update).toHaveBeenCalledWith(1, { active: true });
+  it('acknowledges cancel requests and handles failures', async () => {
+    const background = await loadBackgroundModule();
+    const sendResponse = vi.fn();
+
+    await background.handleCancelJob({ type: 'CANCEL_JOB', jobId: 'job-1' }, {} as chrome.runtime.MessageSender, sendResponse);
+    expect(sendResponse).toHaveBeenCalledWith({ success: true });
+
+    const errorSend = vi.fn();
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {
+      throw new Error('log failure');
+    });
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await background.handleCancelJob({ type: 'CANCEL_JOB', jobId: 'job-2' }, {} as chrome.runtime.MessageSender, errorSend);
+
+    expect(
+      errorSpy.mock.calls.some(
+        ([label, err]) => label === 'Failed to cancel job:' && err instanceof Error && err.message === 'log failure',
+      ),
+    ).toBe(true);
+    expect(errorSend).toHaveBeenCalledWith({ success: false, error: 'log failure' });
+    logSpy.mockRestore();
+  });
+
+  it('handles download success and failure paths', async () => {
+    const background = await loadBackgroundModule();
+    const message = { type: 'DOWNLOAD_IMAGE', url: 'https://cdn/image.png', filename: 'image.png' };
+    const sendResponse = vi.fn();
+
+    (chromeMock.downloads.download as any).mockResolvedValueOnce(77);
+
+    await background.handleDownloadImage(message, {} as chrome.runtime.MessageSender, sendResponse);
+    expect(sendResponse).toHaveBeenCalledWith({ success: true, downloadId: 77 });
+
+    (chromeMock.downloads.download as any).mockRejectedValueOnce(new Error('network'));
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const errorResponse = vi.fn();
+
+    await background.handleDownloadImage(message, {} as chrome.runtime.MessageSender, errorResponse);
+
+    expect(errorSpy).toHaveBeenCalledWith('Failed to download image:', expect.any(Error));
+    expect(errorResponse).toHaveBeenCalledWith({ success: false, error: 'network' });
+  });
+
+  it('delegates login detection messages to the channel', async () => {
+    handleMock.mockResolvedValueOnce(true);
+    await loadBackgroundModule();
+    const listener = (chromeMock.runtime.onMessage.addListener as any).mock.calls[0][0];
+    const sendResponse = vi.fn();
+    const loginMessage = {
+      type: loginDetectionMessages.LOGIN_REQUIRED_CHECK,
+      requestId: 'req-123',
+    };
+
+    listener(loginMessage, {} as chrome.runtime.MessageSender, sendResponse);
+
+    await vi.waitFor(() => {
+      expect(handleMock).toHaveBeenCalledWith(loginMessage);
+    });
+    expect(sendResponse).not.toHaveBeenCalled();
+  });
+  it('warns on unknown message types via runtime listener', async () => {
+    handleMock.mockResolvedValue(false);
+    await loadBackgroundModule();
+    const listener = (chromeMock.runtime.onMessage.addListener as any).mock.calls[0][0];
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    listener({ type: 'UNKNOWN' }, {} as chrome.runtime.MessageSender, vi.fn());
+
+    await vi.waitFor(() => {
+      expect(warnSpy).toHaveBeenCalledWith('Unknown message type:', 'UNKNOWN');
     });
   });
 });
+
+
+
+
+
+
+
+
+
+
+

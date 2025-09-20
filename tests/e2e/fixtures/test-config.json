@@ -1,0 +1,31 @@
+{
+  "browser": {
+    "headless": false,
+    "slowMo": 100,
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "extension": {
+    "manifestPath": "./manifest.json",
+    "extensionPath": "./",
+    "permissions": ["activeTab", "scripting", "downloads", "storage", "tabs"]
+  },
+  "novelai": {
+    "url": "https://novelai.net",
+    "testMode": true,
+    "mockResponses": true
+  },
+  "timeouts": {
+    "default": 30000,
+    "navigation": 60000,
+    "generation": 300000,
+    "download": 120000
+  },
+  "performance": {
+    "singleImageLimit": 30000,
+    "multipleImageLimit": 300000,
+    "memoryLimit": 2048
+  }
+}

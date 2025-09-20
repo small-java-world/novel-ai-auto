@@ -7,78 +7,221 @@
     <link rel="stylesheet" href="popup.css">
 </head>
 <body>
+    <a href="#main-content" class="skip-link">メインコンテンツにスキップ</a>
     <div class="container">
         <header class="header">
             <h1 class="title">NovelAI Auto Generator</h1>
             <div class="version">v0.1.0</div>
         </header>
 
-        <main class="main">
+        <main class="main" id="main-content">
             <!-- Status Display -->
-            <section class="status-section">
-                <div class="status-indicator" id="statusIndicator">
+            <section class="status-section" role="status" aria-label="アプリケーション状態">
+                <div class="status-indicator" id="statusIndicator" role="alert" aria-live="polite">
                     <span class="status-text" id="statusText">待機中</span>
                 </div>
             </section>
 
             <!-- Prompt Selection -->
-            <section class="prompt-section">
-                <label for="promptSelect" class="label">プロンプト選択:</label>
-                <select id="promptSelect" class="select">
+            <section class="prompt-section" role="region" aria-labelledby="prompt-section-title">
+                <label for="promptSelect" id="prompt-section-title" class="label">プロンプト選択:</label>
+                <select id="promptSelect" class="select" aria-describedby="prompt-help" aria-required="true">
                     <option value="">プロンプトを選択してください</option>
                 </select>
+                <div id="prompt-help" class="sr-only">生成に使用するプロンプトテンプレートを選択してください</div>
+            </section>
+
+            <!-- Prompt Synthesis Section -->
+            <section class="synthesis-section" role="region" aria-labelledby="synthesis-title">
+                <h3 id="synthesis-title" class="section-title">プロンプト合成</h3>
+                
+                <!-- Common Prompts -->
+                <div class="synthesis-group">
+                    <label for="commonPrompt" class="label">共通プロンプト:</label>
+                    <textarea id="commonPrompt" class="textarea" rows="3" 
+                              placeholder="共通で使用するプロンプトを入力してください"
+                              aria-describedby="common-help"></textarea>
+                    <div id="common-help" class="sr-only">すべての画像生成で共通して使用されるプロンプト</div>
+                </div>
+
+                <div class="synthesis-group">
+                    <label for="commonNegative" class="label">共通ネガティブプロンプト:</label>
+                    <textarea id="commonNegative" class="textarea" rows="2" 
+                              placeholder="共通で使用するネガティブプロンプトを入力してください"
+                              aria-describedby="common-negative-help"></textarea>
+                    <div id="common-negative-help" class="sr-only">すべての画像生成で共通して使用されるネガティブプロンプト</div>
+                </div>
+
+                <!-- Synthesis Rule Selection -->
+                <div class="synthesis-group">
+                    <label for="synthesisRule" class="label">合成ルール:</label>
+                    <select id="synthesisRule" class="select" aria-describedby="rule-help">
+                        <option value="default">デフォルト（共通→プリセット）</option>
+                        <option value="preset-first">プリセット優先（プリセット→共通）</option>
+                        <option value="custom">カスタムテンプレート</option>
+                    </select>
+                    <div id="rule-help" class="sr-only">プロンプトの合成方法を選択してください</div>
+                </div>
+
+                <!-- Custom Template (shown when custom rule is selected) -->
+                <div class="synthesis-group" id="customTemplateGroup" style="display: none;">
+                    <label for="customTemplate" class="label">カスタムテンプレート:</label>
+                    <input type="text" id="customTemplate" class="input" 
+                           placeholder="{common} :: {preset}" 
+                           aria-describedby="template-help">
+                    <div id="template-help" class="sr-only">カスタムテンプレート。{common}と{preset}が利用可能</div>
+                </div>
+
+                <!-- Preview Section -->
+                <div class="synthesis-group">
+                    <label class="label">合成結果プレビュー:</label>
+                    <div class="preview-container">
+                        <div class="preview-item">
+                            <label class="preview-label">正方向プロンプト:</label>
+                            <div id="previewPositive" class="preview-text" aria-live="polite"></div>
+                            <div class="character-count" id="positiveCount">0文字</div>
+                        </div>
+                        <div class="preview-item">
+                            <label class="preview-label">負方向プロンプト:</label>
+                            <div id="previewNegative" class="preview-text" aria-live="polite"></div>
+                            <div class="character-count" id="negativeCount">0文字</div>
+                        </div>
+                        <div class="preview-summary">
+                            <div class="total-count" id="totalCount">合計: 0文字</div>
+                            <div id="synthesisWarnings" class="warnings" aria-live="polite"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Synthesis Actions -->
+                <div class="synthesis-actions">
+                    <button id="previewButton" class="button button-secondary" type="button">
+                        プレビュー更新
+                    </button>
+                    <button id="applySynthesisButton" class="button button-primary" type="button">
+                        NovelAIに適用
+                    </button>
+                </div>
+            </section>
+
+            <!-- New Format Support Section -->
+            <section class="format-section" role="region" aria-labelledby="format-title">
+                <h3 id="format-title" class="section-title">新フォーマット対応</h3>
+                
+                <!-- File Format Selection -->
+                <div class="format-group">
+                    <label for="formatSelect" class="label">ファイル形式:</label>
+                    <select id="formatSelect" class="select" aria-describedby="format-help">
+                        <option value="legacy">既存形式 (Legacy)</option>
+                        <option value="v1.0">新形式 (v1.0)</option>
+                        <option value="auto">自動検出</option>
+                    </select>
+                    <div id="format-help" class="sr-only">プロンプトファイルの形式を選択してください</div>
+                </div>
+
+                <!-- File Upload -->
+                <div class="format-group">
+                    <label for="fileUpload" class="label">プロンプトファイル:</label>
+                    <input type="file" id="fileUpload" class="file-input" accept=".json" 
+                           aria-describedby="file-help">
+                    <div id="file-help" class="sr-only">プロンプトファイルをアップロードしてください</div>
+                </div>
+
+                <!-- Metadata Display -->
+                <div class="format-group" id="metadataGroup" style="display: none;">
+                    <label class="label">メタデータ情報:</label>
+                    <div class="metadata-display" id="metadataDisplay" role="region" aria-live="polite">
+                        <!-- メタデータ情報がここに表示されます -->
+                    </div>
+                </div>
+
+                <!-- Format Actions -->
+                <div class="format-actions">
+                    <button id="loadFileButton" class="button button-secondary" type="button">
+                        ファイル読み込み
+                    </button>
+                    <button id="convertFormatButton" class="button button-secondary" type="button" disabled>
+                        形式変換
+                    </button>
+                    <button id="exportFileButton" class="button button-secondary" type="button" disabled>
+                        エクスポート
+                    </button>
+                </div>
+
+                <!-- Format Status -->
+                <div class="format-status" id="formatStatus" role="status" aria-live="polite">
+                    <!-- 形式処理の状態がここに表示されます -->
+                </div>
             </section>
 
             <!-- Settings -->
-            <section class="settings-section">
-                <h3 class="section-title">設定</h3>
-                
+            <section class="settings-section" role="region" aria-labelledby="settings-title">
+                <h3 id="settings-title" class="section-title">設定</h3>
+
                 <div class="setting-group">
                     <label for="imageCount" class="label">生成枚数:</label>
-                    <input type="number" id="imageCount" class="input" min="1" max="10" value="1">
+                    <input type="number" id="imageCount" class="input" min="1" max="10" value="1"
+                           aria-describedby="imageCount-help" aria-required="false">
+                    <div id="imageCount-help" class="sr-only">生成する画像の枚数を1から10の範囲で指定してください</div>
                 </div>
 
                 <div class="setting-group">
                     <label for="seed" class="label">シード:</label>
-                    <input type="number" id="seed" class="input" value="-1" placeholder="-1 (ランダム)">
+                    <input type="number" id="seed" class="input" value="-1" placeholder="-1 (ランダム)"
+                           aria-describedby="seed-help" aria-required="false">
+                    <div id="seed-help" class="sr-only">画像生成のランダムシード値。-1でランダム生成</div>
                 </div>
 
                 <div class="setting-group">
                     <label for="filenameTemplate" class="label">ファイル名テンプレート:</label>
-                    <input type="text" id="filenameTemplate" class="input" value="{date}_{prompt}_{seed}_{idx}">
+                    <input type="text" id="filenameTemplate" class="input" value="{date}_{prompt}_{seed}_{idx}"
+                           aria-describedby="filename-help" aria-required="false">
+                    <div id="filename-help" class="sr-only">保存ファイル名のテンプレート。{date}, {prompt}, {seed}, {idx}が利用可能</div>
                 </div>
             </section>
 
             <!-- Progress Display -->
-            <section class="progress-section" id="progressSection" style="display: none;">
-                <h3 class="section-title">進捗</h3>
-                
-                <div class="progress-bar">
+            <section class="progress-section" id="progressSection" style="display: none;"
+                     role="region" aria-labelledby="progress-title" aria-live="polite">
+                <h3 id="progress-title" class="section-title">進捗</h3>
+
+                <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0"
+                     aria-valuemax="100" aria-labelledby="progress-label" id="progress-bar">
                     <div class="progress-fill" id="progressFill"></div>
                 </div>
-                
+
                 <div class="progress-info">
-                    <span id="progressText">0 / 0</span>
-                    <span id="etaText"></span>
+                    <span id="progressText" aria-label="進捗状況">0 / 0</span>
+                    <span id="etaText" aria-label="推定残り時間"></span>
                 </div>
+                <div id="progress-label" class="sr-only">画像生成の進捗状況</div>
             </section>
 
             <!-- Action Buttons -->
-            <section class="actions-section">
-                <button id="generateButton" class="button button-primary">
+            <section class="actions-section" role="region" aria-labelledby="actions-title">
+                <h3 id="actions-title" class="sr-only">操作ボタン</h3>
+                <button id="generateButton" class="button button-primary"
+                        aria-describedby="generate-help" type="button">
                     生成開始
                 </button>
-                
-                <button id="cancelButton" class="button button-secondary" style="display: none;">
+                <div id="generate-help" class="sr-only">選択したプロンプトで画像生成を開始します</div>
+
+                <button id="cancelButton" class="button button-secondary" style="display: none;"
+                        aria-describedby="cancel-help" type="button">
                     キャンセル
                 </button>
+                <div id="cancel-help" class="sr-only">現在の画像生成処理を中止します</div>
             </section>
 
             <!-- Logs -->
-            <section class="logs-section">
-                <details>
-                    <summary class="logs-toggle">ログを表示</summary>
-                    <div class="logs-container" id="logsContainer">
+            <section class="logs-section" role="region" aria-labelledby="logs-title">
+                <details aria-expanded="false">
+                    <summary class="logs-toggle" id="logs-title" role="button" tabindex="0"
+                             aria-controls="logsContainer" aria-describedby="logs-help">
+                        ログを表示
+                    </summary>
+                    <div id="logs-help" class="sr-only">アプリケーションの動作ログを表示・非表示します</div>
+                    <div class="logs-container" id="logsContainer" role="log" aria-live="polite" aria-atomic="false">
                         <div class="log-entry">
                             <span class="log-time">[00:00:00]</span>
                             <span class="log-message">拡張機能が読み込まれました</span>

@@ -1,0 +1,26 @@
+{
+  "testPrompts": [
+    {
+      "name": "simple-test",
+      "prompt": "1girl, portrait, simple test prompt",
+      "negativePrompt": "bad quality, low quality",
+      "seed": "12345",
+      "steps": 20,
+      "scale": 7.0
+    },
+    {
+      "name": "complex-test",
+      "prompt": "detailed landscape, mountains, forest, beautiful scenery",
+      "negativePrompt": "ugly, blurry, bad composition",
+      "seed": "67890",
+      "steps": 28,
+      "scale": 9.0
+    }
+  ],
+  "testConfig": {
+    "defaultTimeout": 30000,
+    "generationTimeout": 300000,
+    "retryAttempts": 3,
+    "downloadPath": "./test-downloads"
+  }
+}

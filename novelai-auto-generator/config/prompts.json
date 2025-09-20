@@ -1,0 +1,14 @@
+[
+  {
+    "id": "fantasy_knight",
+    "name": "ファンタジー騎士",
+    "positive": "{best quality}, {{masterpiece}}, {highres}, 1girl, solo, full body, princess knight costume, medieval armor, flowing cape, castle courtyard",
+    "negative": "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped, worst quality, low quality",
+    "settings": {
+      "steps": 28,
+      "scale": 5,
+      "sampler": "k_euler",
+      "resolution": "512x768"
+    }
+  }
+]

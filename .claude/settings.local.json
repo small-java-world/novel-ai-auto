@@ -23,7 +23,19 @@
       "Bash(mkdir:*)",
       "Bash(npx vitest:*)",
       "Bash(findstr:*)",
-      "Bash(npx prettier:*)"
+      "Bash(npx prettier:*)",
+      "Bash(cd:*)",
+      "Bash(npm run:*)",
+      "Bash(node:*)",
+      "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/utils/storage-download-compatibility.red.test.ts)",
+      "Bash(NODE_ENV=test npx vitest run src/utils/boundary-test-integration.red.test.ts --config vitest.config.ts --reporter=verbose)",
+      "Bash(cat:*)",
+      "Bash(awk:*)",
+      "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/utils/boundary-test-integration.red.test.ts)",
+      "Bash(npx c8:*)",
+      "Bash(npx playwright install:*)",
+      "Bash(npx playwright test:*)",
+      "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/popup/local-file-selector.red.test.ts)"
     ],
     "deny": [],
     "ask": []
