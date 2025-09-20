@@ -190,12 +190,23 @@ async function startGeneration() {
 
     isGenerating = true;
     updateUI();
+    
+    // Initialize progress display
+    const totalCount = settings.imageCount;
+    elements.progressText.textContent = `0 / ${totalCount}`;
+    elements.progressFill.style.width = '0%';
+    elements.etaText.textContent = '';
+    
     addLog(`生成を開始します: ${promptData.name}`);
 
     // Send generation request to background script
     const response = await chrome.runtime.sendMessage({
       type: 'START_GENERATION',
-      prompt: promptData.prompt,
+      prompt: {
+        positive: promptData.prompt.positive || promptData.prompt,
+        negative: promptData.prompt.negative || '',
+        selectorProfile: promptData.selectorProfile || 'character-anime'
+      },
       parameters: {
         seed: settings.seed,
         count: settings.imageCount,
@@ -240,8 +251,11 @@ async function cancelGeneration() {
  * Handle messages from background script
  */
 function handleMessage(message, _sender, _sendResponse) {
+  console.log('Popup received message:', message);
+  
   switch (message.type) {
     case 'GENERATION_PROGRESS':
+      console.log('Updating progress:', message.progress);
       updateProgress(message.progress);
       break;
     case 'GENERATION_COMPLETE':
@@ -250,6 +264,8 @@ function handleMessage(message, _sender, _sendResponse) {
     case 'GENERATION_ERROR':
       handleGenerationError(message);
       break;
+    default:
+      console.log('Unknown message type:', message.type);
   }
 }
 
@@ -257,14 +273,23 @@ function handleMessage(message, _sender, _sendResponse) {
  * Update progress display
  */
 function updateProgress(progress) {
+  console.log('updateProgress called with:', progress);
+  
   const { current, total, eta } = progress;
 
-  elements.progressFill.style.width = `${(current / total) * 100}%`;
-  elements.progressText.textContent = `${current} / ${total}`;
+  if (elements.progressFill) {
+    elements.progressFill.style.width = `${(current / total) * 100}%`;
+  }
+  
+  if (elements.progressText) {
+    elements.progressText.textContent = `${current} / ${total}`;
+  }
 
-  if (eta) {
+  if (eta && elements.etaText) {
     elements.etaText.textContent = `残り時間: ${formatDuration(eta)}`;
   }
+  
+  console.log('Progress updated:', `${current} / ${total}`);
 }
 
 /**

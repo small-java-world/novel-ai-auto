@@ -15,7 +15,20 @@ export interface MessageResponse {
 }
 
 // Generation Messages
-export interface PromptSegments {\r\n  positive: string;\r\n  negative?: string;\r\n}\r\n\r\nexport interface StartGenerationMessage extends Message {\r\n  type: 'START_GENERATION';\r\n  prompt: PromptSegments;\r\n  parameters: GenerationParameters;\r\n  settings: GenerationSettings;\r\n}\r\n\r\nexport interface CancelJobMessage extends Message {
+export interface PromptSegments {
+  positive: string;
+  negative?: string;
+  selectorProfile?: string;
+}
+
+export interface StartGenerationMessage extends Message {
+  type: 'START_GENERATION';
+  prompt: PromptSegments;
+  parameters: GenerationParameters;
+  settings: GenerationSettings;
+}
+
+export interface CancelJobMessage extends Message {
   type: 'CANCEL_JOB';
   jobId: string;
   reason?: 'user_requested' | 'timeout' | 'error';
@@ -50,7 +63,13 @@ export interface GenerationErrorMessage extends Message {
 }
 
 // Content Script Messages
-export interface ApplyPromptMessage extends Message {\r\n  type: 'APPLY_PROMPT';\r\n  prompt: PromptSegments;\r\n  parameters: GenerationParameters;\r\n}\r\n\r\nexport interface GetPageStateMessage extends Message {
+export interface ApplyPromptMessage extends Message {
+  type: 'APPLY_PROMPT';
+  prompt: PromptSegments;
+  parameters: GenerationParameters;
+}
+
+export interface GetPageStateMessage extends Message {
   type: 'GET_PAGE_STATE';
 }
 
