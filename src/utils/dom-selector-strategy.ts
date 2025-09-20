@@ -7,6 +7,7 @@
  */
 export type ElementType =
   | 'prompt-input' // プロンプト入力欄
+  | 'negative-input' // ネガティブプロンプト入力欄
   | 'generate-button' // 生成開始ボタン
   | 'seed-input' // シード値入力欄
   | 'steps-input' // ステップ数入力欄

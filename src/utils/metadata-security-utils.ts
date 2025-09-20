@@ -33,7 +33,10 @@ export function escapeHtmlComprehensive(unsafe: string): string {
   // 【高速エスケープ処理】: 全ての危険文字を一括置換
   // 🔴 改善: 単一引用符のエスケープを追加してセキュリティ強化
   return unsafe.replace(/[&<>"']/g, (match) => {
-    return SECURITY_CONFIG.HTML_ESCAPE_MAP[match as keyof typeof SECURITY_CONFIG.HTML_ESCAPE_MAP] || match;
+    return (
+      SECURITY_CONFIG.HTML_ESCAPE_MAP[match as keyof typeof SECURITY_CONFIG.HTML_ESCAPE_MAP] ||
+      match
+    );
   });
 }
 
@@ -131,23 +134,35 @@ export function validateMetadataFieldLengths(metadata: any): {
   // 【必須フィールド検証】: name フィールドの長さチェック
   if (typeof metadata.name === 'string') {
     if (metadata.name.length < METADATA_FIELD_LIMITS.NAME_MIN_LENGTH) {
-      violations.push(`Name field is too short (minimum: ${METADATA_FIELD_LIMITS.NAME_MIN_LENGTH} characters)`);
+      violations.push(
+        `Name field is too short (minimum: ${METADATA_FIELD_LIMITS.NAME_MIN_LENGTH} characters)`
+      );
     }
     if (metadata.name.length > METADATA_FIELD_LIMITS.NAME_MAX_LENGTH) {
-      violations.push(`Name field is too long (maximum: ${METADATA_FIELD_LIMITS.NAME_MAX_LENGTH} characters)`);
+      violations.push(
+        `Name field is too long (maximum: ${METADATA_FIELD_LIMITS.NAME_MAX_LENGTH} characters)`
+      );
     }
   }
 
   // 【オプションフィールド検証】: description フィールドの長さチェック
-  if (typeof metadata.description === 'string' &&
-      metadata.description.length > METADATA_FIELD_LIMITS.DESCRIPTION_MAX_LENGTH) {
-    violations.push(`Description field is too long (maximum: ${METADATA_FIELD_LIMITS.DESCRIPTION_MAX_LENGTH} characters)`);
+  if (
+    typeof metadata.description === 'string' &&
+    metadata.description.length > METADATA_FIELD_LIMITS.DESCRIPTION_MAX_LENGTH
+  ) {
+    violations.push(
+      `Description field is too long (maximum: ${METADATA_FIELD_LIMITS.DESCRIPTION_MAX_LENGTH} characters)`
+    );
   }
 
   // 【オプションフィールド検証】: author フィールドの長さチェック
-  if (typeof metadata.author === 'string' &&
-      metadata.author.length > METADATA_FIELD_LIMITS.AUTHOR_MAX_LENGTH) {
-    violations.push(`Author field is too long (maximum: ${METADATA_FIELD_LIMITS.AUTHOR_MAX_LENGTH} characters)`);
+  if (
+    typeof metadata.author === 'string' &&
+    metadata.author.length > METADATA_FIELD_LIMITS.AUTHOR_MAX_LENGTH
+  ) {
+    violations.push(
+      `Author field is too long (maximum: ${METADATA_FIELD_LIMITS.AUTHOR_MAX_LENGTH} characters)`
+    );
   }
 
   // 【配列フィールド検証】: tags フィールドの個数と各タグの長さチェック
@@ -158,14 +173,16 @@ export function validateMetadataFieldLengths(metadata: any): {
 
     metadata.tags.forEach((tag: any, index: number) => {
       if (typeof tag === 'string' && tag.length > METADATA_FIELD_LIMITS.TAG_MAX_LENGTH) {
-        violations.push(`Tag ${index + 1} is too long (maximum: ${METADATA_FIELD_LIMITS.TAG_MAX_LENGTH} characters)`);
+        violations.push(
+          `Tag ${index + 1} is too long (maximum: ${METADATA_FIELD_LIMITS.TAG_MAX_LENGTH} characters)`
+        );
       }
     });
   }
 
   return {
     isValid: violations.length === 0,
-    violations
+    violations,
   };
 }
 
@@ -245,9 +262,7 @@ export class SimpleRateLimiter {
     const timestamps = this.requests.get(key) || [];
 
     // 【時間窓外のリクエスト削除】: 古いタイムスタンプを削除
-    const validTimestamps = timestamps.filter(timestamp =>
-      now - timestamp < this.windowMs
-    );
+    const validTimestamps = timestamps.filter((timestamp) => now - timestamp < this.windowMs);
 
     // 【制限値チェック】: 現在の時間窓内でのリクエスト数を確認
     if (validTimestamps.length >= this.maxRequests) {
@@ -267,9 +282,7 @@ export class SimpleRateLimiter {
   cleanup(): void {
     const now = Date.now();
     for (const [key, timestamps] of this.requests.entries()) {
-      const validTimestamps = timestamps.filter(timestamp =>
-        now - timestamp < this.windowMs
-      );
+      const validTimestamps = timestamps.filter((timestamp) => now - timestamp < this.windowMs);
 
       if (validTimestamps.length === 0) {
         this.requests.delete(key);

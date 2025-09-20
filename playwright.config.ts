@@ -103,9 +103,5 @@ export default defineConfig({
   ],
 
   // Test ignore patterns
-  testIgnore: [
-    '**/node_modules/**',
-    '**/dist/**',
-    '**/build/**',
-  ],
+  testIgnore: ['**/node_modules/**', '**/dist/**', '**/build/**'],
 });

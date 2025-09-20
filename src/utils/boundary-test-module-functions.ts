@@ -10,7 +10,7 @@ import {
   BOUNDARY_MESSAGES,
   BOUNDARY_EXPECTED_VALUES,
   MODULE_NAMES,
-  TEST_STATUS
+  TEST_STATUS,
 } from './boundary-test-constants';
 import {
   TestCase,
@@ -22,7 +22,7 @@ import {
   updateTestStatistics,
   determineModuleStatus,
   isWithinBounds,
-  truncateString
+  truncateString,
 } from './boundary-test-helpers';
 import { BoundaryTestInput, BoundaryResult } from './boundary-test-integration';
 
@@ -62,7 +62,7 @@ export async function executeAllBoundaryTests(
     promptApplication: promptResult,
     imageGeneration: imageResult,
     retryProcessing: retryResult,
-    systemIntegration: integrationResult
+    systemIntegration: integrationResult,
   };
 }
 
@@ -93,7 +93,7 @@ async function testPromptBoundary(
     testCases,
     processedLength: Math.min(promptLength, BOUNDARY_LIMITS.PROMPT_MAX_LENGTH),
     originalLength: promptLength,
-    processedPrompt: truncateString(input.promptText, BOUNDARY_LIMITS.PROMPT_MAX_LENGTH)
+    processedPrompt: truncateString(input.promptText, BOUNDARY_LIMITS.PROMPT_MAX_LENGTH),
   };
 }
 
@@ -118,7 +118,11 @@ async function testImageCountBoundary(
   updateTestStatistics(statistics, testCase.status);
   addTestMessagesToArrays(testCase, warnings, errors);
 
-  const isValidCount = isWithinBounds(imageCount, BOUNDARY_LIMITS.IMAGE_COUNT_MIN, BOUNDARY_LIMITS.IMAGE_COUNT_MAX);
+  const isValidCount = isWithinBounds(
+    imageCount,
+    BOUNDARY_LIMITS.IMAGE_COUNT_MIN,
+    BOUNDARY_LIMITS.IMAGE_COUNT_MAX
+  );
 
   return {
     module: MODULE_NAMES.IMAGE_GENERATION,
@@ -127,7 +131,7 @@ async function testImageCountBoundary(
     requestedCount: imageCount,
     validatedCount: isValidCount ? imageCount : 0,
     invalidValue: !isValidCount ? imageCount : undefined,
-    validRange: { min: BOUNDARY_LIMITS.IMAGE_COUNT_MIN, max: BOUNDARY_LIMITS.IMAGE_COUNT_MAX }
+    validRange: { min: BOUNDARY_LIMITS.IMAGE_COUNT_MIN, max: BOUNDARY_LIMITS.IMAGE_COUNT_MAX },
   };
 }
 
@@ -162,9 +166,9 @@ async function testRetryBoundary(
     retriesExecuted: input.simulateFailure ? maxRetries : 0,
     maxRetriesLimit: maxRetries,
     retryExhaustionReason: input.simulateFailure ? 'maxRetriesReached' : undefined,
-    retriesAttempted: maxRetries === 0 ? 0 : (input.simulateFailure ? maxRetries : 0),
+    retriesAttempted: maxRetries === 0 ? 0 : input.simulateFailure ? maxRetries : 0,
     maxRetriesReached: input.simulateFailure || false,
-    finalFailure: input.simulateFailure || (maxRetries === 0)
+    finalFailure: input.simulateFailure || maxRetries === 0,
   };
 }
 
@@ -181,8 +185,10 @@ async function testSystemIntegration(
   errors: string[]
 ): Promise<BoundaryResult> {
   const testCases: TestCase[] = [];
-  const hasPromptError = input.promptText.length > BOUNDARY_LIMITS.PROMPT_MAX_LENGTH || input.promptText.length === 0;
-  const hasImageError = input.imageCount === 0 || input.imageCount > BOUNDARY_LIMITS.IMAGE_COUNT_MAX;
+  const hasPromptError =
+    input.promptText.length > BOUNDARY_LIMITS.PROMPT_MAX_LENGTH || input.promptText.length === 0;
+  const hasImageError =
+    input.imageCount === 0 || input.imageCount > BOUNDARY_LIMITS.IMAGE_COUNT_MAX;
 
   const testCase = createSystemIntegrationTestCase(input, hasPromptError, hasImageError);
   testCases.push(testCase);
@@ -211,20 +217,24 @@ function createSystemIntegrationResult(
     minLoadConfiguration: input.promptText.length === 1 && input.imageCount === 1,
     promptLength: input.promptText.length,
     imageCount: input.imageCount,
-    estimatedProcessingTime: (input.promptText.length === 1 && input.imageCount === 1) ? '< 1s' : undefined,
+    estimatedProcessingTime:
+      input.promptText.length === 1 && input.imageCount === 1 ? '< 1s' : undefined,
     conflictingParameter: hasPromptError && hasImageError ? 'imageCount' : undefined,
     conflictPriority: hasPromptError && hasImageError ? 'imageCount' : undefined,
     errorPriority: hasPromptError && hasImageError ? 'imageCount' : undefined,
     multipleIssues: hasPromptError && hasImageError,
-    maxLoadConfiguration: input.promptText.length === BOUNDARY_LIMITS.PROMPT_MAX_LENGTH &&
-                         input.imageCount === BOUNDARY_LIMITS.IMAGE_COUNT_MAX,
-    allParametersInvalid: input.promptText.length === 0 &&
-                         input.imageCount === 0 &&
-                         input.retrySettings.maxRetries === 0,
-    configurationRequired: input.promptText.length === 0 &&
-                          input.imageCount === 0 &&
-                          input.retrySettings.maxRetries === 0,
-    retrySettingsValid: input.retrySettings.maxRetries > 0
+    maxLoadConfiguration:
+      input.promptText.length === BOUNDARY_LIMITS.PROMPT_MAX_LENGTH &&
+      input.imageCount === BOUNDARY_LIMITS.IMAGE_COUNT_MAX,
+    allParametersInvalid:
+      input.promptText.length === 0 &&
+      input.imageCount === 0 &&
+      input.retrySettings.maxRetries === 0,
+    configurationRequired:
+      input.promptText.length === 0 &&
+      input.imageCount === 0 &&
+      input.retrySettings.maxRetries === 0,
+    retrySettingsValid: input.retrySettings.maxRetries > 0,
   };
 }
 
@@ -425,11 +435,11 @@ export function createErrorBoundaryTestResult(errorMessage: string): any {
       promptApplication: createEmptyBoundaryResult(MODULE_NAMES.PROMPT_APPLICATION),
       imageGeneration: createEmptyBoundaryResult(MODULE_NAMES.IMAGE_GENERATION),
       retryProcessing: createEmptyBoundaryResult(MODULE_NAMES.RETRY_PROCESSING),
-      systemIntegration: createEmptyBoundaryResult(MODULE_NAMES.SYSTEM_INTEGRATION)
+      systemIntegration: createEmptyBoundaryResult(MODULE_NAMES.SYSTEM_INTEGRATION),
     },
     warnings: [],
     errors: [`${BOUNDARY_MESSAGES.UNEXPECTED_ERROR}: ${errorMessage}`],
-    statistics: { totalTests: 0, passedTests: 0, failedTests: 0, warningTests: 0 }
+    statistics: { totalTests: 0, passedTests: 0, failedTests: 0, warningTests: 0 },
   };
 }
 
@@ -442,6 +452,6 @@ export function createEmptyBoundaryResult(moduleName: string): BoundaryResult {
   return {
     module: moduleName,
     status: TEST_STATUS.FAIL,
-    testCases: []
+    testCases: [],
   };
 }

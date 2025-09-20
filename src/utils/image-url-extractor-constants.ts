@@ -58,11 +58,7 @@ export const URL_VALIDATION = {
   MAX_URL_LENGTH: 2048,
 
   /** 【許可ドメインリスト】: NovelAI関連の信頼できるドメイン */
-  ALLOWED_DOMAINS: [
-    'novelai.net',
-    'cdn.novelai.net',
-    'images.novelai.net',
-  ],
+  ALLOWED_DOMAINS: ['novelai.net', 'cdn.novelai.net', 'images.novelai.net'],
 
   /** 【画像拡張子】: 有効な画像ファイル拡張子 */
   VALID_IMAGE_EXTENSIONS: ['.png', '.jpg', '.jpeg', '.webp'],
@@ -89,9 +85,28 @@ export const FILENAME_SANITIZATION = {
 
   /** 【予約ファイル名】: Windowsで予約されたファイル名 */
   RESERVED_NAMES: [
-    'CON', 'PRN', 'AUX', 'NUL',
-    'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9',
-    'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9',
+    'CON',
+    'PRN',
+    'AUX',
+    'NUL',
+    'COM1',
+    'COM2',
+    'COM3',
+    'COM4',
+    'COM5',
+    'COM6',
+    'COM7',
+    'COM8',
+    'COM9',
+    'LPT1',
+    'LPT2',
+    'LPT3',
+    'LPT4',
+    'LPT5',
+    'LPT6',
+    'LPT7',
+    'LPT8',
+    'LPT9',
   ],
 } as const;
 

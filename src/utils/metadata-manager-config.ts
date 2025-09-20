@@ -151,16 +151,11 @@ export const SECURITY_CONFIG = {
     '<': '&lt;',
     '>': '&gt;',
     '"': '&quot;',
-    "'": '&#039;',  // 🔴 改善: 単一引用符もエスケープしてXSS攻撃を防ぐ
+    "'": '&#039;', // 🔴 改善: 単一引用符もエスケープしてXSS攻撃を防ぐ
   } as const,
 
   /** 危険な文字列パターン（プロトタイプ汚染攻撃防止） */
-  DANGEROUS_PATTERNS: [
-    '__proto__',
-    'constructor',
-    'prototype',
-    'constructor.prototype',
-  ] as const,
+  DANGEROUS_PATTERNS: ['__proto__', 'constructor', 'prototype', 'constructor.prototype'] as const,
 
   /** JSONパース時の最大ネストレベル */
   MAX_JSON_DEPTH: 10,

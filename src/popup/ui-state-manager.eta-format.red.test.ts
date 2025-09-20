@@ -37,4 +37,3 @@ describe('UI スケルトン/状態管理 - Red Phase: ETA 表示フォーマッ
     expect(mockElements.etaText.textContent).toBe('残り時間: 2分05秒');
   });
 });
-

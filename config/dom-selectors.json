@@ -1,0 +1,293 @@
+{
+  "profiles": {
+    "$default": {
+      "detect": [
+        "meta[property=\"og:site_name\"][content=\"NovelAI\"]",
+        "#__next"
+      ],
+      "selectors": {
+        "prompt-input": [
+          "[role=\"textbox\"][contenteditable=\"true\"]",
+          "div[contenteditable=\"true\"][role=\"textbox\"]",
+          "#__next textarea",
+          "[data-testid=\"prompt-input\"] textarea",
+          "[data-testid=\"prompt-input\"]",
+          "textarea[aria-label*=\"prompt\" i]",
+          "textarea[placeholder*=\"prompt\" i]",
+          "textarea[name=\"prompt\"]",
+          "textarea[id*=\"prompt\" i]",
+          ".prompt-input textarea"
+        ],
+        "negative-input": [
+          "#__next textarea[placeholder*=\"negative\" i]",
+          "[role=\"textbox\"][contenteditable=\"true\"][data-negative=\"true\"]",
+          "div[contenteditable=\"true\"][data-field=\"negative\"]",
+          "[data-testid=\"negative-prompt\"] textarea",
+          "[data-testid=\"negative-prompt\"]",
+          "textarea[aria-label*=\"negative\" i]",
+          "textarea[placeholder*=\"negative\" i]",
+          "textarea[name=\"negative\"]",
+          "textarea[id*=\"negative\" i]",
+          ".prompt-negative textarea"
+        ],
+        "generate-button": [
+          "#__next button[type=\"submit\"]",
+          "button[title*=\"generate\" i]",
+          "button[class*=\"generate\" i]",
+          "[data-testid=\"generate-button\"]",
+          "button[aria-label*=\"generate\" i]",
+          "button[aria-label*=\"生成\" i]",
+          "button[type=\"submit\"]",
+          ".generate-button"
+        ],
+        "seed-input": [
+          "[data-testid=\"seed-input\"] input",
+          "[data-testid=\"seed-input\"]",
+          "input[name=\"seed\"]",
+          "input[id*=\"seed\" i]",
+          "input[aria-label*=\"seed\" i]"
+        ],
+        "steps-input": [
+          "input[type=\"range\"][aria-label*=\"steps\" i]",
+          "[data-testid=\"steps-input\"] input",
+          "input[name=\"steps\"]",
+          "input[id*=\"step\" i]",
+          "input[aria-label*=\"steps\" i]"
+        ],
+        "sampler-select": [
+          "input[role=\"combobox\"][aria-label*=\"sampler\" i]",
+          "[data-testid=\"sampler-select\"] select",
+          "[data-testid=\"sampler-select\"]",
+          "select[name=\"sampler\"]",
+          "select[id*=\"sampler\" i]",
+          "select[aria-label*=\"sampler\" i]"
+        ],
+        "cfg-scale-input": [
+          "input[type=\"range\"][aria-label*=\"cfg\" i]",
+          "[data-testid=\"cfg-input\"] input",
+          "input[name=\"cfg\"]",
+          "input[id*=\"cfg\" i]",
+          "input[aria-label*=\"cfg\" i]"
+        ],
+        "count-input": [
+          "[data-testid=\"image-count-input\"] input",
+          "input[name=\"imageCount\"]",
+          "input[name=\"count\"]",
+          "input[id*=\"count\" i]",
+          "input[aria-label*=\"count\" i]"
+        ],
+        "progress-indicator": [
+          "#__next [role=\"progressbar\"]",
+          "[role=\"progressbar\"]",
+          ".progress-bar"
+        ],
+        "image-gallery": [
+          "#__next .image-gallery",
+          ".image-gallery",
+          ".novelai-gallery"
+        ]
+      }
+    },
+    "character-anime": {
+      "detect": [".anime-character-ui", "[data-style=\"anime\"]"],
+      "selectors": {
+        "prompt-input": [
+          { "scope": ".anime-character-ui", "selectors": ["textarea", "[contenteditable=true]"] }
+        ],
+        "negative-input": [
+          { "scope": ".anime-character-ui", "selectors": [".negative textarea"] }
+        ]
+      }
+    },
+    "character-realistic": {
+      "detect": [".realistic-character-ui", "[data-style=\"realistic\"]"],
+      "selectors": {
+        "prompt-input": [
+          { "scope": ".realistic-character-ui", "selectors": ["textarea.prompt", "[contenteditable=true][data-role=prompt]"] }
+        ],
+        "negative-input": [
+          { "scope": ".realistic-character-ui", "selectors": ["textarea.negative", "[data-role=negative]"] }
+        ],
+        "generate-button": [
+          { "scope": ".realistic-character-ui", "selectors": ["button[type=submit]", "button[title*=generate i]"] }
+        ],
+        "cfg-scale-input": [
+          "input[type=range][aria-label*=cfg i]",
+          "[data-testid=\"cfg-input\"] input"
+        ],
+        "progress-indicator": [
+          "#__next [role=progressbar]"
+        ],
+        "image-gallery": [
+          "#__next .image-gallery",
+          ".novelai-gallery"
+        ]
+      }
+    },
+    "character-fantasy": {
+      "detect": [".fantasy-character-ui", "[data-style=\"fantasy\"]", "[data-theme*=\"fantasy\" i]"],
+      "selectors": {
+        "prompt-input": [
+          { "scope": ".fantasy-character-ui", "selectors": ["textarea.fantasy-prompt", "[contenteditable=true][data-role=fantasy]"] }
+        ],
+        "negative-input": [
+          { "scope": ".fantasy-character-ui", "selectors": ["textarea.fantasy-negative", "[data-role=fantasy-negative]"] }
+        ],
+        "generate-button": [
+          { "scope": ".fantasy-character-ui", "selectors": ["button[type=submit]", "button[aria-label*=fantasy i]"] }
+        ],
+        "steps-input": [
+          "input[type=range][aria-label*=steps i]",
+          "[data-testid=\"steps-input\"] input"
+        ],
+        "sampler-select": [
+          "input[role=combobox][aria-label*=sampler i]",
+          "[data-testid=\"sampler-select\"] select"
+        ],
+        "cfg-scale-input": [
+          "input[type=range][aria-label*=cfg i]",
+          "[data-testid=\"cfg-input\"] input"
+        ],
+        "progress-indicator": [
+          "#__next [role=progressbar]",
+          "[role=progressbar]"
+        ],
+        "image-gallery": [
+          "#__next .image-gallery",
+          ".novelai-gallery"
+        ]
+      }
+    },
+    "character-sci-fi": {
+      "detect": [".scifi-character-ui", "[data-style=\"scifi\"]", "[data-theme*=\"scifi\" i]"],
+      "selectors": {
+        "prompt-input": [
+          { "scope": ".scifi-character-ui", "selectors": ["textarea.scifi-prompt", "[contenteditable=true][data-role=scifi]"] }
+        ],
+        "negative-input": [
+          { "scope": ".scifi-character-ui", "selectors": ["textarea.scifi-negative", "[data-role=scifi-negative]"] }
+        ],
+        "generate-button": [
+          { "scope": ".scifi-character-ui", "selectors": ["button[type=submit]", "button[aria-label*=scifi i]"] }
+        ],
+        "steps-input": [
+          "input[type=range][aria-label*=steps i]",
+          "[data-testid=\"steps-input\"] input"
+        ],
+        "sampler-select": [
+          "input[role=combobox][aria-label*=sampler i]",
+          "[data-testid=\"sampler-select\"] select"
+        ],
+        "cfg-scale-input": [
+          "input[type=range][aria-label*=cfg i]",
+          "[data-testid=\"cfg-input\"] input"
+        ],
+        "progress-indicator": [
+          "#__next [role=progressbar]",
+          "[role=progressbar]"
+        ],
+        "image-gallery": [
+          "#__next .image-gallery",
+          ".novelai-gallery"
+        ]
+      }
+    },
+    "character-horror": {
+      "detect": [".horror-character-ui", "[data-style=\"horror\"]", "[data-theme*=\"horror\" i]"],
+      "selectors": {
+        "prompt-input": [
+          { "scope": ".horror-character-ui", "selectors": ["textarea.horror-prompt", "[contenteditable=true][data-role=horror]"] }
+        ],
+        "negative-input": [
+          { "scope": ".horror-character-ui", "selectors": ["textarea.horror-negative", "[data-role=horror-negative]"] }
+        ],
+        "generate-button": [
+          { "scope": ".horror-character-ui", "selectors": ["button[type=submit]", "button[aria-label*=horror i]"] }
+        ],
+        "steps-input": [
+          "input[type=range][aria-label*=steps i]",
+          "[data-testid=\"steps-input\"] input"
+        ],
+        "sampler-select": [
+          "input[role=combobox][aria-label*=sampler i]",
+          "[data-testid=\"sampler-select\"] select"
+        ],
+        "cfg-scale-input": [
+          "input[type=range][aria-label*=cfg i]",
+          "[data-testid=\"cfg-input\"] input"
+        ],
+        "progress-indicator": [
+          "#__next [role=progressbar]",
+          "[role=progressbar]"
+        ],
+        "image-gallery": [
+          "#__next .image-gallery",
+          ".novelai-gallery"
+        ]
+      }
+    }
+  }
+}
+
+{
+  "prompt-input": [
+    "#prompt-input",
+    "[data-testid=\"prompt-input\"] textarea",
+    "[data-testid=\"prompt-input\"]",
+    "textarea[aria-label*=\"prompt\" i]",
+    "textarea[placeholder*=\"prompt\" i]",
+    "textarea[name=\"prompt\"]",
+    "textarea[id*=\"prompt\" i]",
+    ".prompt-input textarea"
+  ],
+  "negative-input": [
+    "#negative-prompt-input",
+    "[data-testid=\"negative-prompt\"] textarea",
+    "[data-testid=\"negative-prompt\"]",
+    "textarea[aria-label*=\"negative\" i]",
+    "textarea[placeholder*=\"negative\" i]",
+    "textarea[name=\"negative\"]",
+    "textarea[id*=\"negative\" i]",
+    ".prompt-negative textarea"
+  ],
+  "generate-button": [
+    "[data-testid=\"generate-button\"]",
+    "button[aria-label*=\"generate\" i]",
+    "button[aria-label*=\"生成\" i]",
+    "button[type=\"submit\"]",
+    ".generate-button"
+  ],
+  "seed-input": [
+    "[data-testid=\"seed-input\"] input",
+    "[data-testid=\"seed-input\"]",
+    "input[name=\"seed\"]",
+    "input[id*=\"seed\" i]",
+    "input[aria-label*=\"seed\" i]"
+  ],
+  "steps-input": [
+    "[data-testid=\"steps-input\"] input",
+    "input[name=\"steps\"]",
+    "input[id*=\"step\" i]",
+    "input[aria-label*=\"steps\" i]"
+  ],
+  "sampler-select": [
+    "[data-testid=\"sampler-select\"] select",
+    "[data-testid=\"sampler-select\"]",
+    "select[name=\"sampler\"]",
+    "select[id*=\"sampler\" i]",
+    "select[aria-label*=\"sampler\" i]"
+  ],
+  "cfg-scale-input": [
+    "[data-testid=\"cfg-input\"] input",
+    "input[name=\"cfg\"]",
+    "input[id*=\"cfg\" i]",
+    "input[aria-label*=\"cfg\" i]"
+  ],
+  "count-input": [
+    "[data-testid=\"image-count-input\"] input",
+    "input[name=\"imageCount\"]",
+    "input[name=\"count\"]",
+    "input[id*=\"count\" i]",
+    "input[aria-label*=\"count\" i]"
+  ]
+}

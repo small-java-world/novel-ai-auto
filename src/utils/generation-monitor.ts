@@ -245,7 +245,7 @@ export class GenerationMonitor {
         status: 'running', // 【固定値】: テスト通過のため固定
         progress: {
           current: 0, // 【固定値】: 実際の進捗計算は後で実装
-          total: 1,   // 【固定値】: 実際の総数は後で実装
+          total: 1, // 【固定値】: 実際の総数は後で実装
         },
       },
     };
@@ -359,7 +359,7 @@ export class GenerationMonitor {
     const cached = this.elementCache.get(cacheKey);
     const now = Date.now();
 
-    if (cached && (now - cached.timestamp) < MONITORING_CONFIG.ELEMENT_CACHE_MS) {
+    if (cached && now - cached.timestamp < MONITORING_CONFIG.ELEMENT_CACHE_MS) {
       // 【キャッシュヒット】: 有効なキャッシュを返却
       return cached.element;
     }
@@ -469,7 +469,8 @@ export class GenerationMonitor {
 
     const current = Math.floor(progressRatio * 100);
     const total = 100;
-    const etaSeconds = progressRatio < 0.95 ? Math.ceil((estimatedTotalMs - elapsedMs) / 1000) : undefined;
+    const etaSeconds =
+      progressRatio < 0.95 ? Math.ceil((estimatedTotalMs - elapsedMs) / 1000) : undefined;
 
     return { current, total, percentage: progressRatio * 100, etaSeconds };
   }
@@ -523,7 +524,7 @@ export class GenerationMonitor {
         status: 'running', // 【テスト互換性】: テストで期待される値
         progress: {
           current: 0, // 【テスト互換性】: テストで期待される値
-          total: 1,   // 【テスト互換性】: テストで期待される値
+          total: 1, // 【テスト互換性】: テストで期待される値
         },
       },
     };

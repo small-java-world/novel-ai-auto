@@ -22,7 +22,7 @@ import {
   ConversionResult,
   MetadataDisplayResult,
   FilterResult,
-  LegacyPromptFile
+  LegacyPromptFile,
 } from '../types/metadata';
 
 // 【モジュール分離】: 関心の分離により保守性とテスト可能性を向上
@@ -32,7 +32,7 @@ import {
   DEFAULT_VALUES,
   ERROR_MESSAGES,
   WARNING_MESSAGES,
-  createVersionUnsupportedMessage
+  createVersionUnsupportedMessage,
 } from './metadata-manager-config';
 
 import {
@@ -40,21 +40,21 @@ import {
   parseJsonSafely,
   validateObjectSafety,
   validateMetadataFieldLengths,
-  normalizeUnicodeString
+  normalizeUnicodeString,
 } from './metadata-security-utils';
 
 import {
   deduplicateTagsEfficient,
   globalPerformanceMonitor,
   globalTagFilter,
-  checkMemoryUsage
+  checkMemoryUsage,
 } from './metadata-performance-utils';
 
 import {
   LoadResultBuilder,
   ConversionResultBuilder,
   FilterResultBuilder,
-  CommonErrorHandler
+  CommonErrorHandler,
 } from './metadata-result-builder';
 
 /**
@@ -68,7 +68,6 @@ import {
  * 🟢 信頼性レベル: 要件定義書、セキュリティ要件、性能要件に基づく
  */
 export class NewFormatMetadataManager {
-
   /**
    * 【機能概要】: 新フォーマット（v1.0）プロンプトファイルを読み込む
    * 【改善内容】: 長大だった処理を責任別に分割、セキュリティ検証を強化
@@ -107,7 +106,6 @@ export class NewFormatMetadataManager {
       const processedResult = await this.processMetadataAndTags(parseResult.data);
 
       return processedResult;
-
     } catch (error) {
       // 【予期しないエラー処理】: システムエラーの安全な処理
       return CommonErrorHandler.handleGenericError('file_loading');
@@ -161,7 +159,7 @@ export class NewFormatMetadataManager {
       // 【エラー結果生成】: TC008で期待される形式のエラーを返却
       return {
         success: false,
-        result: CommonErrorHandler.handleJsonParseError()
+        result: CommonErrorHandler.handleJsonParseError(),
       };
     }
 
@@ -169,13 +167,13 @@ export class NewFormatMetadataManager {
     if (!validateObjectSafety(parsedData)) {
       return {
         success: false,
-        result: CommonErrorHandler.handleJsonParseError()
+        result: CommonErrorHandler.handleJsonParseError(),
       };
     }
 
     return {
       success: true,
-      data: parsedData
+      data: parsedData,
     };
   }
 
@@ -193,7 +191,7 @@ export class NewFormatMetadataManager {
     if (data.version !== SUPPORTED_VERSIONS.CURRENT_VERSION) {
       return {
         isValid: false,
-        result: CommonErrorHandler.handleVersionMismatch(data.version)
+        result: CommonErrorHandler.handleVersionMismatch(data.version),
       };
     }
 
@@ -201,7 +199,7 @@ export class NewFormatMetadataManager {
     if (!data.presets || !Array.isArray(data.presets)) {
       return {
         isValid: false,
-        result: LoadResultBuilder.createFailure([ERROR_MESSAGES.MISSING_REQUIRED_FIELDS])
+        result: LoadResultBuilder.createFailure([ERROR_MESSAGES.MISSING_REQUIRED_FIELDS]),
       };
     }
 
@@ -251,7 +249,7 @@ export class NewFormatMetadataManager {
       generated = true;
       return {
         metadata: { name: DEFAULT_VALUES.DEFAULT_NAME },
-        generated
+        generated,
       };
     }
 
@@ -263,7 +261,7 @@ export class NewFormatMetadataManager {
 
     return {
       metadata,
-      generated
+      generated,
     };
   }
 
@@ -299,12 +297,11 @@ export class NewFormatMetadataManager {
       const convertedData: PromptFileV1 = {
         version: SUPPORTED_VERSIONS.CURRENT_VERSION,
         metadata: defaultMetadata,
-        presets: convertedPresets
+        presets: convertedPresets,
       };
 
       // 【成功結果生成】: Builder パターンによる一貫した結果構築
       return ConversionResultBuilder.createSuccess(convertedData);
-
     } catch (error) {
       // 【変換エラー処理】: 予期しないエラーの安全な処理
       return CommonErrorHandler.handleLegacyConversionError();
@@ -349,7 +346,7 @@ export class NewFormatMetadataManager {
       author: DEFAULT_VALUES.DEFAULT_AUTHOR,
       created: now,
       modified: now,
-      tags: [...DEFAULT_VALUES.LEGACY_CONVERSION_TAGS]
+      tags: [...DEFAULT_VALUES.LEGACY_CONVERSION_TAGS],
     };
   }
 
@@ -367,12 +364,15 @@ export class NewFormatMetadataManager {
         name: this.sanitizeStringField(preset.name) || `Preset ${index + 1}`,
         positive: this.sanitizeStringField(preset.positive) || '',
         negative: this.sanitizeStringField(preset.negative),
-        parameters: preset.parameters && typeof preset.parameters === 'object'
-          ? preset.parameters
-          : undefined,
+        parameters:
+          preset.parameters && typeof preset.parameters === 'object'
+            ? preset.parameters
+            : undefined,
         tags: Array.isArray(preset.tags)
-          ? preset.tags.filter((tag: any) => typeof tag === 'string').map((tag: string) => this.sanitizeStringField(tag))
-          : undefined
+          ? preset.tags
+              .filter((tag: any) => typeof tag === 'string')
+              .map((tag: string) => this.sanitizeStringField(tag))
+          : undefined,
       };
 
       return convertedPreset;
@@ -422,7 +422,7 @@ export class NewFormatMetadataManager {
       dateModified: this.formatDateField(metadata.modified),
       tags: metadata.tags || [],
       license: metadata.license,
-      source: metadata.source
+      source: metadata.source,
     };
   }
 
@@ -490,7 +490,6 @@ export class NewFormatMetadataManager {
       // 【日本語フォーマット】: TC003で期待される形式に対応
       // 【将来拡張】: 国際化対応時は設定ファイルベースのフォーマット選択が可能
       return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
-
     } catch (error) {
       // 【エラー処理】: 解析失敗時の安全なフォールバック
       return DEFAULT_VALUES.DEFAULT_DATE_DISPLAY;
@@ -529,7 +528,6 @@ export class NewFormatMetadataManager {
 
       // 【結果構築】: Builder パターンによる一貫した結果生成
       return FilterResultBuilder.create(filteredPresets, selectedTags);
-
     } finally {
       // 【パフォーマンス監視終了】: 処理時間の記録
       endMeasurement();
@@ -571,10 +569,10 @@ export class NewFormatMetadataManager {
     // 【テスト対応】: TC012で期待されるエスケープ形式に合わせる（単一引用符はエスケープしない）
     const escapeHtml = (unsafe: string): string => {
       return unsafe
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
     };
 
     // 【タグ重複除去処理】: 重複するタグを除去してから処理
@@ -582,7 +580,7 @@ export class NewFormatMetadataManager {
     let sanitizedTags: string[] | undefined;
     if (metadata.tags) {
       const uniqueTags = Array.from(new Set(metadata.tags));
-      sanitizedTags = uniqueTags.map(tag => escapeHtml(tag));
+      sanitizedTags = uniqueTags.map((tag) => escapeHtml(tag));
     }
 
     // 【各フィールドのサニタイズ】: 全文字列フィールドに対してエスケープ処理を適用
@@ -594,7 +592,7 @@ export class NewFormatMetadataManager {
       modified: metadata.modified,
       tags: sanitizedTags,
       license: metadata.license ? escapeHtml(metadata.license) : undefined,
-      source: metadata.source ? escapeHtml(metadata.source) : undefined
+      source: metadata.source ? escapeHtml(metadata.source) : undefined,
     };
   }
 }

@@ -9,7 +9,7 @@
 import {
   NETWORK_RECOVERY_CONFIG,
   SECURITY_POLICIES,
-  ERROR_MESSAGES
+  ERROR_MESSAGES,
 } from './network-recovery-config.js';
 
 /**
@@ -34,7 +34,7 @@ export function validateJobId(jobId: any): ValidationResult {
   if (jobId === null || jobId === undefined) {
     return {
       isValid: false,
-      errorMessage: 'ジョブIDが指定されていません'
+      errorMessage: 'ジョブIDが指定されていません',
     };
   }
 
@@ -43,7 +43,7 @@ export function validateJobId(jobId: any): ValidationResult {
     return {
       isValid: false,
       errorMessage: ERROR_MESSAGES.INVALID_JOB_ID,
-      securityRisk: 'Non-string jobId could indicate injection attempt'
+      securityRisk: 'Non-string jobId could indicate injection attempt',
     };
   }
 
@@ -51,7 +51,7 @@ export function validateJobId(jobId: any): ValidationResult {
   if (jobId.length === 0) {
     return {
       isValid: false,
-      errorMessage: 'ジョブIDが空です'
+      errorMessage: 'ジョブIDが空です',
     };
   }
 
@@ -59,7 +59,7 @@ export function validateJobId(jobId: any): ValidationResult {
     return {
       isValid: false,
       errorMessage: ERROR_MESSAGES.INVALID_JOB_ID,
-      securityRisk: 'Excessively long jobId could indicate DoS attempt'
+      securityRisk: 'Excessively long jobId could indicate DoS attempt',
     };
   }
 
@@ -68,7 +68,7 @@ export function validateJobId(jobId: any): ValidationResult {
     return {
       isValid: false,
       errorMessage: ERROR_MESSAGES.INVALID_JOB_ID,
-      securityRisk: 'Invalid characters in jobId could indicate injection attempt'
+      securityRisk: 'Invalid characters in jobId could indicate injection attempt',
     };
   }
 
@@ -78,7 +78,7 @@ export function validateJobId(jobId: any): ValidationResult {
       return {
         isValid: false,
         errorMessage: ERROR_MESSAGES.INVALID_JOB_ID,
-        securityRisk: `Forbidden pattern detected: potential ${pattern.source} injection`
+        securityRisk: `Forbidden pattern detected: potential ${pattern.source} injection`,
       };
     }
   }
@@ -86,7 +86,7 @@ export function validateJobId(jobId: any): ValidationResult {
   // 【検証成功】: サニタイズ済みの安全な値を返却
   return {
     isValid: true,
-    sanitizedValue: jobId.trim() // 前後の空白文字を除去
+    sanitizedValue: jobId.trim(), // 前後の空白文字を除去
   };
 }
 
@@ -102,7 +102,7 @@ export function validateTimestamp(timestamp: any): ValidationResult {
     return {
       isValid: false,
       errorMessage: ERROR_MESSAGES.INVALID_TIMESTAMP,
-      sanitizedValue: Date.now() // 【フォールバック】: 現在時刻を安全なデフォルト値として使用
+      sanitizedValue: Date.now(), // 【フォールバック】: 現在時刻を安全なデフォルト値として使用
     };
   }
 
@@ -111,7 +111,7 @@ export function validateTimestamp(timestamp: any): ValidationResult {
     return {
       isValid: false,
       errorMessage: ERROR_MESSAGES.INVALID_TIMESTAMP,
-      securityRisk: 'Non-numeric timestamp could indicate injection attempt'
+      securityRisk: 'Non-numeric timestamp could indicate injection attempt',
     };
   }
 
@@ -120,7 +120,7 @@ export function validateTimestamp(timestamp: any): ValidationResult {
     return {
       isValid: false,
       errorMessage: ERROR_MESSAGES.INVALID_TIMESTAMP,
-      securityRisk: 'Non-finite timestamp could indicate overflow attack'
+      securityRisk: 'Non-finite timestamp could indicate overflow attack',
     };
   }
 
@@ -133,7 +133,7 @@ export function validateTimestamp(timestamp: any): ValidationResult {
     return {
       isValid: false,
       errorMessage: ERROR_MESSAGES.INVALID_TIMESTAMP,
-      securityRisk: 'Timestamp too far in the past'
+      securityRisk: 'Timestamp too far in the past',
     };
   }
 
@@ -141,14 +141,14 @@ export function validateTimestamp(timestamp: any): ValidationResult {
     return {
       isValid: false,
       errorMessage: ERROR_MESSAGES.INVALID_TIMESTAMP,
-      securityRisk: 'Timestamp too far in the future'
+      securityRisk: 'Timestamp too far in the future',
     };
   }
 
   // 【検証成功】: 安全な時刻値として承認
   return {
     isValid: true,
-    sanitizedValue: Math.floor(timestamp) // 整数値に正規化
+    sanitizedValue: Math.floor(timestamp), // 整数値に正規化
   };
 }
 
@@ -164,7 +164,7 @@ export function validateDuration(duration: any): ValidationResult {
     return {
       isValid: false,
       errorMessage: ERROR_MESSAGES.INVALID_DURATION,
-      securityRisk: 'Non-numeric duration could indicate injection attempt'
+      securityRisk: 'Non-numeric duration could indicate injection attempt',
     };
   }
 
@@ -173,7 +173,7 @@ export function validateDuration(duration: any): ValidationResult {
     return {
       isValid: false,
       errorMessage: ERROR_MESSAGES.INVALID_DURATION,
-      securityRisk: 'Non-finite duration could indicate overflow attack'
+      securityRisk: 'Non-finite duration could indicate overflow attack',
     };
   }
 
@@ -182,7 +182,7 @@ export function validateDuration(duration: any): ValidationResult {
     return {
       isValid: false,
       errorMessage: ERROR_MESSAGES.INVALID_DURATION,
-      securityRisk: 'Negative duration could indicate malicious input'
+      securityRisk: 'Negative duration could indicate malicious input',
     };
   }
 
@@ -191,14 +191,14 @@ export function validateDuration(duration: any): ValidationResult {
     return {
       isValid: false,
       errorMessage: ERROR_MESSAGES.INVALID_DURATION,
-      securityRisk: 'Excessively long duration could indicate DoS attempt'
+      securityRisk: 'Excessively long duration could indicate DoS attempt',
     };
   }
 
   // 【検証成功】: 安全な継続時間として承認
   return {
     isValid: true,
-    sanitizedValue: Math.floor(duration) // 整数値に正規化
+    sanitizedValue: Math.floor(duration), // 整数値に正規化
   };
 }
 
@@ -208,12 +208,15 @@ export function validateDuration(duration: any): ValidationResult {
  * 【検証項目】: 配列型チェック、長さ制限、要素型チェック
  * 🟡 信頼性レベル: 一般的な配列操作のセキュリティ要件に基づく
  */
-export function validateArray(array: any, maxLength = PERFORMANCE_CONFIG.MAX_BATCH_SIZE): ValidationResult {
+export function validateArray(
+  array: any,
+  maxLength = PERFORMANCE_CONFIG.MAX_BATCH_SIZE
+): ValidationResult {
   // 【null/undefined検証】: 基本的な存在チェック
   if (array === null || array === undefined) {
     return {
       isValid: false,
-      errorMessage: ERROR_MESSAGES.INVALID_ARRAY_INPUT
+      errorMessage: ERROR_MESSAGES.INVALID_ARRAY_INPUT,
     };
   }
 
@@ -222,7 +225,7 @@ export function validateArray(array: any, maxLength = PERFORMANCE_CONFIG.MAX_BAT
     return {
       isValid: false,
       errorMessage: ERROR_MESSAGES.INVALID_ARRAY_INPUT,
-      securityRisk: 'Non-array input could indicate injection attempt'
+      securityRisk: 'Non-array input could indicate injection attempt',
     };
   }
 
@@ -231,14 +234,14 @@ export function validateArray(array: any, maxLength = PERFORMANCE_CONFIG.MAX_BAT
     return {
       isValid: false,
       errorMessage: `配列のサイズが上限(${maxLength})を超えています`,
-      securityRisk: 'Excessively large array could indicate memory exhaustion attack'
+      securityRisk: 'Excessively large array could indicate memory exhaustion attack',
     };
   }
 
   // 【検証成功】: 安全な配列として承認
   return {
     isValid: true,
-    sanitizedValue: array // 配列自体は変更せず元の値を返却
+    sanitizedValue: array, // 配列自体は変更せず元の値を返却
   };
 }
 
@@ -253,7 +256,7 @@ export function validateNetworkState(networkState: any): ValidationResult {
   if (networkState === null) {
     return {
       isValid: true,
-      sanitizedValue: null // nullは意図的なフォールバック指示
+      sanitizedValue: null, // nullは意図的なフォールバック指示
     };
   }
 
@@ -261,7 +264,7 @@ export function validateNetworkState(networkState: any): ValidationResult {
   if (networkState === undefined) {
     return {
       isValid: false,
-      errorMessage: 'ネットワーク状態が未定義です'
+      errorMessage: 'ネットワーク状態が未定義です',
     };
   }
 
@@ -270,7 +273,7 @@ export function validateNetworkState(networkState: any): ValidationResult {
     return {
       isValid: false,
       errorMessage: 'ネットワーク状態の形式が正しくありません',
-      securityRisk: 'Non-object network state could indicate injection attempt'
+      securityRisk: 'Non-object network state could indicate injection attempt',
     };
   }
 
@@ -279,7 +282,7 @@ export function validateNetworkState(networkState: any): ValidationResult {
     return {
       isValid: false,
       errorMessage: 'ネットワーク状態のisOnlineプロパティが正しくありません',
-      securityRisk: 'Invalid isOnline property could indicate data manipulation'
+      securityRisk: 'Invalid isOnline property could indicate data manipulation',
     };
   }
 
@@ -287,8 +290,8 @@ export function validateNetworkState(networkState: any): ValidationResult {
   return {
     isValid: true,
     sanitizedValue: {
-      isOnline: networkState.isOnline // 必要なプロパティのみを抽出して安全な状態を作成
-    }
+      isOnline: networkState.isOnline, // 必要なプロパティのみを抽出して安全な状態を作成
+    },
   };
 }
 
@@ -319,13 +322,13 @@ export function validateMultiple(validations: ValidationResult[]): ValidationRes
     return {
       isValid: false,
       errorMessage: errors.join('; '),
-      securityRisk: securityRisks.length > 0 ? securityRisks.join('; ') : undefined
+      securityRisk: securityRisks.length > 0 ? securityRisks.join('; ') : undefined,
     };
   }
 
   // 【検証成功】: 全ての検証が成功
   return {
-    isValid: true
+    isValid: true,
   };
 }
 
@@ -342,7 +345,7 @@ export function validateConfigValue(key: string, value: any): ValidationResult {
     return {
       isValid: false,
       errorMessage: `未知の設定キー: ${key}`,
-      securityRisk: 'Unknown config key could indicate injection attempt'
+      securityRisk: 'Unknown config key could indicate injection attempt',
     };
   }
 
@@ -351,7 +354,7 @@ export function validateConfigValue(key: string, value: any): ValidationResult {
     return {
       isValid: false,
       errorMessage: `設定値 ${key} は数値である必要があります`,
-      securityRisk: 'Non-numeric config value could indicate injection attempt'
+      securityRisk: 'Non-numeric config value could indicate injection attempt',
     };
   }
 
@@ -360,14 +363,14 @@ export function validateConfigValue(key: string, value: any): ValidationResult {
     return {
       isValid: false,
       errorMessage: `設定値 ${key} は負の値にできません`,
-      securityRisk: 'Negative config value could cause system instability'
+      securityRisk: 'Negative config value could cause system instability',
     };
   }
 
   // 【検証成功】: 安全な設定値として承認
   return {
     isValid: true,
-    sanitizedValue: Math.floor(value) // 整数値に正規化
+    sanitizedValue: Math.floor(value), // 整数値に正規化
   };
 }
 

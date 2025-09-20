@@ -14,7 +14,7 @@ import {
   JobPauseCollectiveResult,
   JobResumeCollectiveResult,
   GenerationJob,
-  PausedJob
+  PausedJob,
 } from '../types.js';
 import { ERROR_MESSAGES, PERFORMANCE_CONFIG } from './network-recovery-config.js';
 import { ValidationResult } from './network-recovery-validators.js';
@@ -37,10 +37,12 @@ export interface NullSafetyResult {
  * 【使用場面】: TC-071-204境界値テストの期待値に対応
  * 【統一性】: 全ての関数で一貫したnull安全性レスポンスを提供
  */
-export function createNullSafetyMarker(behaviorType: 'skip_processing' | 'assume_online' | 'use_current_time'): NullSafetyResult {
+export function createNullSafetyMarker(
+  behaviorType: 'skip_processing' | 'assume_online' | 'use_current_time'
+): NullSafetyResult {
   const base: NullSafetyResult = {
     handled: true,
-    safe: true
+    safe: true,
   };
 
   // 【行動タイプ別の追加プロパティ設定】: テスト期待値に合わせた特化処理
@@ -92,16 +94,17 @@ export function createErrorResponse(
   additionalProperties: object = {}
 ): StandardErrorResponse & typeof additionalProperties {
   // 【メッセージ長制限】: セキュリティポリシーに基づくメッセージ長制御
-  const truncatedMessage = message.length > ERROR_MESSAGES.MAX_ERROR_MESSAGE_LENGTH
-    ? message.substring(0, ERROR_MESSAGES.MAX_ERROR_MESSAGE_LENGTH) + '...'
-    : message;
+  const truncatedMessage =
+    message.length > ERROR_MESSAGES.MAX_ERROR_MESSAGE_LENGTH
+      ? message.substring(0, ERROR_MESSAGES.MAX_ERROR_MESSAGE_LENGTH) + '...'
+      : message;
 
   return {
     success: false,
     errorMessage: truncatedMessage,
     errorCode,
     timestamp: Date.now(),
-    ...additionalProperties
+    ...additionalProperties,
   };
 }
 
@@ -133,7 +136,7 @@ export function processJobsWithCondition<T>(
     processedJobs: [],
     skippedJobs: [],
     processingCount: 0,
-    errors: []
+    errors: [],
   };
 
   // 【効率的な一括処理】: 単一ループでフィルタリングと変換を実行
@@ -172,7 +175,7 @@ export function createJobPausedMessage(jobId: string, pauseTime: number): JobPau
     type: 'JOB_PAUSED',
     jobId,
     reason: 'network_offline',
-    pausedAt: pauseTime
+    pausedAt: pauseTime,
   };
 }
 
@@ -181,7 +184,7 @@ export function createJobResumedMessage(jobId: string, resumeTime: number): JobR
     type: 'JOB_RESUMED',
     jobId,
     reason: 'network_restored',
-    resumedAt: resumeTime
+    resumedAt: resumeTime,
   };
 }
 
@@ -194,7 +197,7 @@ export function createNetworkStateMessage(
     type: 'NETWORK_STATE_CHANGED',
     isOnline,
     timestamp,
-    affectedJobs
+    affectedJobs,
   };
 }
 
@@ -215,13 +218,10 @@ export interface BatchProcessingOptions {
  * 【効率化】: 大量データを処理可能なサイズに分割して順次処理
  * 【制御性】: バッチサイズと処理遅延の細かな制御が可能
  */
-export function createBatches<T>(
-  items: T[],
-  options: BatchProcessingOptions = {}
-): T[][] {
+export function createBatches<T>(items: T[], options: BatchProcessingOptions = {}): T[][] {
   const {
     batchSize = PERFORMANCE_CONFIG.MAX_BATCH_SIZE,
-    maxConcurrent = PERFORMANCE_CONFIG.MAX_BATCH_SIZE
+    maxConcurrent = PERFORMANCE_CONFIG.MAX_BATCH_SIZE,
   } = options;
 
   const batches: T[][] = [];
@@ -253,10 +253,7 @@ export interface DelayCalculationOptions {
  * 【安全性】: オーバーフロー防止と妥当な上限制御
  * 【ランダム性】: ジッター追加による負荷分散効果（オプション）
  */
-export function calculateExponentialDelay(
-  index: number,
-  options: DelayCalculationOptions
-): number {
+export function calculateExponentialDelay(index: number, options: DelayCalculationOptions): number {
   const { baseDelay, factor, maxDelay = Infinity, jitterRange = 0 } = options;
 
   // 【基本遅延計算】: 指数バックオフアルゴリズム
@@ -299,16 +296,17 @@ export function calculateProcessingStatistics(
   batchSize?: number
 ): ProcessingStatistics {
   const totalItems = delaySchedule.length;
-  const delays = delaySchedule.map(item => item.delayMs);
+  const delays = delaySchedule.map((item) => item.delayMs);
 
   // 【即座実行・キュー分類】: 遅延ゼロと遅延ありの分類
-  const immediate = delays.filter(delay => delay === 0).length;
+  const immediate = delays.filter((delay) => delay === 0).length;
   const queued = totalItems - immediate;
 
   // 【統計計算】: 平均遅延と最大遅延の計算
-  const averageDelay = queued > 0
-    ? delays.filter(delay => delay > 0).reduce((sum, delay) => sum + delay, 0) / queued
-    : 0;
+  const averageDelay =
+    queued > 0
+      ? delays.filter((delay) => delay > 0).reduce((sum, delay) => sum + delay, 0) / queued
+      : 0;
   const maxDelay = delays.length > 0 ? Math.max(...delays) : 0;
 
   // 【バッチ数計算】: 指定されたバッチサイズに基づく分割数
@@ -321,7 +319,7 @@ export function calculateProcessingStatistics(
     queued,
     batchCount,
     averageDelay: Math.floor(averageDelay),
-    maxDelay
+    maxDelay,
   };
 }
 
@@ -342,7 +340,10 @@ class SimpleCache<T> {
   private readonly ttl: number;
   private readonly maxEntries: number;
 
-  constructor(ttl = PERFORMANCE_CONFIG.CACHE_TTL_MS, maxEntries = PERFORMANCE_CONFIG.MAX_CACHE_ENTRIES) {
+  constructor(
+    ttl = PERFORMANCE_CONFIG.CACHE_TTL_MS,
+    maxEntries = PERFORMANCE_CONFIG.MAX_CACHE_ENTRIES
+  ) {
     this.ttl = ttl;
     this.maxEntries = maxEntries;
   }
@@ -379,7 +380,7 @@ class SimpleCache<T> {
     this.cache.set(key, {
       value,
       timestamp: Date.now(),
-      accessCount: 1
+      accessCount: 1,
     });
   }
 

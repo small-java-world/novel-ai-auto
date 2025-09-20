@@ -63,7 +63,7 @@ describe('Image URL Extraction（画像URL抽出）', () => {
       expect(urls).toEqual([
         'https://novelai.net/image1.png',
         'https://novelai.net/image2.png',
-        'https://novelai.net/image3.png'
+        'https://novelai.net/image3.png',
       ]); // 【確認内容】: 抽出されたURL配列の内容と順序が期待値と一致することを確認 🟢
 
       expect(urls).toHaveLength(3); // 【確認内容】: 抽出されたURL数が期待される3つであることを確認 🟢
@@ -96,7 +96,7 @@ describe('Image URL Extraction（画像URL抽出）', () => {
       expect(urls).toEqual([
         'https://novelai.net/image1.png',
         'https://novelai.net/image2.png',
-        'https://novelai.net/image3.png'
+        'https://novelai.net/image3.png',
       ]); // 【確認内容】: 重複除去後のURL配列が期待される内容と一致することを確認 🟢
 
       expect(urls).toHaveLength(3); // 【確認内容】: 重複除去により5個の画像要素から3個のユニークURLが抽出されることを確認 🟢
@@ -129,7 +129,7 @@ describe('Image URL Extraction（画像URL抽出）', () => {
       // 【期待値確認】: 6個の画像要素から有効な2個のHTTPS URLのみが抽出されることを検証
       expect(urls).toEqual([
         'https://novelai.net/valid-image1.png',
-        'https://novelai.net/valid-image2.png'
+        'https://novelai.net/valid-image2.png',
       ]); // 【確認内容】: 有効なHTTPS URLのみが抽出され、無効なURLは除外されることを確認 🟢
 
       expect(urls).toHaveLength(2); // 【確認内容】: 6個の画像要素から2個の有効URLのみが抽出されることを確認 🟢
@@ -164,7 +164,7 @@ describe('Image URL Extraction（画像URL抽出）', () => {
         'https://novelai.net/image-001.png',
         'https://novelai.net/image-002.png',
         'https://novelai.net/image-003.png',
-        'https://novelai.net/image-004.png'
+        'https://novelai.net/image-004.png',
       ]); // 【確認内容】: URL配列の順序がDOM内の画像要素の配置順序と完全に一致することを確認 🟢
 
       expect(urls[0]).toBe('https://novelai.net/image-001.png'); // 【確認内容】: 最初の要素が期待される最初の画像URLであることを確認 🟢
@@ -198,7 +198,7 @@ describe('Image URL Extraction（画像URL抽出）', () => {
       expect(urls).toEqual([
         'https://novelai.net/image-1.png',
         'https://novelai.net/image-2.png',
-        'https://novelai.net/image-3.png'
+        'https://novelai.net/image-3.png',
       ]); // 【確認内容】: 指定上限数（3個）のURLが順序通りに抽出されることを確認 🟢
 
       expect(urls).toHaveLength(3); // 【確認内容】: 抽出されたURL数が指定上限数（3個）と一致することを確認 🟢
@@ -250,7 +250,9 @@ describe('Image URL Extraction（画像URL抽出）', () => {
 
       // 【結果検証】: 適切なエラーメッセージで例外が投げられることを確認
       // 【期待値確認】: DOM解析エラーを示すメッセージと元のエラー情報を含む例外が投げられることを検証
-      await expect(imageUrlExtractor.extractImageUrls()).rejects.toThrow('DOM解析中にエラーが発生しました'); // 【確認内容】: DOM解析エラー時に適切なエラーメッセージで例外が投げられることを確認 🟡
+      await expect(imageUrlExtractor.extractImageUrls()).rejects.toThrow(
+        'DOM解析中にエラーが発生しました'
+      ); // 【確認内容】: DOM解析エラー時に適切なエラーメッセージで例外が投げられることを確認 🟡
 
       // 【後処理】: テスト用にモックしたDOM操作を元の状態に復元
       document.querySelector = originalQuerySelector;
@@ -275,7 +277,9 @@ describe('Image URL Extraction（画像URL抽出）', () => {
 
       // 【結果検証】: タイムアウト時に適切なエラーメッセージで例外が投げられることを確認
       // 【期待値確認】: 指定タイムアウト時間内に処理が完了せず、タイムアウトエラーが発生することを検証
-      await expect(imageUrlExtractor.extractImageUrls(undefined, 1)).rejects.toThrow('URL抽出処理がタイムアウトしました'); // 【確認内容】: タイムアウト時に適切なエラーメッセージで例外が投げられることを確認 🟡
+      await expect(imageUrlExtractor.extractImageUrls(undefined, 1)).rejects.toThrow(
+        'URL抽出処理がタイムアウトしました'
+      ); // 【確認内容】: タイムアウト時に適切なエラーメッセージで例外が投げられることを確認 🟡
     });
   });
 
@@ -304,7 +308,7 @@ describe('Image URL Extraction（画像URL抽出）', () => {
       await imageUrlExtractor.extractAndNotifyImageUrls(jobId, {
         date: '2025-09-16',
         prompt: 'test-prompt',
-        seed: 'seed123'
+        seed: 'seed123',
       });
 
       // 【結果検証】: 期待される形式のIMAGE_READYメッセージが正しい回数送信されることを確認
@@ -317,8 +321,8 @@ describe('Image URL Extraction（画像URL抽出）', () => {
           jobId: jobId,
           url: 'https://novelai.net/test-image-1.png',
           index: 0,
-          fileName: expectedFileName1
-        }
+          fileName: expectedFileName1,
+        },
       }); // 【確認内容】: 1番目の画像に対する適切なIMAGE_READYメッセージが送信されることを確認 🟢
 
       expect(chrome.runtime.sendMessage).toHaveBeenNthCalledWith(2, {
@@ -327,8 +331,8 @@ describe('Image URL Extraction（画像URL抽出）', () => {
           jobId: jobId,
           url: 'https://novelai.net/test-image-2.png',
           index: 1,
-          fileName: expectedFileName2
-        }
+          fileName: expectedFileName2,
+        },
       }); // 【確認内容】: 2番目の画像に対する適切なIMAGE_READYメッセージが送信されることを確認 🟢
     });
 
@@ -350,7 +354,7 @@ describe('Image URL Extraction（画像URL抽出）', () => {
       const templateParams = {
         date: '2025-09-16',
         prompt: 'fantasy-character/with:special*chars',
-        seed: 'abc123def'
+        seed: 'abc123def',
       };
 
       // 【実際の処理実行】: 特殊文字を含むパラメータでファイル名テンプレート適用処理を実行
@@ -367,8 +371,8 @@ describe('Image URL Extraction（画像URL抽出）', () => {
           jobId: jobId,
           url: 'https://novelai.net/special-image.png',
           index: 0,
-          fileName: expectedFileName
-        }
+          fileName: expectedFileName,
+        },
       }); // 【確認内容】: 特殊文字がサニタイゼーションされた適切なファイル名でメッセージが送信されることを確認 🟢
     });
 
@@ -395,11 +399,13 @@ describe('Image URL Extraction（画像URL抽出）', () => {
 
       // 【結果検証】: Chrome API不在時にエラーが投げられることなく、正常に処理が完了することを確認
       // 【期待値確認】: API利用不可時に例外を投げることなく、適切な警告処理で継続されることを検証
-      await expect(imageUrlExtractor.extractAndNotifyImageUrls(jobId, {
-        date: '2025-09-16',
-        prompt: 'test-prompt',
-        seed: 'test-seed'
-      })).resolves.not.toThrow(); // 【確認内容】: Chrome API不在時に例外が投げられず、正常に処理が完了することを確認 🟢
+      await expect(
+        imageUrlExtractor.extractAndNotifyImageUrls(jobId, {
+          date: '2025-09-16',
+          prompt: 'test-prompt',
+          seed: 'test-seed',
+        })
+      ).resolves.not.toThrow(); // 【確認内容】: Chrome API不在時に例外が投げられず、正常に処理が完了することを確認 🟢
     });
   });
 });

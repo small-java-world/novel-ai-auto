@@ -66,4 +66,3 @@ describe('messaging-router', () => {
     expect(mockChrome.tabs.sendMessage).not.toHaveBeenCalled(); // 【確認内容】: タブ未存在の段階で CS 送信していないこと 🟡
   });
 });
-

@@ -1,0 +1,87 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "name": "Character Prompts Example",
+    "description": "キャラクター別プロンプト設定例",
+    "author": "NovelAI Auto Generator",
+    "created": "2025-01-20",
+    "updated": "2025-01-20"
+  },
+  "characters": {
+    "anime-girl": {
+      "name": "アニメ少女",
+      "description": "アニメスタイルの少女キャラクター",
+      "selectorProfile": "character-anime",
+      "prompts": {
+        "positive": "1girl, anime style, beautiful face, long hair, school uniform, {best quality}, {masterpiece}",
+        "negative": "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped, worst quality, low quality"
+      },
+      "settings": {
+        "steps": 28,
+        "scale": 7,
+        "sampler": "k_euler",
+        "resolution": "512x768"
+      }
+    },
+    "realistic-portrait": {
+      "name": "リアル系ポートレート",
+      "description": "リアルな人物ポートレート",
+      "selectorProfile": "character-realistic",
+      "prompts": {
+        "positive": "portrait, realistic, professional photography, detailed face, natural lighting, {best quality}, {masterpiece}",
+        "negative": "anime, cartoon, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped, worst quality, low quality"
+      },
+      "settings": {
+        "steps": 30,
+        "scale": 6,
+        "sampler": "k_euler_ancestral",
+        "resolution": "512x512"
+      }
+    },
+    "fantasy-knight": {
+      "name": "ファンタジー騎士",
+      "description": "ファンタジー世界の騎士",
+      "selectorProfile": "character-fantasy",
+      "prompts": {
+        "positive": "fantasy knight, medieval armor, sword, castle background, dramatic lighting, {best quality}, {masterpiece}",
+        "negative": "modern, realistic, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped, worst quality, low quality"
+      },
+      "settings": {
+        "steps": 28,
+        "scale": 7,
+        "sampler": "k_euler",
+        "resolution": "512x768"
+      }
+    },
+    "sci-fi-cyborg": {
+      "name": "サイバーパンク・サイボーグ",
+      "description": "サイバーパンクスタイルのサイボーグ",
+      "selectorProfile": "character-sci-fi",
+      "prompts": {
+        "positive": "cyborg, cyberpunk, futuristic, neon lights, mechanical parts, {best quality}, {masterpiece}",
+        "negative": "medieval, fantasy, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped, worst quality, low quality"
+      },
+      "settings": {
+        "steps": 30,
+        "scale": 6,
+        "sampler": "k_euler_ancestral",
+        "resolution": "512x512"
+      }
+    },
+    "horror-monster": {
+      "name": "ホラー・モンスター",
+      "description": "ホラー系のモンスター",
+      "selectorProfile": "character-horror",
+      "prompts": {
+        "positive": "horror monster, dark atmosphere, scary, detailed, {best quality}, {masterpiece}",
+        "negative": "cute, beautiful, bright, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped, worst quality, low quality"
+      },
+      "settings": {
+        "steps": 28,
+        "scale": 7,
+        "sampler": "k_euler",
+        "resolution": "512x768"
+      }
+    }
+  }
+}

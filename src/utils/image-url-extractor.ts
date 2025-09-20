@@ -61,10 +61,7 @@ export class ImageUrlExtractor {
    * @param timeoutMs - タイムアウト時間（ミリ秒）
    * @returns Promise<T> - 処理結果またはタイムアウトエラー
    */
-  private async executeWithTimeout<T>(
-    operation: () => Promise<T>,
-    timeoutMs: number
-  ): Promise<T> {
+  private async executeWithTimeout<T>(operation: () => Promise<T>, timeoutMs: number): Promise<T> {
     // 【タイムアウト処理】: 指定時間後にタイムアウトエラーを発生させるPromise
     const timeoutPromise = new Promise<T>((_, reject) => {
       setTimeout(() => {
@@ -76,7 +73,7 @@ export class ImageUrlExtractor {
     const delayedOperation = async (): Promise<T> => {
       if (timeoutMs <= 5) {
         // 【テスト専用】: 極小タイムアウト時はタイムアウトを確実に発生させるため遅延
-        await new Promise(resolve => setTimeout(resolve, 10));
+        await new Promise((resolve) => setTimeout(resolve, 10));
       }
       return operation();
     };
@@ -113,7 +110,6 @@ export class ImageUrlExtractor {
 
       // 【数量制限適用】: 指定された上限数で結果を制限
       return this.applyMaxCountLimit(validUrls, maxCount);
-
     } catch (error) {
       // 【エラー処理】: DOM操作エラーの統一的な処理 🟢
       throw new Error(ERROR_MESSAGES.DOM_PARSING_ERROR);
@@ -151,7 +147,8 @@ export class ImageUrlExtractor {
     const urls: string[] = [];
     for (const img of Array.from(imageElements)) {
       const src = img.getAttribute('src');
-      if (src) { // 【nullチェック】: src属性が存在する場合のみ追加
+      if (src) {
+        // 【nullチェック】: src属性が存在する場合のみ追加
         urls.push(src);
       }
     }
@@ -238,15 +235,15 @@ export class ImageUrlExtractor {
     }
 
     // 【ドメインフィルタリング】: 信頼できるドメインのみを許可 🟡
-    const isAllowedDomain = URL_VALIDATION.ALLOWED_DOMAINS.some(domain =>
-      parsedUrl.hostname === domain || parsedUrl.hostname.endsWith('.' + domain)
+    const isAllowedDomain = URL_VALIDATION.ALLOWED_DOMAINS.some(
+      (domain) => parsedUrl.hostname === domain || parsedUrl.hostname.endsWith('.' + domain)
     );
     if (!isAllowedDomain) {
       return false;
     }
 
     // 【ファイル拡張子検証】: 有効な画像ファイル拡張子のみを許可 🟡
-    const hasValidExtension = URL_VALIDATION.VALID_IMAGE_EXTENSIONS.some(ext =>
+    const hasValidExtension = URL_VALIDATION.VALID_IMAGE_EXTENSIONS.some((ext) =>
       parsedUrl.pathname.toLowerCase().endsWith(ext)
     );
     if (!hasValidExtension) {
@@ -286,7 +283,6 @@ export class ImageUrlExtractor {
         // 【テスト要件対応】: 「生成完了時にIMAGE_READYメッセージを送信する」テストケース対応 🟢
         this.sendImageReadyMessage(jobId, url, index, fileName);
       }
-
     } catch (error) {
       // 【エラー処理】: 処理中のエラーは上位に伝播させる
       // 【Chrome API不在対応】: Chrome API が利用できない場合は sendImageReadyMessage で処理
@@ -315,15 +311,17 @@ export class ImageUrlExtractor {
 
     // 【テンプレート適用】: 定数化されたテンプレート形式でファイル名を生成
     // 【テスト要件対応】: テストケースで期待されるファイル名形式に正確に対応 🟢
-    const fileName = FILENAME_TEMPLATE.DEFAULT_TEMPLATE
-      .replace('{date}', sanitizedDate)
+    const fileName = FILENAME_TEMPLATE.DEFAULT_TEMPLATE.replace('{date}', sanitizedDate)
       .replace('{prompt}', sanitizedPrompt)
       .replace('{seed}', sanitizedSeed)
       .replace('{idx}', paddedIndex);
 
     // 【長さ制限】: ファイル名長制限の適用
     return fileName.length > FILENAME_SANITIZATION.MAX_FILENAME_LENGTH
-      ? fileName.substring(0, FILENAME_SANITIZATION.MAX_FILENAME_LENGTH - FILENAME_TEMPLATE.DEFAULT_EXTENSION.length) + FILENAME_TEMPLATE.DEFAULT_EXTENSION
+      ? fileName.substring(
+          0,
+          FILENAME_SANITIZATION.MAX_FILENAME_LENGTH - FILENAME_TEMPLATE.DEFAULT_EXTENSION.length
+        ) + FILENAME_TEMPLATE.DEFAULT_EXTENSION
       : fileName;
   }
 
@@ -338,7 +336,10 @@ export class ImageUrlExtractor {
   private sanitizeFilenameComponent(component: string): string {
     // 【基本サニタイゼーション】: 危険文字と制御文字の除去
     let sanitized = component
-      .replace(FILENAME_SANITIZATION.DANGEROUS_CHARS_PATTERN, FILENAME_SANITIZATION.REPLACEMENT_CHAR)
+      .replace(
+        FILENAME_SANITIZATION.DANGEROUS_CHARS_PATTERN,
+        FILENAME_SANITIZATION.REPLACEMENT_CHAR
+      )
       .replace(FILENAME_SANITIZATION.CONTROL_CHARS_PATTERN, FILENAME_SANITIZATION.REPLACEMENT_CHAR);
 
     // 【予約名検証】: Windows予約ファイル名の検証と回避
@@ -382,8 +383,8 @@ export class ImageUrlExtractor {
         jobId: jobId,
         url: url,
         index: index,
-        fileName: fileName
-      }
+        fileName: fileName,
+      },
     };
 
     try {

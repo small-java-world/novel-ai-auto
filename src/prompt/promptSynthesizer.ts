@@ -48,7 +48,11 @@ export class PromptSynthesizer {
    * @param {string} ruleId - 適用する合成ルールID（未指定時は `default` として処理）
    * @returns {SynthesisResult} - 合成済みプロンプト、文字数、警告、ルール情報を含む結果
    */
-  synthesize(common: CommonPrompts, preset: PresetData, ruleId: string = 'default'): SynthesisResult {
+  synthesize(
+    common: CommonPrompts,
+    preset: PresetData,
+    ruleId: string = 'default'
+  ): SynthesisResult {
     // 【ルール解決】: ルールIDに応じた順序・テンプレート情報を取得し、合成処理へ引き渡す 🟢
     const metadata = this.resolveRuleMetadata(ruleId);
 
@@ -136,7 +140,10 @@ export class PromptSynthesizer {
     const template = metadata.customTemplate ?? '{common}, {preset}';
 
     // 【実装詳細】: `{common}` と `{preset}` の最低限の置換のみを行い、未指定部分は空文字へフォールバック 🟡
-    return template.replace('{common}', normalizedCommon).replace('{preset}', normalizedPreset).trim();
+    return template
+      .replace('{common}', normalizedCommon)
+      .replace('{preset}', normalizedPreset)
+      .trim();
   }
 
   /**
@@ -160,7 +167,10 @@ export class PromptSynthesizer {
    * 【再利用性】: 文字数仕様が変わった場合でも本メソッドを修正するだけで全体に反映 🟢
    * 【単一責任】: 文字数計算ロジックを synthesize から分離し、見通しを改善 🟢
    */
-  private buildCharacterCount(positive: string, negative: string): SynthesisResult['characterCount'] {
+  private buildCharacterCount(
+    positive: string,
+    negative: string
+  ): SynthesisResult['characterCount'] {
     return {
       positive: positive.length,
       negative: negative.length,

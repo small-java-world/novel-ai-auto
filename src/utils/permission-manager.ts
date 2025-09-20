@@ -59,7 +59,7 @@ export class PermissionManager {
     try {
       // 【Chrome API権限確認】: ブラウザレベルでの権限付与状態をチェック
       const hasPermission = await chrome.permissions.contains({
-        permissions: [this.PERMISSION_NAME]
+        permissions: [this.PERMISSION_NAME],
       });
 
       // 【Pendingフラグ確認】: アプリケーションレベルでの権限要求状態をチェック
@@ -67,7 +67,6 @@ export class PermissionManager {
 
       // 【状態判定・アクション決定】: 権限とフラグの組み合わせから次のアクションを決定
       return this.determineNextAction(hasPermission, isPending);
-
     } catch (error) {
       // 【権限確認エラー処理】: Chrome API例外時の安全なフォールバック
       await DownloadLogger.logError('permission_check', `権限確認中にエラー: ${error.message}`);
@@ -76,7 +75,7 @@ export class PermissionManager {
         hasPermission: false,
         isPending: false,
         nextAction: 'abort',
-        message: '権限確認中にエラーが発生しました'
+        message: '権限確認中にエラーが発生しました',
       };
     }
   }
@@ -90,14 +89,16 @@ export class PermissionManager {
    * @param skipPermissionCheck - 権限チェックをスキップするかどうか（デフォルト: false）
    * @returns Promise<PermissionRequestResult> - 権限要求の結果情報
    */
-  static async requestPermission(skipPermissionCheck: boolean = false): Promise<PermissionRequestResult> {
+  static async requestPermission(
+    skipPermissionCheck: boolean = false
+  ): Promise<PermissionRequestResult> {
     let previousState = false;
 
     try {
       // 【権限要求前状態記録】: 呼び出し側で既にチェック済みの場合はスキップ可能
       if (!skipPermissionCheck) {
         previousState = await chrome.permissions.contains({
-          permissions: [this.PERMISSION_NAME]
+          permissions: [this.PERMISSION_NAME],
         });
       }
 
@@ -108,17 +109,19 @@ export class PermissionManager {
 
       // 【権限要求ダイアログ表示】: Chrome APIによるユーザー確認ダイアログ
       const granted = await chrome.permissions.request({
-        permissions: [this.PERMISSION_NAME]
+        permissions: [this.PERMISSION_NAME],
       });
 
       // 【要求結果処理】: ユーザーの選択に応じた後処理
       const result = await this.processPermissionResponse(granted, previousState);
 
       return result;
-
     } catch (error) {
       // 【権限要求エラー処理】: API例外時の適切なエラー処理とフラグ管理
-      await DownloadLogger.logError('permission_request_error', `権限要求中にエラー: ${error.message}`);
+      await DownloadLogger.logError(
+        'permission_request_error',
+        `権限要求中にエラー: ${error.message}`
+      );
 
       // 【エラー時フラグ管理】: 例外発生時もフラグ状態を適切に管理
       await this.setPermissionPendingFlag(false);
@@ -127,7 +130,7 @@ export class PermissionManager {
         granted: false,
         previousState: previousState,
         userResponse: 'error',
-        message: '権限要求中にエラーが発生しました'
+        message: '権限要求中にエラーが発生しました',
       };
     }
   }
@@ -154,7 +157,7 @@ export class PermissionManager {
         granted: true,
         previousState: previousState,
         userResponse: 'granted',
-        message: 'ダウンロード権限が承諾されました'
+        message: 'ダウンロード権限が承諾されました',
       };
     } else {
       // 【権限拒否処理】: 拒否時のフラグ維持とログ記録
@@ -166,7 +169,7 @@ export class PermissionManager {
         granted: false,
         previousState: previousState,
         userResponse: 'denied',
-        message: 'ダウンロード権限が拒否されました'
+        message: 'ダウンロード権限が拒否されました',
       };
     }
   }
@@ -189,7 +192,7 @@ export class PermissionManager {
         hasPermission: true,
         isPending: isPending,
         nextAction: 'proceed',
-        message: 'ダウンロード権限は既に付与されています'
+        message: 'ダウンロード権限は既に付与されています',
       };
     }
 
@@ -199,7 +202,7 @@ export class PermissionManager {
         hasPermission: false,
         isPending: true,
         nextAction: 'request',
-        message: '前回の権限要求が拒否されたため、再要求が必要です'
+        message: '前回の権限要求が拒否されたため、再要求が必要です',
       };
     }
 
@@ -208,7 +211,7 @@ export class PermissionManager {
       hasPermission: false,
       isPending: false,
       nextAction: 'request',
-      message: 'ダウンロード権限の要求が必要です'
+      message: 'ダウンロード権限の要求が必要です',
     };
   }
 
@@ -256,7 +259,10 @@ export class PermissionManager {
       await this.setPermissionPendingFlag(false);
       await DownloadLogger.logSuccess('permission_reset', '権限状態がリセットされました');
     } catch (error) {
-      await DownloadLogger.logError('permission_reset_error', `権限状態リセット中にエラー: ${error.message}`);
+      await DownloadLogger.logError(
+        'permission_reset_error',
+        `権限状態リセット中にエラー: ${error.message}`
+      );
       throw error;
     }
   }
@@ -267,10 +273,10 @@ export class PermissionManager {
    *
    * @returns Promise<object> - 現在の権限状態の詳細情報
    */
-  static async getCurrentState(): Promise<{hasPermission: boolean, isPending: boolean}> {
+  static async getCurrentState(): Promise<{ hasPermission: boolean; isPending: boolean }> {
     try {
       const hasPermission = await chrome.permissions.contains({
-        permissions: [this.PERMISSION_NAME]
+        permissions: [this.PERMISSION_NAME],
       });
       const isPending = await this.getPermissionPendingFlag();
 

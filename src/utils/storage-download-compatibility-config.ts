@@ -47,7 +47,7 @@ export const STORAGE_DOWNLOAD_CONFIG = {
    * 【デフォルト拡張子】: 拡張子が欠落した場合に自動付与される拡張子
    * 【根拠】: TC-072-203 ファイル名サニタイズテストで期待される形式
    */
-  DEFAULT_EXTENSION: '.png'
+  DEFAULT_EXTENSION: '.png',
 } as const;
 
 /**
@@ -71,7 +71,7 @@ export const ERROR_MESSAGES = {
   /**
    * ログ関連メッセージ
    */
-  LOG_ERROR: 'ログ記録に失敗しました'
+  LOG_ERROR: 'ログ記録に失敗しました',
 } as const;
 
 /**
@@ -81,7 +81,7 @@ export const ERROR_MESSAGES = {
  */
 export const LOG_LEVELS = {
   INFO: 'INFO',
-  ERROR: 'ERROR'
+  ERROR: 'ERROR',
 } as const;
 
 /**
@@ -106,5 +106,5 @@ export const FILENAME_PATTERNS = {
    * 【有効拡張子パターン】: 許可される画像ファイル拡張子
    * 【根拠】: TC-072-203 で期待される拡張子形式
    */
-  VALID_EXTENSIONS: /\.(png|jpg|jpeg|gif|webp)$/i
+  VALID_EXTENSIONS: /\.(png|jpg|jpeg|gif|webp)$/i,
 } as const;

@@ -2,7 +2,13 @@
 import { describe, test, expect, beforeEach, vi } from 'vitest';
 
 // 【テスト対象モジュール】: UI状態管理機能（Green フェーズ実装）
-import { UIStateManager, UIState, ProgressData, PromptData, GenerationSettings } from './ui-state-manager';
+import {
+  UIStateManager,
+  UIState,
+  ProgressData,
+  PromptData,
+  GenerationSettings,
+} from './ui-state-manager';
 
 describe('UI スケルトン/状態管理 - Green Phase', () => {
   let uiStateManager: UIStateManager;

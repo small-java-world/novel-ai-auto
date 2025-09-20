@@ -77,7 +77,10 @@ describe('background.ts handlers', () => {
 
     await initializeDefaultSettings();
 
-    expect(consoleSpy).toHaveBeenCalledWith('Failed to initialize default settings:', error.message);
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'Failed to initialize default settings:',
+      error.message
+    );
   });
 
   it('ensures existing NovelAI tab is focused', async () => {
@@ -102,7 +105,10 @@ describe('background.ts handlers', () => {
 
     const result = await ensureNovelAITab();
 
-    expect(chromeMock.tabs.create).toHaveBeenCalledWith({ url: 'https://novelai.net/', active: true });
+    expect(chromeMock.tabs.create).toHaveBeenCalledWith({
+      url: 'https://novelai.net/',
+      active: true,
+    });
     expect(result).toEqual(createdTab);
   });
 
@@ -128,7 +134,11 @@ describe('background.ts handlers', () => {
     (chromeMock.tabs.update as any).mockResolvedValueOnce(tab);
     (chromeMock.tabs.sendMessage as any).mockResolvedValueOnce(undefined);
 
-    await background.handleStartGeneration(message, {} as chrome.runtime.MessageSender, sendResponse);
+    await background.handleStartGeneration(
+      message,
+      {} as chrome.runtime.MessageSender,
+      sendResponse
+    );
 
     expect(chromeMock.tabs.sendMessage).toHaveBeenCalledWith(tab.id, {
       type: 'APPLY_PROMPT',
@@ -146,12 +156,19 @@ describe('background.ts handlers', () => {
     (chromeMock.tabs.query as any).mockRejectedValueOnce(error);
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    await background.handleStartGeneration(message, {} as chrome.runtime.MessageSender, sendResponse);
+    await background.handleStartGeneration(
+      message,
+      {} as chrome.runtime.MessageSender,
+      sendResponse
+    );
 
     expect(
       consoleSpy.mock.calls.some(
-        ([label, err]) => label === 'Failed to start generation:' && err instanceof Error && err.message === 'no tab',
-      ),
+        ([label, err]) =>
+          label === 'Failed to start generation:' &&
+          err instanceof Error &&
+          err.message === 'no tab'
+      )
     ).toBe(true);
     expect(sendResponse).toHaveBeenCalledWith({ success: false, error: 'no tab' });
   });
@@ -160,7 +177,11 @@ describe('background.ts handlers', () => {
     const background = await loadBackgroundModule();
     const sendResponse = vi.fn();
 
-    await background.handleCancelJob({ type: 'CANCEL_JOB', jobId: 'job-1' }, {} as chrome.runtime.MessageSender, sendResponse);
+    await background.handleCancelJob(
+      { type: 'CANCEL_JOB', jobId: 'job-1' },
+      {} as chrome.runtime.MessageSender,
+      sendResponse
+    );
     expect(sendResponse).toHaveBeenCalledWith({ success: true });
 
     const errorSend = vi.fn();
@@ -169,12 +190,17 @@ describe('background.ts handlers', () => {
     });
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    await background.handleCancelJob({ type: 'CANCEL_JOB', jobId: 'job-2' }, {} as chrome.runtime.MessageSender, errorSend);
+    await background.handleCancelJob(
+      { type: 'CANCEL_JOB', jobId: 'job-2' },
+      {} as chrome.runtime.MessageSender,
+      errorSend
+    );
 
     expect(
       errorSpy.mock.calls.some(
-        ([label, err]) => label === 'Failed to cancel job:' && err instanceof Error && err.message === 'log failure',
-      ),
+        ([label, err]) =>
+          label === 'Failed to cancel job:' && err instanceof Error && err.message === 'log failure'
+      )
     ).toBe(true);
     expect(errorSend).toHaveBeenCalledWith({ success: false, error: 'log failure' });
     logSpy.mockRestore();
@@ -194,7 +220,11 @@ describe('background.ts handlers', () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const errorResponse = vi.fn();
 
-    await background.handleDownloadImage(message, {} as chrome.runtime.MessageSender, errorResponse);
+    await background.handleDownloadImage(
+      message,
+      {} as chrome.runtime.MessageSender,
+      errorResponse
+    );
 
     expect(errorSpy).toHaveBeenCalledWith('Failed to download image:', expect.any(Error));
     expect(errorResponse).toHaveBeenCalledWith({ success: false, error: 'network' });
@@ -230,14 +260,3 @@ describe('background.ts handlers', () => {
     });
   });
 });
-
-
-
-
-
-
-
-
-
-
-

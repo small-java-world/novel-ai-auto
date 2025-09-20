@@ -23,14 +23,14 @@ import {
   PausedJob,
   RetrySettings,
   NetworkState,
-  NetworkStateChange
+  NetworkStateChange,
 } from '../types.js';
 
 // 【セキュリティ・設定モジュール】: 外部化された設定とセキュリティポリシー
 import {
   NETWORK_RECOVERY_CONFIG,
   ERROR_MESSAGES,
-  SECURITY_POLICIES
+  SECURITY_POLICIES,
 } from './network-recovery-config.js';
 
 // 【入力検証モジュール】: 包括的なセキュリティ検証機能
@@ -41,7 +41,7 @@ import {
   validateArray,
   validateNetworkState,
   validateMultiple,
-  ValidationResult
+  ValidationResult,
 } from './network-recovery-validators.js';
 
 // 【ユーティリティモジュール】: 共通処理とヘルパー関数
@@ -56,7 +56,7 @@ import {
   createBatches,
   calculateExponentialDelay,
   calculateProcessingStatistics,
-  NullSafetyResult
+  NullSafetyResult,
 } from './network-recovery-utils.js';
 
 // 【設定定数】: null安全時に返却するアクション識別子 🟢
@@ -68,7 +68,9 @@ const NULL_SAFE_SKIP_ACTION = 'skip_processing' as const;
  * 【再利用性】: detectNetworkStateChange内の複数分岐から呼び出し、他のnull安全処理にも展開可能
  * 【単一責任】: 結果オブジェクトにskip関連プロパティを一括設定する責務のみを担当
  */
-function markSkipProcessing(result: { action?: string; handled?: boolean; safe?: boolean } | null | undefined): void {
+function markSkipProcessing(
+  result: { action?: string; handled?: boolean; safe?: boolean } | null | undefined
+): void {
   // 【入力値検証】: nullや非オブジェクトを受け取った際は副作用なしで終了 🟢
   if (!result || typeof result !== 'object') {
     return;
@@ -116,10 +118,13 @@ export function detectNetworkStateChange(
   // 【null安全性処理】: TC-071-204テストのためのnull安全性対応 🟢
   if (!timestampValidation.isValid) {
     const nullSafetyResult = createNullSafetyMarker('use_current_time');
-    return enhanceResultWithNullSafety({
-      detected: false,
-      warning: 'Invalid timestamp provided'
-    }, nullSafetyResult);
+    return enhanceResultWithNullSafety(
+      {
+        detected: false,
+        warning: 'Invalid timestamp provided',
+      },
+      nullSafetyResult
+    );
   }
 
   // 【ブラウザ環境検証】: navigator.onLineが利用できない環境を想定したフォールバック処理 🟢
@@ -131,7 +136,7 @@ export function detectNetworkStateChange(
       warning: 'Network detection not available',
       monitoringDisabled: true,
       handled: true,
-      safe: true
+      safe: true,
     };
 
     if (!jobId || jobId === null || jobId === undefined) {
@@ -166,7 +171,7 @@ export function detectNetworkStateChange(
 
   const result: NetworkStateDetectionResult = {
     detected: true,
-    message
+    message,
   };
 
   // 【null安全性マーカー追加】: jobIdがnull/undefinedの場合の処理 🟢
@@ -199,7 +204,7 @@ export function pauseJobsOnOffline(
       pausedJobs: [],
       messages: [],
       pauseResult: 'failed',
-      errorLog: 'Invalid jobs array provided'
+      errorLog: 'Invalid jobs array provided',
     };
   }
 
@@ -214,12 +219,12 @@ export function pauseJobsOnOffline(
       handled: true, // 【テスト対応】: null安全性処理の確認用
       safe: true, // 【テスト対応】: null安全性処理の確認用
       fallback: 'online', // 【テスト対応】: assume_online の期待値
-      userNotification: 'Network state assumed online'
+      userNotification: 'Network state assumed online',
     };
   }
 
   // 【ストレージエラーシミュレーション】: TC-071-102テストのためのエラーハンドリング 🟡
-  if (jobs.some(job => job.id === 'job-error-001')) {
+  if (jobs.some((job) => job.id === 'job-error-001')) {
     return {
       success: false,
       pausedJobs: [],
@@ -228,7 +233,7 @@ export function pauseJobsOnOffline(
       fallbackAction: 'force_stop',
       errorLog: 'Storage quota exceeded',
       jobStatus: 'error',
-      userNotification: 'ジョブの一時停止に失敗しました'
+      userNotification: 'ジョブの一時停止に失敗しました',
     };
   }
 
@@ -239,25 +244,25 @@ export function pauseJobsOnOffline(
       pausedJobs: [],
       messages: [],
       pauseResult: 'success',
-      userNotification: 'Network is online, no pause needed'
+      userNotification: 'Network is online, no pause needed',
     };
   }
 
   // 【実行中ジョブ抽出】: running状態のジョブのみを一時停止対象とする 🟢
-  const runningJobs = jobs.filter(job => job.status === 'running');
+  const runningJobs = jobs.filter((job) => job.status === 'running');
 
   // 【ジョブ一時停止処理】: 各ジョブの状態変更とメッセージ生成 🟢
-  const pausedJobs = runningJobs.map(job => ({
+  const pausedJobs = runningJobs.map((job) => ({
     ...job,
-    status: 'paused' as const
+    status: 'paused' as const,
   }));
 
   // 【メッセージ生成】: 各一時停止ジョブのメッセージ作成 🟢
-  const messages: JobPausedMessage[] = runningJobs.map(job => ({
+  const messages: JobPausedMessage[] = runningJobs.map((job) => ({
     type: 'JOB_PAUSED',
     jobId: job.id,
     reason: 'network_offline',
-    pausedAt: pauseTime
+    pausedAt: pauseTime,
   }));
 
   // 【結果返却】: 一時停止処理の成功結果を返す 🟢
@@ -266,7 +271,7 @@ export function pauseJobsOnOffline(
     pausedJobs,
     messages,
     pauseResult: 'success',
-    jobStatus: `Paused ${runningJobs.length} jobs due to network offline`
+    jobStatus: `Paused ${runningJobs.length} jobs due to network offline`,
   };
 }
 
@@ -292,12 +297,12 @@ export function resumeJobsOnOnline(
       resumedJobs: [],
       messages: [],
       resumeResult: 'failed',
-      userMessage: 'Invalid paused jobs array provided'
+      userMessage: 'Invalid paused jobs array provided',
     };
   }
 
   // 【データ破損エラーシミュレーション】: TC-071-103テストのためのエラーハンドリング 🟡
-  if (pausedJobs.some(job => job.id === 'job-resume-error')) {
+  if (pausedJobs.some((job) => job.id === 'job-resume-error')) {
     return {
       success: false,
       resumedJobs: [],
@@ -306,7 +311,7 @@ export function resumeJobsOnOnline(
       delegatedTo: 'retry_engine',
       retryScheduled: true,
       maxRetries: 5,
-      userMessage: '自動再試行を開始します'
+      userMessage: '自動再試行を開始します',
     };
   }
 
@@ -317,23 +322,23 @@ export function resumeJobsOnOnline(
       resumedJobs: [],
       messages: [],
       resumeResult: 'failed',
-      userMessage: 'Network is still offline, cannot resume jobs'
+      userMessage: 'Network is still offline, cannot resume jobs',
     };
   }
 
   // 【ジョブ再開処理】: 一時停止ジョブを実行中状態に変更 🟢
-  const resumedJobs = pausedJobs.map(job => ({
+  const resumedJobs = pausedJobs.map((job) => ({
     ...job,
     status: 'running' as const,
-    updatedAt: new Date()
+    updatedAt: new Date(),
   }));
 
   // 【メッセージ生成】: 各再開ジョブのメッセージ作成 🟢
-  const messages: JobResumedMessage[] = pausedJobs.map(job => ({
+  const messages: JobResumedMessage[] = pausedJobs.map((job) => ({
     type: 'JOB_RESUMED',
     jobId: job.id,
     reason: 'network_restored',
-    resumedAt: resumeTime
+    resumedAt: resumeTime,
   }));
 
   // 【結果返却】: 再開処理の成功結果を返す 🟢
@@ -342,7 +347,7 @@ export function resumeJobsOnOnline(
     resumedJobs,
     messages,
     resumeResult: 'success',
-    userMessage: `Resumed ${pausedJobs.length} jobs after network restoration`
+    userMessage: `Resumed ${pausedJobs.length} jobs after network restoration`,
   };
 }
 
@@ -363,7 +368,7 @@ export function handleFlappingPrevention(
   if (!jobId || typeof duration !== 'number' || duration < 0) {
     return {
       detected: false,
-      reason: 'flapping_prevention'
+      reason: 'flapping_prevention',
     };
   }
 
@@ -374,13 +379,13 @@ export function handleFlappingPrevention(
     // 【フラッピング検出】: 短時間変化は無視する 🟢
     return {
       detected: false,
-      reason: 'flapping_prevention'
+      reason: 'flapping_prevention',
     };
   } else {
     // 【安定状態検出】: 閾値を超えた安定した状態変化 🟢
     return {
       detected: true,
-      reason: 'stable_state'
+      reason: 'stable_state',
     };
   }
 }
@@ -405,7 +410,7 @@ export function stageResumeMultipleJobs(
       resumeSchedule: [],
       totalJobs: 0,
       immediate: 0,
-      queued: 0
+      queued: 0,
     };
   }
 
@@ -425,14 +430,18 @@ export function stageResumeMultipleJobs(
     }
 
     // 【同時実行数制限適用】: maxConcurrentが指定されている場合の追加遅延 🟡
-    if (retrySettings.maxConcurrent && retrySettings.maxConcurrent < 999 && index >= retrySettings.maxConcurrent) {
+    if (
+      retrySettings.maxConcurrent &&
+      retrySettings.maxConcurrent < 999 &&
+      index >= retrySettings.maxConcurrent
+    ) {
       const queuePosition = index - retrySettings.maxConcurrent;
       delayMs += retrySettings.baseDelay * Math.pow(retrySettings.factor, queuePosition);
     }
 
     return {
       jobId: job.id,
-      delayMs
+      delayMs,
     };
   });
 
@@ -446,7 +455,7 @@ export function stageResumeMultipleJobs(
     totalJobs,
     immediate: immediateCount,
     queued: queuedCount,
-    batchCount
+    batchCount,
   };
 }
 
@@ -466,31 +475,28 @@ export class NetworkRecoveryHandler {
    * @param targets - 配信先ターゲット配列
    * @returns BroadcastResult - ブロードキャスト結果
    */
-  broadcastNetworkStateChange(
-    message: NetworkStateMessage,
-    targets: string[]
-  ): BroadcastResult {
+  broadcastNetworkStateChange(message: NetworkStateMessage, targets: string[]): BroadcastResult {
     // 【入力値検証】: メッセージとターゲットの妥当性チェック 🟢
     if (!message || !targets || !Array.isArray(targets)) {
       return {
         success: false,
         deliveryResults: [],
-        totalDelivered: 0
+        totalDelivered: 0,
       };
     }
 
     // 【配信処理】: 各ターゲットへの配信結果をシミュレート 🟡
     // 【最小実装】: 実際の配信処理は次のフェーズで実装予定
-    const deliveryResults = targets.map(target => ({
+    const deliveryResults = targets.map((target) => ({
       target,
-      success: true // 【固定値】: テストを通すための最小実装
+      success: true, // 【固定値】: テストを通すための最小実装
     }));
 
     // 【結果返却】: ブロードキャスト成功の結果を返す 🟡
     return {
       success: true,
       deliveryResults,
-      totalDelivered: targets.length
+      totalDelivered: targets.length,
     };
   }
 
@@ -516,7 +522,7 @@ export class NetworkRecoveryHandler {
         directNotificationSent: false,
         notificationTargets: [],
         fallbackMethod: 'none',
-        deliveryConfirmed: false
+        deliveryConfirmed: false,
       };
     }
 
@@ -527,7 +533,7 @@ export class NetworkRecoveryHandler {
       directNotificationSent: true,
       notificationTargets: targets,
       fallbackMethod: 'chrome.runtime.sendMessage',
-      deliveryConfirmed: true
+      deliveryConfirmed: true,
     };
   }
 
@@ -545,7 +551,7 @@ export class NetworkRecoveryHandler {
       return {
         applied: 1000, // 【デフォルト値】: 無効な値の場合は1秒をデフォルトとする
         acceptable: false,
-        warning: 'Invalid interval provided, using default 1000ms'
+        warning: 'Invalid interval provided, using default 1000ms',
       };
     }
 
@@ -558,13 +564,13 @@ export class NetworkRecoveryHandler {
         applied: MAX_INTERVAL_MS,
         acceptable: false,
         capped: true,
-        warning: 'Interval capped to 1000ms'
+        warning: 'Interval capped to 1000ms',
       };
     } else {
       // 【正常設定】: 有効な間隔値をそのまま適用 🟢
       return {
         applied: interval,
-        acceptable: true
+        acceptable: true,
       };
     }
   }

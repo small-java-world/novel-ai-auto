@@ -9,7 +9,8 @@ const ERROR_MSG = {
 } as const;
 
 // 【設定定数】: テスト時は短いディレイで高速化、通常は実運用想定 🟡
-const IS_TEST = typeof process !== 'undefined' && (process.env.VITEST || process.env.NODE_ENV === 'test');
+const IS_TEST =
+  typeof process !== 'undefined' && (process.env.VITEST || process.env.NODE_ENV === 'test');
 const RETRY_CONFIG = {
   baseDelay: IS_TEST ? 50 : 500,
   factor: 2.0,
@@ -45,7 +46,11 @@ export interface DownloadResult {
  * 【再利用性】: 長時間I/Oの中断にも利用可能
  * 【単一責任】: 中断イベントを即時にPromiseに反映
  */
-function abortable<T>(promise: Promise<T>, signal?: AbortSignal, message: string = ERROR_MSG.aborted): Promise<T> {
+function abortable<T>(
+  promise: Promise<T>,
+  signal?: AbortSignal,
+  message: string = ERROR_MSG.aborted
+): Promise<T> {
   if (!signal) return promise;
   let remove: (() => void) | undefined;
   const onAbortPromise = new Promise<T>((_, reject) => {
@@ -78,7 +83,9 @@ function ensureError(err: unknown): Error {
  * 【テスト対応】: 権限/中断/ファイル名/一時エラーの分岐
  * 🟢🟡🔴 信頼性レベル: 🟡（妥当な推測＋テスト基準）
  */
-function classifyError(error: unknown): 'retryable' | 'non-retryable' | 'filename-invalid' | 'aborted' {
+function classifyError(
+  error: unknown
+): 'retryable' | 'non-retryable' | 'filename-invalid' | 'aborted' {
   if (!(error instanceof Error)) return 'retryable';
   if ((error as any).code === 'PERMISSION_DENIED') return 'non-retryable';
   if ((error as any).name === 'AbortError') return 'aborted';
@@ -185,4 +192,3 @@ export async function downloadHandler(request: DownloadRequest): Promise<Downloa
     return { success: false, error: ensureError(error).message };
   }
 }
-

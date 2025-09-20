@@ -15,7 +15,7 @@ describe('TASK-100 ローカルファイル選択機能', () => {
 
     // 【FileReader APIモック設定】: 実際のファイル内容を読み込むシミュレート 🟡
     global.FileReader = vi.fn(() => ({
-      readAsText: vi.fn(function(this: any, file: File) {
+      readAsText: vi.fn(function (this: any, file: File) {
         // 【非同期実行】: setTimeoutで非同期読み込みをシミュレート
         setTimeout(async () => {
           try {
@@ -64,12 +64,12 @@ describe('TASK-100 ローカルファイル選択機能', () => {
           name: '美しい風景',
           prompt: 'beautiful landscape, mountains, sunset',
           negative: 'ugly, low quality',
-          parameters: { steps: 28, cfgScale: 7 }
-        }
+          parameters: { steps: 28, cfgScale: 7 },
+        },
       ]);
 
       const mockFile = new File([validJsonContent], 'test-prompts.json', {
-        type: 'application/json'
+        type: 'application/json',
       });
 
       // 【実際の処理実行】: loadLocalPromptFile関数を呼び出してファイル読み込み処理を実行
@@ -98,12 +98,12 @@ describe('TASK-100 ローカルファイル選択機能', () => {
           name: 'アニメキャラクター',
           prompt: 'anime character, cute girl, colorful',
           negative: 'realistic, 3d',
-          parameters: { steps: 20, cfgScale: 8 }
-        }
+          parameters: { steps: 20, cfgScale: 8 },
+        },
       ]);
 
       const mockFile = new File([validContent], 'custom-prompts.naiprompts', {
-        type: 'application/json'
+        type: 'application/json',
       });
 
       // 【実際の処理実行】: loadLocalPromptFile関数で.naipromptsファイルを処理
@@ -130,13 +130,12 @@ describe('TASK-100 ローカルファイル選択機能', () => {
         { name: '風景2', prompt: 'landscape 2', parameters: { steps: 25 } },
         { name: 'キャラクター1', prompt: 'character 1', parameters: { steps: 30 } },
         { name: 'キャラクター2', prompt: 'character 2', parameters: { steps: 35 } },
-        { name: '抽象画', prompt: 'abstract art', parameters: { steps: 40 } }
+        { name: '抽象画', prompt: 'abstract art', parameters: { steps: 40 } },
       ]);
 
       const mockFile = new File([multiplePresets], 'multiple-prompts.json', {
-        type: 'application/json'
+        type: 'application/json',
       });
-
 
       // 【実際の処理実行】: loadLocalPromptFile関数で複数プリセットファイルを処理
       // 【処理内容】: 配列処理、重複チェック、順序保持の一連の処理を実行
@@ -164,7 +163,7 @@ describe('TASK-100 ローカルファイル選択機能', () => {
       // 【初期条件設定】: 大規模プロンプトコレクションや画像データ誤混入を想定
       const oversizedContent = 'x'.repeat(10 * 1024 * 1024 + 1); // 10MB + 1 byte
       const mockFile = new File([oversizedContent], 'oversized.json', {
-        type: 'application/json'
+        type: 'application/json',
       });
 
       // 【実際の処理実行】: loadLocalPromptFile関数でサイズ制限チェックを実行
@@ -188,7 +187,7 @@ describe('TASK-100 ローカルファイル選択機能', () => {
       // 【初期条件設定】: JSON仕様違反でパース不可能な内容を作成
       const invalidJsonContent = '{"invalid": json syntax}'; // クォート不整合
       const mockFile = new File([invalidJsonContent], 'invalid.json', {
-        type: 'application/json'
+        type: 'application/json',
       });
 
       // 【実際の処理実行】: loadLocalPromptFile関数でJSON構文エラー処理を実行
@@ -216,7 +215,7 @@ describe('TASK-100 ローカルファイル選択機能', () => {
       ]);
 
       const mockFile = new File([incompleteData], 'incomplete.json', {
-        type: 'application/json'
+        type: 'application/json',
       });
 
       // 【実際の処理実行】: loadLocalPromptFile関数でデータ型検証を実行
@@ -242,7 +241,7 @@ describe('TASK-100 ローカルファイル選択機能', () => {
 
       // 【FileReaderエラーモック】: onerrorを発火するモックを設定
       global.FileReader = vi.fn(() => ({
-        readAsText: vi.fn(function(this: any) {
+        readAsText: vi.fn(function (this: any) {
           setTimeout(() => {
             this.error = new Error('ファイル読み込みエラー');
             if (this.onerror) {
@@ -263,7 +262,9 @@ describe('TASK-100 ローカルファイル選択機能', () => {
       // 【結果検証】: システムエラーの適切な処理とユーザー向けメッセージ変換
       // 【期待値確認】: システム堅牢性とエラー伝播防止
       expect(result.success).toBe(false); // 【確認内容】: FileReader APIエラーが適切に処理されることを確認 🟡
-      expect(result.error).toBe('ファイルの読み込みに失敗しました。ファイルの状態を確認してください'); // 【確認内容】: システムエラーがユーザー向けに変換されることを確認 🟡
+      expect(result.error).toBe(
+        'ファイルの読み込みに失敗しました。ファイルの状態を確認してください'
+      ); // 【確認内容】: システムエラーがユーザー向けに変換されることを確認 🟡
       expect(result.data).toBeUndefined(); // 【確認内容】: エラー時にデータが返されないことを確認 🟡
     });
   });
@@ -279,14 +280,14 @@ describe('TASK-100 ローカルファイル選択機能', () => {
       // 【テストデータ準備】: 大型プロンプトコレクションで制限ギリギリの利用を想定
       // 【初期条件設定】: 10MB * 1024 * 1024バイト丁度のファイル
       // 有効なJSONを作成して丁度10MBになるように調整
-      const basePrompt = { name: "Boundary Test", prompt: "test prompt" };
+      const basePrompt = { name: 'Boundary Test', prompt: 'test prompt' };
       const baseString = JSON.stringify([basePrompt]);
-      const paddingNeeded = (10 * 1024 * 1024) - baseString.length;
-      const largeName = "Boundary Test " + "x".repeat(paddingNeeded - 20); // JSONの括弧等を考慮
-      const boundaryPrompt = { name: largeName, prompt: "test prompt" };
+      const paddingNeeded = 10 * 1024 * 1024 - baseString.length;
+      const largeName = 'Boundary Test ' + 'x'.repeat(paddingNeeded - 20); // JSONの括弧等を考慮
+      const boundaryPrompt = { name: largeName, prompt: 'test prompt' };
       const boundaryContent = JSON.stringify([boundaryPrompt]);
       const mockFile = new File([boundaryContent], 'boundary.json', {
-        type: 'application/json'
+        type: 'application/json',
       });
 
       // 【実際の処理実行】: loadLocalPromptFile関数で境界値処理を実行
@@ -332,12 +333,12 @@ describe('TASK-100 ローカルファイル選択機能', () => {
         {
           name: 'シンプルテスト',
           prompt: 'simple test prompt',
-          parameters: { steps: 20 }
-        }
+          parameters: { steps: 20 },
+        },
       ]);
 
       const mockFile = new File([singlePreset], 'single.json', {
-        type: 'application/json'
+        type: 'application/json',
       });
 
       // 【実際の処理実行】: loadLocalPromptFile関数で最小有効データ処理を実行
@@ -364,12 +365,12 @@ describe('TASK-100 ローカルファイル選択機能', () => {
         {
           name: '長大プロンプトテスト',
           prompt: longPrompt,
-          parameters: { steps: 20 }
-        }
+          parameters: { steps: 20 },
+        },
       ]);
 
       const mockFile = new File([longPromptData], 'long-prompt.json', {
-        type: 'application/json'
+        type: 'application/json',
       });
 
       // 【実際の処理実行】: loadLocalPromptFile関数で長文プロンプト処理を実行

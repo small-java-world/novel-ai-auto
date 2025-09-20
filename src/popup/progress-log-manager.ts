@@ -29,7 +29,7 @@ export class ProgressLogManager {
     // 【DOM操作最適化】: DocumentFragmentを使用して一括挿入
     const fragment = document.createDocumentFragment();
 
-    entries.forEach(entry => {
+    entries.forEach((entry) => {
       const logElement = this.createLogElement(entry);
       fragment.appendChild(logElement);
     });

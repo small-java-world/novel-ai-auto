@@ -22,11 +22,11 @@ describe('ProgressStateManager', () => {
         type: 'PROGRESS_UPDATE',
         currentIndex: 5,
         totalCount: 2,
-      }),
+      })
     ).toBe(false);
 
     expect(
-      manager.validateMessage({ type: 'PROGRESS_UPDATE', currentIndex: 1, totalCount: 3 }),
+      manager.validateMessage({ type: 'PROGRESS_UPDATE', currentIndex: 1, totalCount: 3 })
     ).toBe(true);
   });
 

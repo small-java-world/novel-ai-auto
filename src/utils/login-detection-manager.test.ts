@@ -4,34 +4,32 @@ import {
   pauseCurrentJob,
   saveJobState,
   detectLoginCompleted,
-  resumeSavedJob
+  resumeSavedJob,
 } from './login-detection-manager';
 import { LoginDetectionManager } from './login-detection-manager';
 import {
   LOGIN_DETECTION_DEFAULTS,
   LOGIN_DETECTION_MESSAGES,
   LOGIN_DETECTION_THRESHOLDS,
-  LOGIN_DETECTION_URLS
+  LOGIN_DETECTION_URLS,
 } from './login-detection-config';
 import type { GenerationJob, PageTransition } from '../types';
 
 const chromeStorage = (globalThis.chrome as any).storage.local;
 
 function createGenerationJob(overrides: Partial<GenerationJob> = {}): GenerationJob {
-  const settings =
-    overrides.settings ?? {
-      imageCount: 1,
-      seed: 42,
-      filenameTemplate: 'image',
-      retrySettings: { maxRetries: 1, baseDelay: 100, factor: 2 }
-    };
+  const settings = overrides.settings ?? {
+    imageCount: 1,
+    seed: 42,
+    filenameTemplate: 'image',
+    retrySettings: { maxRetries: 1, baseDelay: 100, factor: 2 },
+  };
 
-  const progress =
-    overrides.progress ?? {
-      current: 0,
-      total: 10,
-      status: 'waiting' as const
-    };
+  const progress = overrides.progress ?? {
+    current: 0,
+    total: 10,
+    status: 'waiting' as const,
+  };
 
   return {
     id: overrides.id ?? 'job-123',
@@ -42,7 +40,7 @@ function createGenerationJob(overrides: Partial<GenerationJob> = {}): Generation
     createdAt: overrides.createdAt ?? new Date('2024-01-01T00:00:00Z'),
     updatedAt: overrides.updatedAt ?? new Date('2024-01-01T00:00:00Z'),
     progress,
-    error: overrides.error
+    error: overrides.error,
   };
 }
 
@@ -50,14 +48,12 @@ function createPageTransition(overrides: Partial<PageTransition> = {}): PageTran
   return {
     previousUrl: overrides.previousUrl ?? LOGIN_DETECTION_URLS.NOVELAI_LOGIN,
     currentUrl: overrides.currentUrl ?? LOGIN_DETECTION_URLS.NOVELAI_MAIN,
-    pageState:
-      overrides.pageState ??
-      {
-        isLoggedIn: true,
-        hasPromptInput: true,
-        isNovelAIPage: true,
-        currentUrl: LOGIN_DETECTION_URLS.NOVELAI_MAIN
-      }
+    pageState: overrides.pageState ?? {
+      isLoggedIn: true,
+      hasPromptInput: true,
+      isNovelAIPage: true,
+      currentUrl: LOGIN_DETECTION_URLS.NOVELAI_MAIN,
+    },
   };
 }
 
@@ -157,8 +153,8 @@ describe('detectLoginCompleted', () => {
         isLoggedIn: true,
         hasPromptInput: true,
         isNovelAIPage: false,
-        currentUrl: 'https://example.com/app'
-      }
+        currentUrl: 'https://example.com/app',
+      },
     });
 
     const result = detectLoginCompleted(transition);
@@ -218,9 +214,9 @@ describe('saveJobState', () => {
         expect.objectContaining({
           id: pausedJob.id,
           status: 'paused',
-          pausedAt: pausedJob.pausedAt
-        })
-      ]
+          pausedAt: pausedJob.pausedAt,
+        }),
+      ],
     });
     expect(result.storageResult).toBe('success');
   });
@@ -234,15 +230,13 @@ describe('saveJobState', () => {
     await vi.runAllTimersAsync();
     const result = await resultPromise;
 
-    expect(chromeStorage.set).toHaveBeenCalledTimes(
-      LOGIN_DETECTION_THRESHOLDS.STORAGE_RETRY_COUNT
-    );
+    expect(chromeStorage.set).toHaveBeenCalledTimes(LOGIN_DETECTION_THRESHOLDS.STORAGE_RETRY_COUNT);
     expect(result.storageResult).toBe('failed');
     expect(result.fallbackResult).toBe('memory_only');
     expect(result.warning).toBe(LOGIN_DETECTION_MESSAGES.WARNINGS.STORAGE_FAILED_MEMORY_FALLBACK);
     expect(result.memoryState).toEqual({
       jobId: pausedJob.id,
-      tempStatus: pausedJob.status
+      tempStatus: pausedJob.status,
     });
   });
 });
@@ -259,7 +253,7 @@ describe('resumeSavedJob', () => {
 
   test('cleans corrupted data and returns validation failure', async () => {
     chromeStorage.get.mockResolvedValue({
-      paused_jobs: [{ id: '', status: 'paused', pausedAt: null }]
+      paused_jobs: [{ id: '', status: 'paused', pausedAt: null }],
     });
     chromeStorage.remove.mockResolvedValue(undefined);
 
@@ -276,7 +270,7 @@ describe('resumeSavedJob', () => {
       id: 'job-999',
       status: 'paused',
       pausedAt: Date.now(),
-      resumePoint: 'download_start'
+      resumePoint: 'download_start',
     };
     chromeStorage.get.mockResolvedValue({ paused_jobs: [savedJob] });
 
@@ -285,12 +279,12 @@ describe('resumeSavedJob', () => {
     expect(result.success).toBe(true);
     expect(result.resumedJob).toEqual({
       id: savedJob.id,
-      resumePoint: savedJob.resumePoint
+      resumePoint: savedJob.resumePoint,
     });
     expect(result.message).toMatchObject({
       type: 'RESUME_JOB',
       jobId: savedJob.id,
-      resumePoint: savedJob.resumePoint
+      resumePoint: savedJob.resumePoint,
     });
   });
 
@@ -322,7 +316,7 @@ describe('LoginDetectionManager helpers', () => {
     expect(() => LoginDetectionManager.detectWithDuration('job', -1)).toThrow();
     expect(LoginDetectionManager.detectWithDuration('job', 100)).toEqual({
       detected: false,
-      reason: 'below_threshold'
+      reason: 'below_threshold',
     });
     expect(
       LoginDetectionManager.detectWithDuration(
@@ -331,7 +325,7 @@ describe('LoginDetectionManager helpers', () => {
       )
     ).toEqual({
       detected: true,
-      reason: 'threshold_met'
+      reason: 'threshold_met',
     });
     expect(
       LoginDetectionManager.detectWithDuration(
@@ -340,7 +334,7 @@ describe('LoginDetectionManager helpers', () => {
       )
     ).toEqual({
       detected: true,
-      reason: 'above_threshold'
+      reason: 'above_threshold',
     });
   });
 
@@ -348,14 +342,14 @@ describe('LoginDetectionManager helpers', () => {
     expect(() => LoginDetectionManager.checkRateLimit(-1, 0)).toThrow();
     expect(LoginDetectionManager.checkRateLimit(4, 0)).toEqual({
       blocked: false,
-      autoResumeEnabled: true
+      autoResumeEnabled: true,
     });
     expect(
       LoginDetectionManager.checkRateLimit(LOGIN_DETECTION_THRESHOLDS.MAX_ATTEMPTS_PER_WINDOW, 0)
     ).toEqual({
       blocked: true,
       autoResumeEnabled: false,
-      reason: 'rate_limit_exceeded'
+      reason: 'rate_limit_exceeded',
     });
   });
 
@@ -364,25 +358,23 @@ describe('LoginDetectionManager helpers', () => {
     expect(LoginDetectionManager.detectWithTimeout('job', 500)).toEqual({
       completed: true,
       withinSLA: true,
-      warning: false
+      warning: false,
     });
     expect(LoginDetectionManager.detectWithTimeout('job', 1200)).toEqual({
       completed: true,
       withinSLA: false,
-      warning: true
+      warning: true,
     });
   });
 
   test('handleUrlChange supplies fallbacks', () => {
     expect(LoginDetectionManager.handleUrlChange(null)).toEqual({
       handled: true,
-      fallback: ''
+      fallback: '',
     });
     expect(LoginDetectionManager.handleUrlChange('https://novelai.net')).toEqual({
       handled: true,
-      fallback: LOGIN_DETECTION_DEFAULTS.DEFAULT_JOB_ID
+      fallback: LOGIN_DETECTION_DEFAULTS.DEFAULT_JOB_ID,
     });
   });
 });
-
-

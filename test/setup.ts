@@ -23,6 +23,7 @@ const mockChrome = {
   },
   runtime: {
     sendMessage: vi.fn(),
+    getURL: vi.fn((p: string) => p),
     onInstalled: {
       addListener: vi.fn(),
       removeListener: vi.fn(),

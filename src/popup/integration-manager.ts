@@ -1,28 +1,22 @@
 /**
  * TASK-102: 新フォーマット対応・メタデータ管理 統合実装
- * 
+ *
  * 【機能概要】: 新フォーマット（v1.0）とメタデータ管理機能を既存機能と統合
  * 【実装状況】: 既存機能との統合フェーズ - プロンプト合成機能との連携
  * 【設計方針】: 既存機能との互換性を保ちながら新機能を統合
  * 【パフォーマンス】: 統合処理200ms以内、メタデータ読み込み100ms以内
  * 【保守性】: モジュール化された構造と包括的な日本語コメントで長期保守性を確保
  * 🟢 信頼性レベル: TASK-102要件定義書と既存機能の仕様に基づく
- * 
+ *
  * @version 1.0.0
  * @author NovelAI Auto Generator Team
  * @since 2025-09-20
  */
 
 // 【型定義のインポート】: 統合で使用する型定義
-import type {
-  PromptFileV1,
-  PresetV1,
-  LegacyPromptFile
-} from '../types/metadata';
+import type { PromptFileV1, PresetV1, LegacyPromptFile } from '../types/metadata';
 
-import type {
-  PresetData
-} from './prompt-synthesis';
+import type { PresetData } from './prompt-synthesis';
 
 // 【クラスのインポート】: 統合対象のクラス
 import { MetadataManager } from './metadata-manager';
@@ -68,7 +62,7 @@ export interface IntegrationOptions {
 
 /**
  * IntegrationManagerクラス - 新フォーマット対応・メタデータ管理統合
- * 
+ *
  * 【機能概要】: 新フォーマット（v1.0）とメタデータ管理機能を既存のプロンプト合成機能と統合
  * 【設計方針】: 既存機能との互換性を保ちながら新機能を統合
  * 【拡張性】: 将来の機能拡張に対応可能な設計
@@ -80,8 +74,9 @@ export class IntegrationManager {
   private metadataManager: MetadataManager;
   private formatConverter: FormatConverter;
   private promptSynthesizer: PromptSynthesizer;
-  private integrationMetrics: Array<{operation: string, duration: number, timestamp: number}> = [];
-  
+  private integrationMetrics: Array<{ operation: string; duration: number; timestamp: number }> =
+    [];
+
   /**
    * コンストラクタ
    * 【初期化処理】: IntegrationManagerの初期化
@@ -92,7 +87,7 @@ export class IntegrationManager {
     this.metadataManager = new MetadataManager();
     this.formatConverter = new FormatConverter();
     this.promptSynthesizer = new PromptSynthesizer();
-    
+
     this.initializeIntegrationTracking();
     console.log('IntegrationManager initialized (Integration Phase - Ready)');
   }
@@ -117,24 +112,27 @@ export class IntegrationManager {
    * @param options - 統合オプション
    * @returns 統合結果
    */
-  async integrateV1File(file: PromptFileV1, options: IntegrationOptions): Promise<IntegrationResult> {
+  async integrateV1File(
+    file: PromptFileV1,
+    options: IntegrationOptions
+  ): Promise<IntegrationResult> {
     const startTime = performance.now();
-    
+
     try {
       // メタデータの読み込み（オプションに応じて）
       const loadedFile = options.loadMetadata
         ? await this.metadataManager.loadPromptFile(file)
         : file;
-      
+
       // プロンプト合成機能との統合
       const synthesisResult = await this.integrateWithSynthesis(loadedFile, options);
-      
+
       // 統合統計の生成
       const statistics = {
         presetsProcessed: loadedFile.presets.length,
         metadataLoaded: !!options.loadMetadata,
         formatConverted: false,
-        synthesisEnabled: options.enableSynthesis
+        synthesisEnabled: options.enableSynthesis,
       };
 
       // パフォーマンス測定
@@ -146,20 +144,20 @@ export class IntegrationManager {
         success: true,
         data: {
           file: loadedFile,
-          synthesis: synthesisResult
+          synthesis: synthesisResult,
         },
         processingTime,
-        statistics
+        statistics,
       };
     } catch (error) {
       const endTime = performance.now();
       const processingTime = endTime - startTime;
       this.recordIntegration('integrateV1File', processingTime, true);
-      
+
       return {
         success: false,
         error: `Integration failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        processingTime
+        processingTime,
       };
     }
   }
@@ -174,15 +172,18 @@ export class IntegrationManager {
    * @param options - 統合オプション
    * @returns 統合結果
    */
-  async integrateLegacyFile(legacyFile: LegacyPromptFile, options: IntegrationOptions): Promise<IntegrationResult> {
+  async integrateLegacyFile(
+    legacyFile: LegacyPromptFile,
+    options: IntegrationOptions
+  ): Promise<IntegrationResult> {
     const startTime = performance.now();
-    
+
     try {
       // 既存形式から新形式への変換
       const conversionResult = await this.formatConverter.convertLegacyToV1(legacyFile, {
         preserveMetadata: true,
         addDefaultMetadata: true,
-        validateOutput: true
+        validateOutput: true,
       });
 
       if (!conversionResult.success || !conversionResult.data) {
@@ -207,11 +208,11 @@ export class IntegrationManager {
       const endTime = performance.now();
       const processingTime = endTime - startTime;
       this.recordIntegration('integrateLegacyFile', processingTime, true);
-      
+
       return {
         success: false,
         error: `Legacy integration failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        processingTime
+        processingTime,
       };
     }
   }
@@ -225,7 +226,10 @@ export class IntegrationManager {
    * @param options - 統合オプション
    * @returns 統合結果
    */
-  private async integrateWithSynthesis(file: PromptFileV1, options: IntegrationOptions): Promise<any> {
+  private async integrateWithSynthesis(
+    file: PromptFileV1,
+    options: IntegrationOptions
+  ): Promise<any> {
     if (!options.enableSynthesis) {
       return null;
     }
@@ -233,14 +237,14 @@ export class IntegrationManager {
     try {
       // プリセットデータをプロンプト合成機能の形式に変換
       const synthesisData = this.convertPresetsToSynthesisFormat(file.presets);
-      
+
       // プロンプト合成機能の初期化（必要に応じて）
       // この時点では、データの変換のみを行い、実際の合成は呼び出し元で実行
-      
+
       return {
         presets: synthesisData,
         metadata: file.metadata,
-        synthesisEnabled: true
+        synthesisEnabled: true,
       };
     } catch (error) {
       console.warn('Synthesis integration failed:', error);
@@ -248,7 +252,7 @@ export class IntegrationManager {
         presets: [],
         metadata: file.metadata,
         synthesisEnabled: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -261,7 +265,7 @@ export class IntegrationManager {
    * @returns 変換されたプリセットデータ
    */
   private convertPresetsToSynthesisFormat(presets: PresetV1[]): PresetData[] {
-    return presets.map(preset => ({
+    return presets.map((preset) => ({
       positive: preset.positive,
       negative: preset.negative,
       parameters: {
@@ -269,8 +273,8 @@ export class IntegrationManager {
         cfgScale: preset.parameters?.cfgScale || 7,
         sampler: preset.parameters?.sampler || 'k_euler',
         seed: preset.parameters?.seed || -1,
-        count: preset.parameters?.count || 1
-      }
+        count: preset.parameters?.count || 1,
+      },
     }));
   }
 
@@ -282,9 +286,9 @@ export class IntegrationManager {
     this.integrationMetrics.push({
       operation,
       duration,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
-    
+
     if (isError) {
       console.error(`Integration error in ${operation}: ${duration}ms`);
     }
@@ -299,12 +303,13 @@ export class IntegrationManager {
     const totalOperations = this.integrationMetrics.length;
     const totalDuration = this.integrationMetrics.reduce((sum, metric) => sum + metric.duration, 0);
     const averageDuration = totalOperations > 0 ? totalDuration / totalOperations : 0;
-    const lastOperation = totalOperations > 0 ? this.integrationMetrics[totalOperations - 1].operation : undefined;
+    const lastOperation =
+      totalOperations > 0 ? this.integrationMetrics[totalOperations - 1].operation : undefined;
     return {
       totalOperations,
       averageDuration,
-      errorCount: this.integrationMetrics.filter(metric => metric.duration > 1000).length,
-      lastOperation
+      errorCount: this.integrationMetrics.filter((metric) => metric.duration > 1000).length,
+      lastOperation,
     };
   }
 

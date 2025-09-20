@@ -12,7 +12,11 @@ import { STORAGE_DOWNLOAD_CONFIG, ERROR_MESSAGES } from './storage-download-comp
  * エラー種別の列挙型
  * 【分類基準】: テストケースで検証されるエラーコードに基づく分類
  */
-export type ErrorType = 'PERMISSION_DENIED' | 'PERMISSION_API_ERROR' | 'DOWNLOAD_FAILED' | 'INVALID_INPUT';
+export type ErrorType =
+  | 'PERMISSION_DENIED'
+  | 'PERMISSION_API_ERROR'
+  | 'DOWNLOAD_FAILED'
+  | 'INVALID_INPUT';
 
 /**
  * 【エラーハンドリング統一クラス】: 全てのエラー処理を統一的に管理
@@ -38,7 +42,7 @@ export class DownloadErrorHandler {
     const baseResult: DownloadResult = {
       success: false,
       errorCode: errorType,
-      errorMessage: this.getErrorMessage(errorType)
+      errorMessage: this.getErrorMessage(errorType),
     };
 
     // 【リトライ制御】: エラータイプに応じたリトライ可否判定
@@ -115,8 +119,9 @@ export class DownloadErrorHandler {
    */
   private static calculateRetryDelay(attempt: number = 1): number {
     // 【指数バックオフ計算】: 基本遅延 × 倍率^試行回数
-    const calculatedDelay = STORAGE_DOWNLOAD_CONFIG.RETRY_BASE_DELAY *
-                           Math.pow(STORAGE_DOWNLOAD_CONFIG.RETRY_MULTIPLIER, attempt - 1);
+    const calculatedDelay =
+      STORAGE_DOWNLOAD_CONFIG.RETRY_BASE_DELAY *
+      Math.pow(STORAGE_DOWNLOAD_CONFIG.RETRY_MULTIPLIER, attempt - 1);
 
     // 【上限制限】: 設定された最大遅延時間を超えないよう制限
     return Math.min(calculatedDelay, STORAGE_DOWNLOAD_CONFIG.MAX_RETRY_DELAY);

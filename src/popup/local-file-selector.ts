@@ -25,6 +25,7 @@ const ERROR_MESSAGES = {
   READ_FAILED: 'ファイルの読み込みに失敗しました。ファイルの状態を確認してください',
   READ_RESULT_NOT_STRING: 'ファイル読み込み結果が文字列ではありません',
   FILE_READ_ERROR: 'ファイル読み込みエラー',
+  INVALID_CHARACTERS_BLOCK: 'characters ブロックの形式が不正です',
 } as const;
 
 const SUPPORTED_EXTENSIONS = ['.json', '.naiprompts'] as const;
@@ -170,8 +171,13 @@ function validatePromptDataElements(data: unknown[]): string | null {
     const item = data[i];
 
     // 【必須フィールド検証: name】: nameフィールドの存在と型をチェック 🟢
-    if (!item || typeof item !== 'object' || !('name' in item) ||
-        !item.name || typeof item.name !== 'string') {
+    if (
+      !item ||
+      typeof item !== 'object' ||
+      !('name' in item) ||
+      !item.name ||
+      typeof item.name !== 'string'
+    ) {
       return ERROR_MESSAGES.MISSING_NAME;
     }
 
@@ -181,14 +187,16 @@ function validatePromptDataElements(data: unknown[]): string | null {
     }
 
     // 【オプションフィールド検証: negative】: 存在する場合のみ型チェック 🟡
-    if ('negative' in item && item.negative !== undefined &&
-        typeof item.negative !== 'string') {
+    if ('negative' in item && item.negative !== undefined && typeof item.negative !== 'string') {
       return ERROR_MESSAGES.INVALID_NEGATIVE;
     }
 
     // 【オプションフィールド検証: parameters】: 存在する場合のみ型チェック 🟡
-    if ('parameters' in item && item.parameters !== undefined &&
-        typeof item.parameters !== 'object') {
+    if (
+      'parameters' in item &&
+      item.parameters !== undefined &&
+      typeof item.parameters !== 'object'
+    ) {
       return ERROR_MESSAGES.INVALID_PARAMETERS;
     }
   }
@@ -222,19 +230,68 @@ export async function loadLocalPromptFile(file: File): Promise<LocalFileLoadResu
       return createErrorResult(parseResult.errorMessage!, file);
     }
 
-    // 【段階4: データ構造検証】: PromptData配列形式の検証 🟢
-    const dataValidation = validatePromptDataStructure(parseResult.data);
+    // 【段階4: データ正規化】: 2系統のスキーマをサポート
+    //   A) 直接の PromptData[]
+    //   B) { version, metadata?, characters: { [key]: { selectorProfile?, prompts: { positive, negative? }, settings? } } }
+    const normalized: PromptData[] | null = normalizeToPromptDataArray(parseResult.data);
+    if (!normalized) {
+      return createErrorResult(ERROR_MESSAGES.INVALID_JSON, file);
+    }
+
+    // 【段階5: データ構造検証】: PromptData配列形式の検証 🟢
+    const dataValidation = validatePromptDataStructure(normalized);
     if (!dataValidation.isValid) {
       return createErrorResult(dataValidation.errorMessage!, file);
     }
 
-    // 【段階5: 成功結果返却】: 正常にパースされたデータを返す 🟢
-    return createSuccessResult(parseResult.data as PromptData[], file);
-
+    // 【段階6: 成功結果返却】: 正常にパースされたデータを返す 🟢
+    return createSuccessResult(normalized, file);
   } catch (error) {
     // 【例外処理】: 予期しないエラーに対する安全な処理 🟡
     return createErrorResult(ERROR_MESSAGES.READ_FAILED, file);
   }
+}
+
+// Normalize various character-based schemas into PromptData[] with selectorProfile
+function normalizeToPromptDataArray(input: unknown): PromptData[] | null {
+  // Case A: Already PromptData[]
+  if (Array.isArray(input)) {
+    return input as PromptData[];
+  }
+
+  // Case B: characters block
+  if (input && typeof input === 'object' && 'characters' in (input as any)) {
+    const characters = (input as any).characters;
+    if (!characters || typeof characters !== 'object') {
+      return null;
+    }
+
+    const out: PromptData[] = [];
+    for (const [key, value] of Object.entries(characters as Record<string, any>)) {
+      if (!value || typeof value !== 'object') continue;
+      const name: string = value.name || key;
+      const selectorProfile: string | undefined =
+        typeof value.selectorProfile === 'string' ? value.selectorProfile : undefined;
+      const prompts = value.prompts || {};
+      const positive: string | undefined =
+        typeof prompts.positive === 'string' ? prompts.positive : undefined;
+      const negative: string | undefined =
+        typeof prompts.negative === 'string' ? prompts.negative : undefined;
+      const settings: any = value.settings || undefined;
+      if (!positive) continue;
+      const pd: PromptData = {
+        name,
+        prompt: positive,
+        negative,
+        parameters: settings,
+        selectorProfile,
+      };
+      out.push(pd);
+    }
+    return out;
+  }
+
+  return null;
 }
 
 /**
@@ -391,5 +448,5 @@ export function isValidPromptData(obj: unknown): obj is PromptData {
  */
 export function isSupportedFileExtension(filename: string): boolean {
   const lowerFilename = filename.toLowerCase();
-  return SUPPORTED_EXTENSIONS.some(ext => lowerFilename.endsWith(ext));
+  return SUPPORTED_EXTENSIONS.some((ext) => lowerFilename.endsWith(ext));
 }

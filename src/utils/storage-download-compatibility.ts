@@ -18,7 +18,11 @@ import { DownloadErrorHandler } from './storage-download-error-handler';
 export interface DownloadResult {
   success: boolean;
   downloadId?: number;
-  errorCode?: 'PERMISSION_DENIED' | 'PERMISSION_API_ERROR' | 'DOWNLOAD_FAILED' | 'PERMISSION_PENDING';
+  errorCode?:
+    | 'PERMISSION_DENIED'
+    | 'PERMISSION_API_ERROR'
+    | 'DOWNLOAD_FAILED'
+    | 'PERMISSION_PENDING';
   errorMessage?: string;
   retryable?: boolean;
   retryDelay?: number;
@@ -48,8 +52,11 @@ export async function ensureDownloadPermissionAndDownload(
     // 【入力値検証強化】: セキュリティを重視した包括的な入力値検証
     const validationResult = validateDownloadRequest(request);
     if (!validationResult.isValid) {
-      return DownloadErrorHandler.createErrorResult('INVALID_INPUT',
-        new Error(validationResult.message), false);
+      return DownloadErrorHandler.createErrorResult(
+        'INVALID_INPUT',
+        new Error(validationResult.message),
+        false
+      );
     }
 
     // 【権限管理統一】: PermissionManagerによる統一的な権限状態管理
@@ -57,8 +64,11 @@ export async function ensureDownloadPermissionAndDownload(
 
     // 【権限API例外処理】: checkPermissionStatus でエラーが発生した場合の処理
     if (permissionStatus.nextAction === 'abort') {
-      return DownloadErrorHandler.createErrorResult('PERMISSION_API_ERROR',
-        new Error('権限確認中にエラーが発生しました'), false);
+      return DownloadErrorHandler.createErrorResult(
+        'PERMISSION_API_ERROR',
+        new Error('権限確認中にエラーが発生しました'),
+        false
+      );
     }
 
     if (!permissionStatus.hasPermission) {
@@ -67,11 +77,16 @@ export async function ensureDownloadPermissionAndDownload(
 
       if (!requestResult.granted) {
         // 【権限拒否統一処理】: DownloadErrorHandlerによる統一的なエラー処理
-        await DownloadLogger.logError('permission_denied',
-          `権限が拒否されました: ${request.fileName}`);
+        await DownloadLogger.logError(
+          'permission_denied',
+          `権限が拒否されました: ${request.fileName}`
+        );
 
-        return DownloadErrorHandler.createErrorResult('PERMISSION_DENIED',
-          new Error('権限が拒否されました'), false);
+        return DownloadErrorHandler.createErrorResult(
+          'PERMISSION_DENIED',
+          new Error('権限が拒否されました'),
+          false
+        );
       }
     }
 
@@ -82,15 +97,13 @@ export async function ensureDownloadPermissionAndDownload(
     const downloadId = await executeDownload(request.url, sanitizedFileName);
 
     // 【成功ログ記録】: DownloadLoggerによる統一的なログ管理
-    await DownloadLogger.logSuccess('download_success',
-      `ダウンロード成功: ${sanitizedFileName}`);
+    await DownloadLogger.logSuccess('download_success', `ダウンロード成功: ${sanitizedFileName}`);
 
     // 【成功結果返却】: テストケース期待値準拠の戻り値
     return {
       success: true,
-      downloadId: downloadId
+      downloadId: downloadId,
     };
-
   } catch (error) {
     // 【統一エラーハンドリング】: DownloadErrorHandlerによる一元的なエラー処理
     await DownloadLogger.logError('download_error', `エラー: ${error.message}`);
@@ -137,7 +150,11 @@ function validateDownloadRequest(request: DownloadRequest): ValidationResult {
   }
 
   // 【ファイル名検証】: ファイル名の基本的な妥当性確認
-  if (!request.fileName || typeof request.fileName !== 'string' || request.fileName.trim().length === 0) {
+  if (
+    !request.fileName ||
+    typeof request.fileName !== 'string' ||
+    request.fileName.trim().length === 0
+  ) {
     return { isValid: false, message: 'ファイル名が無効です' };
   }
 
@@ -163,7 +180,7 @@ async function executeDownload(url: string, filename: string): Promise<number> {
     return await chrome.downloads.download({
       url: url,
       filename: filename,
-      conflictAction: 'uniquify'
+      conflictAction: 'uniquify',
     });
   } catch (error) {
     // 【ダウンロード固有エラー処理】: Chrome Downloads API固有のエラー分類

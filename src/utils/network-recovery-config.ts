@@ -16,21 +16,21 @@ export const NETWORK_RECOVERY_CONFIG = {
 
   // 【監視間隔設定】: ネットワーク状態監視の性能制御
   MAX_MONITORING_INTERVAL_MS: 1000, // 🟢 要件定義の1秒上限に基づく
-  MIN_MONITORING_INTERVAL_MS: 100,   // 🟡 システム負荷を考慮した最小値
+  MIN_MONITORING_INTERVAL_MS: 100, // 🟡 システム負荷を考慮した最小値
 
   // 【同時実行制御】: システム負荷防止のための制限値
-  DEFAULT_MAX_CONCURRENT_JOBS: 5,    // 🟡 システム安定性を考慮した適切な値
-  ABSOLUTE_MAX_CONCURRENT_JOBS: 20,  // 🔴 システム保護のための絶対上限
+  DEFAULT_MAX_CONCURRENT_JOBS: 5, // 🟡 システム安定性を考慮した適切な値
+  ABSOLUTE_MAX_CONCURRENT_JOBS: 20, // 🔴 システム保護のための絶対上限
 
   // 【入力値制限】: セキュリティ強化のための入力値制約
-  MAX_JOB_ID_LENGTH: 100,            // 🟡 実用性とセキュリティのバランス
+  MAX_JOB_ID_LENGTH: 100, // 🟡 実用性とセキュリティのバランス
   MAX_TIMESTAMP_FUTURE_OFFSET: 300000, // 🟡 5分以内の未来タイムスタンプを許可
-  MAX_DURATION_MS: 86400000,         // 🟡 24時間を上限とした妥当な範囲
+  MAX_DURATION_MS: 86400000, // 🟡 24時間を上限とした妥当な範囲
 
   // 【リトライ設定】: 段階的再開の性能制御
-  DEFAULT_RETRY_BASE_DELAY: 500,     // 🟢 TASK-032リトライエンジン仕様に基づく
-  DEFAULT_RETRY_FACTOR: 2.0,         // 🟢 指数バックオフの標準係数
-  MAX_RETRY_ATTEMPTS: 10,            // 🟡 過度なリトライを防ぐための上限
+  DEFAULT_RETRY_BASE_DELAY: 500, // 🟢 TASK-032リトライエンジン仕様に基づく
+  DEFAULT_RETRY_FACTOR: 2.0, // 🟢 指数バックオフの標準係数
+  MAX_RETRY_ATTEMPTS: 10, // 🟡 過度なリトライを防ぐための上限
 } as const;
 
 /**
@@ -43,11 +43,11 @@ export const SECURITY_POLICIES = {
 
   // 【禁止文字パターン】: スクリプトインジェクション防止
   FORBIDDEN_PATTERNS: [
-    /<script/i,           // XSS防止
-    /javascript:/i,       // JavaScriptスキーム防止
-    /data:/i,            // データURLスキーム防止
-    /vbscript:/i,        // VBScriptスキーム防止
-    /on\w+\s*=/i,        // イベントハンドラ防止
+    /<script/i, // XSS防止
+    /javascript:/i, // JavaScriptスキーム防止
+    /data:/i, // データURLスキーム防止
+    /vbscript:/i, // VBScriptスキーム防止
+    /on\w+\s*=/i, // イベントハンドラ防止
   ],
 
   // 【文字列長制限】: メモリ枯渇攻撃の防止
@@ -84,16 +84,16 @@ export const ERROR_MESSAGES = {
  */
 export const PERFORMANCE_CONFIG = {
   // 【バッチ処理設定】: 大量データ処理の効率化
-  MAX_BATCH_SIZE: 50,              // 🟡 一度に処理する最大ジョブ数
-  BATCH_PROCESSING_DELAY: 10,      // 🟡 バッチ間の処理間隔（ms）
+  MAX_BATCH_SIZE: 50, // 🟡 一度に処理する最大ジョブ数
+  BATCH_PROCESSING_DELAY: 10, // 🟡 バッチ間の処理間隔（ms）
 
   // 【キャッシュ設定】: 計算結果の再利用による性能向上
-  CACHE_TTL_MS: 60000,             // 🟡 キャッシュの有効期間（1分）
-  MAX_CACHE_ENTRIES: 100,          // 🟡 キャッシュエントリの最大数
+  CACHE_TTL_MS: 60000, // 🟡 キャッシュの有効期間（1分）
+  MAX_CACHE_ENTRIES: 100, // 🟡 キャッシュエントリの最大数
 
   // 【メモリ制限】: メモリ枯渇の防止
-  MAX_ERROR_LOG_ENTRIES: 1000,     // 🟡 エラーログの最大保持数
-  MAX_MESSAGE_QUEUE_SIZE: 500,     // 🟡 メッセージキューの最大サイズ
+  MAX_ERROR_LOG_ENTRIES: 1000, // 🟡 エラーログの最大保持数
+  MAX_MESSAGE_QUEUE_SIZE: 500, // 🟡 メッセージキューの最大サイズ
 } as const;
 
 /**
@@ -102,10 +102,10 @@ export const PERFORMANCE_CONFIG = {
  */
 export const DEBUG_CONFIG = {
   // 【ログレベル設定】: 開発時の詳細ログ出力制御
-  ENABLE_VERBOSE_LOGGING: false,   // 🔴 プロダクションでは必ずfalse
+  ENABLE_VERBOSE_LOGGING: false, // 🔴 プロダクションでは必ずfalse
   ENABLE_PERFORMANCE_METRICS: false, // 🔴 性能測定の有効化
 
   // 【テスト支援設定】: テスト実行時の動作制御
-  ENABLE_TEST_HOOKS: false,        // 🔴 テスト用フックの有効化
-  TEST_ERROR_SIMULATION: false,    // 🔴 エラーシミュレーションの有効化
+  ENABLE_TEST_HOOKS: false, // 🔴 テスト用フックの有効化
+  TEST_ERROR_SIMULATION: false, // 🔴 エラーシミュレーションの有効化
 } as const;

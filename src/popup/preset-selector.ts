@@ -19,7 +19,7 @@ const PRESET_SELECTOR_CONFIG = {
   /** 【エラーメッセージ】: プリセット読み込み失敗時の安全なメッセージ */
   ERROR_MESSAGE: 'プリセットが見つかりません。設定を確認してください',
   /** 【検索処理最適化】: 大量プリセット時の検索性能しきい値 */
-  SEARCH_OPTIMIZATION_THRESHOLD: 20
+  SEARCH_OPTIMIZATION_THRESHOLD: 20,
 } as const;
 
 // 【型定義】: START_GENERATIONメッセージの構造定義
@@ -75,10 +75,10 @@ interface SafeOptionElement {
 function escapeHtml(unsafe: string): string {
   // 【XSS防止】: HTMLの特殊文字を安全なエンティティに変換
   return unsafe
-    .replace(/&/g, '&amp;')   // & を最初に処理（他のエスケープに影響しないため）
-    .replace(/</g, '&lt;')    // < タグ開始文字をエスケープ
-    .replace(/>/g, '&gt;')    // > タグ終了文字をエスケープ
-    .replace(/"/g, '&quot;')  // " 属性値の引用符をエスケープ
+    .replace(/&/g, '&amp;') // & を最初に処理（他のエスケープに影響しないため）
+    .replace(/</g, '&lt;') // < タグ開始文字をエスケープ
+    .replace(/>/g, '&gt;') // > タグ終了文字をエスケープ
+    .replace(/"/g, '&quot;') // " 属性値の引用符をエスケープ
     .replace(/'/g, '&#039;'); // ' シングルクォートをエスケープ
 }
 
@@ -90,12 +90,16 @@ function escapeHtml(unsafe: string): string {
  * @param presets - 検証対象のプリセット配列
  * @returns 検証結果と安全性情報
  */
-function validatePresetsInput(presets: unknown): { isValid: boolean; errorMessage?: string; safePresets?: Preset[] } {
+function validatePresetsInput(presets: unknown): {
+  isValid: boolean;
+  errorMessage?: string;
+  safePresets?: Preset[];
+} {
   // 【型チェック】: 基本的な型安全性を確認
   if (!Array.isArray(presets)) {
     return {
       isValid: false,
-      errorMessage: 'プリセットデータが配列ではありません'
+      errorMessage: 'プリセットデータが配列ではありません',
     };
   }
 
@@ -103,7 +107,7 @@ function validatePresetsInput(presets: unknown): { isValid: boolean; errorMessag
   if (presets.length > PRESET_SELECTOR_CONFIG.MAX_PRESETS) {
     return {
       isValid: false,
-      errorMessage: `プリセット数が上限（${PRESET_SELECTOR_CONFIG.MAX_PRESETS}個）を超過しています`
+      errorMessage: `プリセット数が上限（${PRESET_SELECTOR_CONFIG.MAX_PRESETS}個）を超過しています`,
     };
   }
 
@@ -113,12 +117,15 @@ function validatePresetsInput(presets: unknown): { isValid: boolean; errorMessag
     const preset = presets[i];
 
     // 【構造検証】: 必須プロパティの存在確認
-    if (!preset || typeof preset !== 'object' ||
-        typeof preset.name !== 'string' ||
-        typeof preset.prompt !== 'string') {
+    if (
+      !preset ||
+      typeof preset !== 'object' ||
+      typeof preset.name !== 'string' ||
+      typeof preset.prompt !== 'string'
+    ) {
       return {
         isValid: false,
-        errorMessage: `プリセット${i + 1}の構造が不正です`
+        errorMessage: `プリセット${i + 1}の構造が不正です`,
       };
     }
 
@@ -126,7 +133,7 @@ function validatePresetsInput(presets: unknown): { isValid: boolean; errorMessag
     if (preset.name.length > 100 || preset.prompt.length > 2000) {
       return {
         isValid: false,
-        errorMessage: `プリセット${i + 1}の文字列が長すぎます`
+        errorMessage: `プリセット${i + 1}の文字列が長すぎます`,
       };
     }
 
@@ -190,12 +197,11 @@ export class PresetSelector {
       // 【セキュアなデフォルトオプション】: エスケープ済み文字列を使用
       const safeDefaultOption: SafeOptionElement = {
         textContent: PRESET_SELECTOR_CONFIG.DEFAULT_OPTION_TEXT,
-        value: ''
+        value: '',
       };
 
       // 【DOM操作最小化】: 必要最小限の操作で初期状態を設定
       this.elements.promptSelect.options = [safeDefaultOption];
-
     } catch (domError) {
       // 【DOM操作エラー】: DOM操作失敗時の適切なエラーハンドリング
       console.error('DOM初期化エラー:', domError);
@@ -251,7 +257,7 @@ export class PresetSelector {
       // 【デフォルトオプション追加】: 常に安全な初期選択肢を提供
       safeOptions.push({
         textContent: PRESET_SELECTOR_CONFIG.DEFAULT_OPTION_TEXT,
-        value: ''
+        value: '',
       });
 
       // 【効率的なオプション生成】: パフォーマンスを考慮したバッチ処理
@@ -261,13 +267,12 @@ export class PresetSelector {
 
         safeOptions.push({
           textContent: safeName,
-          value: String(index)
+          value: String(index),
         });
       });
 
       // 【原子的DOM更新】: 一度の操作で完全更新を実行
       this.elements.promptSelect.options = safeOptions;
-
     } catch (updateError) {
       // 【DOM更新エラー処理】: 更新失敗時の適切な対応
       console.error('DOM更新エラー:', updateError);
@@ -317,7 +322,6 @@ export class PresetSelector {
 
       // 【安全なプリセット返却】: 型安全性を保証した返却
       return this.filteredPresets[index];
-
     } catch (selectionError) {
       // 【選択処理エラー】: 予期しないエラーの適切な処理
       console.error('プリセット選択処理エラー:', selectionError);
@@ -337,7 +341,10 @@ export class PresetSelector {
    * @returns 型安全なSTART_GENERATIONメッセージオブジェクト
    * @throws {Error} 入力パラメータが不正な場合にエラーをスロー
    */
-  buildStartGenerationMessage(preset: Preset, settings: GenerationSettings): StartGenerationMessage {
+  buildStartGenerationMessage(
+    preset: Preset,
+    settings: GenerationSettings
+  ): StartGenerationMessage {
     // 【入力値の厳密検証】: null/undefined チェックと型検証
     if (!preset) {
       throw new Error('プリセットが指定されていません');
@@ -361,17 +368,16 @@ export class PresetSelector {
           cfgScale: preset.parameters.cfgScale,
           sampler: preset.parameters.sampler,
           seed: settings.seed,
-          count: settings.imageCount
+          count: settings.imageCount,
         }),
         settings: Object.freeze({
           imageCount: settings.imageCount,
           seed: settings.seed,
-          filenameTemplate: settings.filenameTemplate
-        })
+          filenameTemplate: settings.filenameTemplate,
+        }),
       });
 
       return message;
-
     } catch (buildError) {
       // 【メッセージ構築エラー】: 構築失敗時の適切なエラーハンドリング
       console.error('メッセージ構築エラー:', buildError);
@@ -401,16 +407,16 @@ export class PresetSelector {
       }
 
       // 【適応的検索アルゴリズム】: データ量に応じて最適な検索方法を選択
-      const searchResults = this.loadedPresets.length > PRESET_SELECTOR_CONFIG.SEARCH_OPTIMIZATION_THRESHOLD
-        ? this.performOptimizedSearch(sanitizedTerm)
-        : this.performStandardSearch(sanitizedTerm);
+      const searchResults =
+        this.loadedPresets.length > PRESET_SELECTOR_CONFIG.SEARCH_OPTIMIZATION_THRESHOLD
+          ? this.performOptimizedSearch(sanitizedTerm)
+          : this.performStandardSearch(sanitizedTerm);
 
       // 【検索結果の安全な保存】: イミュータブルな結果保存
       this.filteredPresets = Object.freeze(searchResults);
 
       // 【UI更新】: 検索結果の即座反映
       this.updateSelectOptions(searchResults);
-
     } catch (filterError) {
       // 【検索エラー処理】: 検索失敗時のフォールバック処理
       console.error('プリセットフィルタリングエラー:', filterError);
@@ -430,9 +436,7 @@ export class PresetSelector {
    * @returns 一致するプリセット配列
    */
   private performStandardSearch(searchTerm: string): readonly Preset[] {
-    return this.loadedPresets.filter(preset =>
-      preset.name.toLowerCase().includes(searchTerm)
-    );
+    return this.loadedPresets.filter((preset) => preset.name.toLowerCase().includes(searchTerm));
   }
 
   /**
@@ -477,35 +481,37 @@ export class PresetSelector {
   handleLoadError(error: Error): ErrorResult {
     try {
       // 【エラー情報の安全な抽出】: セキュアなエラーメッセージ作成
-      const safeErrorMessage = error && typeof error.message === 'string'
-        ? escapeHtml(error.message)
-        : '不明なエラーが発生しました';
+      const safeErrorMessage =
+        error && typeof error.message === 'string'
+          ? escapeHtml(error.message)
+          : '不明なエラーが発生しました';
 
       // 【構造化エラー結果】: 型安全で予測可能なエラーレスポンス
       const errorResult: ErrorResult = Object.freeze({
         success: false,
         errorMessage: safeErrorMessage,
-        continueOperation: true
+        continueOperation: true,
       });
 
       // 【セキュアなUI更新】: XSS攻撃を完全に防御した安全な表示
       if (this.elements.promptSelect) {
         // 【innerHTML削除】: XSS脆弱性の完全な排除
-        this.elements.promptSelect.options = [{
-          textContent: PRESET_SELECTOR_CONFIG.ERROR_MESSAGE,
-          value: ''
-        }];
+        this.elements.promptSelect.options = [
+          {
+            textContent: PRESET_SELECTOR_CONFIG.ERROR_MESSAGE,
+            value: '',
+          },
+        ];
       }
 
       // 【エラーログ記録】: デバッグ用の詳細情報記録
       console.error('プリセット読み込みエラーが安全に処理されました:', {
         originalError: error,
         processedMessage: safeErrorMessage,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       return errorResult;
-
     } catch (handlingError) {
       // 【エラーハンドリングのエラー】: 二重エラーの適切な処理
       console.error('エラーハンドリング処理中にエラーが発生:', handlingError);
@@ -514,7 +520,7 @@ export class PresetSelector {
       return Object.freeze({
         success: false,
         errorMessage: 'エラー処理中に問題が発生しました',
-        continueOperation: true
+        continueOperation: true,
       });
     }
   }

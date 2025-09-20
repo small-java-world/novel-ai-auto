@@ -21,7 +21,9 @@ describe('Chrome Manifest (MV3) minimal permissions', () => {
 
   it('restricts host permissions to NovelAI domain', () => {
     const hosts: string[] = manifest.host_permissions ?? [];
-    expect(hosts).toEqual(expect.arrayContaining(['https://novelai.net/*', 'https://*.novelai.net/*']));
+    expect(hosts).toEqual(
+      expect.arrayContaining(['https://novelai.net/*', 'https://*.novelai.net/*'])
+    );
     // No wildcard hosts
     const hasWildcard = hosts.some((h) => h === '<all_urls>' || h.includes('*://*/*'));
     expect(hasWildcard).toBe(false);
@@ -32,7 +34,9 @@ describe('Chrome Manifest (MV3) minimal permissions', () => {
     expect(manifest.background?.type).toBe('module');
     expect(Array.isArray(manifest.content_scripts)).toBe(true);
     const cs = manifest.content_scripts?.[0];
-    expect(cs?.matches).toEqual(expect.arrayContaining(['https://novelai.net/*', 'https://*.novelai.net/*']));
+    expect(cs?.matches).toEqual(
+      expect.arrayContaining(['https://novelai.net/*', 'https://*.novelai.net/*'])
+    );
     expect(Array.isArray(cs?.js)).toBe(true);
   });
 });

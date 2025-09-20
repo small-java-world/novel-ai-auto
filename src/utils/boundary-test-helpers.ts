@@ -15,7 +15,7 @@ export interface TestCase {
   input: any;
   expected: any;
   actual: any;
-  status: typeof TEST_STATUS[keyof typeof TEST_STATUS];
+  status: (typeof TEST_STATUS)[keyof typeof TEST_STATUS];
   message: string;
 }
 
@@ -40,7 +40,7 @@ export function createTestCase(
   input: any,
   expected: any,
   actual: any,
-  status: typeof TEST_STATUS[keyof typeof TEST_STATUS],
+  status: (typeof TEST_STATUS)[keyof typeof TEST_STATUS],
   message: string
 ): TestCase {
   return {
@@ -48,7 +48,7 @@ export function createTestCase(
     expected,
     actual,
     status,
-    message
+    message,
   };
 }
 
@@ -60,7 +60,7 @@ export function createTestCase(
  */
 export function updateTestStatistics(
   statistics: TestStatistics,
-  status: typeof TEST_STATUS[keyof typeof TEST_STATUS]
+  status: (typeof TEST_STATUS)[keyof typeof TEST_STATUS]
 ): void {
   statistics.totalTests++;
 
@@ -85,9 +85,9 @@ export function updateTestStatistics(
  */
 export function determineModuleStatus(
   testCases: TestCase[]
-): typeof TEST_STATUS[keyof typeof TEST_STATUS] {
-  const hasErrors = testCases.some(tc => tc.status === TEST_STATUS.FAIL);
-  const hasWarnings = testCases.some(tc => tc.status === TEST_STATUS.WARNING);
+): (typeof TEST_STATUS)[keyof typeof TEST_STATUS] {
+  const hasErrors = testCases.some((tc) => tc.status === TEST_STATUS.FAIL);
+  const hasWarnings = testCases.some((tc) => tc.status === TEST_STATUS.WARNING);
 
   if (hasErrors) return TEST_STATUS.FAIL;
   if (hasWarnings) return TEST_STATUS.WARNING;
@@ -129,7 +129,7 @@ export function createInitialStatistics(): TestStatistics {
     totalTests: 0,
     passedTests: 0,
     failedTests: 0,
-    warningTests: 0
+    warningTests: 0,
   };
 }
 
@@ -150,8 +150,11 @@ export function isWithinBounds(value: number, min: number, max: number): boolean
  * 🟢 信頼性レベル: 基本的な入力検証ロジック
  */
 export function isEmpty(value: any): boolean {
-  return value === null || value === undefined ||
-         (typeof value === 'string' && value.trim().length === 0);
+  return (
+    value === null ||
+    value === undefined ||
+    (typeof value === 'string' && value.trim().length === 0)
+  );
 }
 
 /**

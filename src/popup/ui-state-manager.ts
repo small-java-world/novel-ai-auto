@@ -123,11 +123,7 @@ export class UIStateManager {
     // 【処理効率化】: 条件式を関数化して重複を排除 🟢
     // 【可読性向上】: 命名で意図を明確化 🟢
     // 【セキュリティ】: 未定義アクセスの防止（実行時エラー予防） 🟢
-    return (
-      typeof chrome !== 'undefined' &&
-      !!chrome.storage &&
-      !!chrome.storage.local
-    );
+    return typeof chrome !== 'undefined' && !!chrome.storage && !!chrome.storage.local;
   }
 
   /**

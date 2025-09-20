@@ -16,7 +16,7 @@ import {
   determineModuleStatus,
   createInitialStatistics,
   isWithinBounds,
-  truncateString
+  truncateString,
 } from './boundary-test-helpers';
 import {
   validateBoundaryTestInput,
@@ -27,7 +27,7 @@ import {
   createSystemIntegrationTestCase,
   addTestMessagesToArrays,
   createErrorBoundaryTestResult,
-  createEmptyBoundaryResult
+  createEmptyBoundaryResult,
 } from './boundary-test-module-functions';
 
 /**
@@ -54,7 +54,7 @@ export interface BoundaryTestInput {
  */
 export interface BoundaryResult {
   module: string;
-  status: typeof TEST_STATUS[keyof typeof TEST_STATUS];
+  status: (typeof TEST_STATUS)[keyof typeof TEST_STATUS];
   testCases: TestCase[];
   // プロンプト処理関連プロパティ
   processedLength?: number;
@@ -132,7 +132,7 @@ export async function ensureBoundaryTestIntegration(
       results,
       warnings,
       errors,
-      statistics
+      statistics,
     };
   } catch (error) {
     return createErrorBoundaryTestResult(error.message);

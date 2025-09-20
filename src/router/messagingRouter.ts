@@ -262,7 +262,7 @@ export function createMessagingRouter(): MessagingRouter {
       if (targetId == null) {
         // 【フォールバック】: タブが無い場合はOPEN_OR_FOCUS_TABメッセージを送信（REQ-101対応） 🟢
         await forwardToRuntime(MESSAGE_TYPES.OPEN_OR_FOCUS_TAB, {
-          url: 'https://novelai.net/*'
+          url: 'https://novelai.net/*',
         });
         return;
       }

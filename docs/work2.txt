@@ -1,0 +1,141 @@
+Five-Character Selector Profiles (Complete Setup)
+==================================================
+
+Purpose
+- `config/dom-selectors.json` に5キャラ分の設定を事前に用意済み
+- プロンプトファイルで `selectorProfile` を指定すると自動選択される仕組み
+- 各プロファイルは: `detect` (UI sniffing) と `selectors` (優先順位付きセレクタ) を持つ
+- 複数プロファイルがマッチした場合、ファイル順序の最初が使用される。フォールバック: `$default`
+
+How it works
+1) プロンプトファイルでキャラクターを指定: `"selectorProfile": "character-anime"`
+2) システムが自動的に `character-anime` プロファイルのセレクタを選択
+3) 未指定または存在しないプロファイルの場合は `$default` にフォールバック
+4) 拡張機能リロード不要（設定ファイルは動的読み込み）
+
+Available Character Profiles
+- `character-anime`: アニメスタイル
+- `character-realistic`: リアル系
+- `character-fantasy`: ファンタジー
+- `character-sci-fi`: サイエンスフィクション
+- `character-horror`: ホラー
+
+Example: Character Prompt File with Selector Profile
+----------------------------------------------------
+
+```json
+{
+  "version": "1.0",
+  "characters": {
+    "anime-girl": {
+      "name": "アニメ少女",
+      "selectorProfile": "character-anime",
+      "prompts": {
+        "positive": "1girl, anime style, beautiful face, long hair, school uniform, {best quality}, {masterpiece}",
+        "negative": "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped, worst quality, low quality"
+      },
+      "settings": {
+        "steps": 28,
+        "scale": 7,
+        "sampler": "k_euler",
+        "resolution": "512x768"
+      }
+    },
+    "fantasy-knight": {
+      "name": "ファンタジー騎士",
+      "selectorProfile": "character-fantasy",
+      "prompts": {
+        "positive": "fantasy knight, medieval armor, sword, castle background, dramatic lighting, {best quality}, {masterpiece}",
+        "negative": "modern, realistic, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped, worst quality, low quality"
+      },
+      "settings": {
+        "steps": 28,
+        "scale": 7,
+        "sampler": "k_euler",
+        "resolution": "512x768"
+      }
+    }
+  }
+}
+```
+
+All Five Character Profiles (Already Configured)
+------------------------------------------------
+
+```json
+"character-anime": {
+  "detect": [
+    ".anime-character-ui",
+    "[data-style=\"anime\"]",
+    "[data-theme*=\"anime\" i]"
+  ],
+  "selectors": {
+    "prompt-input": [
+      { "scope": ".anime-character-ui", "selectors": ["textarea", "[contenteditable=true][role=textbox]"] }
+    ],
+    "negative-input": [
+      { "scope": ".anime-character-ui", "selectors": [".negative textarea", "[data-field=negative]"] }
+    ],
+    "generate-button": [
+      { "scope": ".anime-character-ui", "selectors": ["button[type=submit]", "button[aria-label*=generate i]"] }
+    ],
+    "steps-input": [
+      "input[type=range][aria-label*=steps i]",
+      "[data-testid=\"steps-input\"] input"
+    ],
+    "sampler-select": [
+      "input[role=combobox][aria-label*=sampler i]",
+      "[data-testid=\"sampler-select\"] select"
+    ],
+    "cfg-scale-input": [
+      "input[type=range][aria-label*=cfg i]",
+      "[data-testid=\"cfg-input\"] input"
+    ],
+    "progress-indicator": [
+      "#__next [role=progressbar]",
+      "[role=progressbar]"
+    ]
+  }
+},
+"character-realistic": {
+  "detect": [
+    ".realistic-character-ui",
+    "[data-style=\"realistic\"]",
+    "[data-theme*=\"realistic\" i]"
+  ],
+  "selectors": {
+    "prompt-input": [
+      { "scope": ".realistic-character-ui", "selectors": ["textarea.prompt", "[contenteditable=true][data-role=prompt]"] }
+    ],
+    "negative-input": [
+      { "scope": ".realistic-character-ui", "selectors": ["textarea.negative", "[data-role=negative]"] }
+    ],
+    "generate-button": [
+      { "scope": ".realistic-character-ui", "selectors": ["button[type=submit]", "button[title*=generate i]"] }
+    ],
+    "cfg-scale-input": [
+      "input[type=range][aria-label*=cfg i]",
+      "[data-testid=\"cfg-input\"] input"
+    ],
+    "progress-indicator": [
+      "#__next [role=progressbar]"
+    ],
+    "image-gallery": [
+      "#__next .image-gallery",
+      ".novelai-gallery"
+    ]
+  }
+}
+```
+
+Verification tips
+- Prefer `data-*` / `aria-*` attributes when available, then `role`/`placeholder`, then ids/classes.
+- Scoped entries `{ scope, selectors }` expand to `"<scope> <child>"` at runtime.
+- Test quickly in console: `document.querySelector('<selector>')` should return an element.
+- Fallback remains `$default` profile if none of the character profiles match.
+
+Notes
+- Keep selectors ordered by reliability → stability → performance.
+- Update unit tests if your selector utilities are covered: `npm run test:unit`.
+
+

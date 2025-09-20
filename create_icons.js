@@ -16,16 +16,51 @@ const iconSizes = [16, 32, 48, 128];
 function createSimplePNG(size) {
   // 【PNGヘッダー】: 最小限のPNGファイル構造
   const pngHeader = Buffer.from([
-    0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG シグネチャ
-    0x00, 0x00, 0x00, 0x0D, // IHDR チャンクサイズ
-    0x49, 0x48, 0x44, 0x52, // "IHDR"
-    0x00, 0x00, 0x00, size, // 幅
-    0x00, 0x00, 0x00, size, // 高さ
-    0x08, 0x02, 0x00, 0x00, 0x00, // bit depth, color type, compression, filter, interlace
-    0x00, 0x00, 0x00, 0x00, // CRC (簡易化のため0)
-    0x00, 0x00, 0x00, 0x00, // IEND chunk size
-    0x49, 0x45, 0x4E, 0x44, // "IEND"
-    0xAE, 0x42, 0x60, 0x82  // IEND CRC
+    0x89,
+    0x50,
+    0x4e,
+    0x47,
+    0x0d,
+    0x0a,
+    0x1a,
+    0x0a, // PNG シグネチャ
+    0x00,
+    0x00,
+    0x00,
+    0x0d, // IHDR チャンクサイズ
+    0x49,
+    0x48,
+    0x44,
+    0x52, // "IHDR"
+    0x00,
+    0x00,
+    0x00,
+    size, // 幅
+    0x00,
+    0x00,
+    0x00,
+    size, // 高さ
+    0x08,
+    0x02,
+    0x00,
+    0x00,
+    0x00, // bit depth, color type, compression, filter, interlace
+    0x00,
+    0x00,
+    0x00,
+    0x00, // CRC (簡易化のため0)
+    0x00,
+    0x00,
+    0x00,
+    0x00, // IEND chunk size
+    0x49,
+    0x45,
+    0x4e,
+    0x44, // "IEND"
+    0xae,
+    0x42,
+    0x60,
+    0x82, // IEND CRC
   ]);
 
   return pngHeader;
@@ -39,13 +74,13 @@ if (!fs.existsSync(iconsDir)) {
 }
 
 // 【各サイズのアイコン作成】: 必要なサイズのアイコンファイルを生成
-iconSizes.forEach(size => {
+iconSizes.forEach((size) => {
   // 【SVGベースのアイコン生成】: より適切なアイコンファイルの作成 🟡
   const svgContent = `
     <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
       <rect width="${size}" height="${size}" fill="#4A90E2"/>
       <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle"
-            fill="white" font-family="Arial" font-size="${Math.floor(size/3)}">N</text>
+            fill="white" font-family="Arial" font-size="${Math.floor(size / 3)}">N</text>
     </svg>
   `;
 

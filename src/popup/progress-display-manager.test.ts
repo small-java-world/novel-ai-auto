@@ -92,7 +92,9 @@ vi.mock('./progress-state-manager', () => ({
       validateMessage: vi.fn(() => behavior.validateMessage),
       updateLastMessageTime: vi.fn(),
       isCommunicationTimedOut: vi.fn(() => behavior.timedOut),
-      shouldIgnoreCompletionMessage: vi.fn((status: string) => behavior.ignoreCompleted && status === 'completed'),
+      shouldIgnoreCompletionMessage: vi.fn(
+        (status: string) => behavior.ignoreCompleted && status === 'completed'
+      ),
       getStatusText: vi.fn(() => behavior.statusText),
       setCurrentJobId: vi.fn((id: string) => {
         behavior.currentJobId = id;

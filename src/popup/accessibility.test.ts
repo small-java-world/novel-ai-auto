@@ -125,7 +125,7 @@ describe('TASK-044: アクセシビリティ適合性テスト', () => {
 
     // 【ログ出力】: 詳細結果をテストログに記録
     console.log(`アクセシビリティスコア: ${report.score}% (${report.passed}/${report.total})`);
-    report.details.forEach(detail => console.log(detail));
+    report.details.forEach((detail) => console.log(detail));
   });
 
   test('ARIA属性の適切性 - プログレスバー', () => {
@@ -166,14 +166,15 @@ describe('TASK-044: アクセシビリティ適合性テスト', () => {
     // 【テスト内容】: tabindex設定、フォーカス順序、無効化要素の除外
     // 🟢 信頼性レベル: WCAG 2.1 keyboard accessibilityガイドライン準拠
 
-    const focusableSelector = 'button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"]), summary';
+    const focusableSelector =
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"]), summary';
     const focusableElements = document.querySelectorAll(focusableSelector);
 
     // 【最低限の操作要素数】: 主要な機能にアクセス可能
     expect(focusableElements.length).toBeGreaterThanOrEqual(5);
 
     // 【各要素のフォーカス可能性確認】
-    focusableElements.forEach(element => {
+    focusableElements.forEach((element) => {
       const tabIndex = element.getAttribute('tabindex');
       if (tabIndex !== null) {
         expect(parseInt(tabIndex)).toBeGreaterThanOrEqual(0);
@@ -206,10 +207,11 @@ describe('TASK-044: アクセシビリティ適合性テスト', () => {
 
     const inputs = document.querySelectorAll('input, select');
 
-    inputs.forEach(input => {
+    inputs.forEach((input) => {
       const id = input.getAttribute('id');
       const hasLabel = document.querySelector(`label[for="${id}"]`);
-      const hasAriaLabel = input.getAttribute('aria-label') || input.getAttribute('aria-labelledby');
+      const hasAriaLabel =
+        input.getAttribute('aria-label') || input.getAttribute('aria-labelledby');
 
       // 【ラベル関連付け確認】: labelまたはARIA属性での関連付け
       expect(hasLabel || hasAriaLabel).toBeTruthy();
@@ -228,7 +230,7 @@ describe('TASK-044: アクセシビリティ適合性テスト', () => {
     const buttonsWithDescriptions = document.querySelectorAll('button[aria-describedby]');
     expect(buttonsWithDescriptions.length).toBeGreaterThanOrEqual(2);
 
-    buttonsWithDescriptions.forEach(button => {
+    buttonsWithDescriptions.forEach((button) => {
       const describedById = button.getAttribute('aria-describedby');
       const descriptionElement = document.getElementById(describedById!);
       expect(descriptionElement).not.toBeNull();

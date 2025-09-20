@@ -1,6 +1,6 @@
 /**
  * TASK-101: プロンプト合成機能 実装（Refactorフェーズ完了）
- * 
+ *
  * 【機能概要】: 共通プロンプトとキャラクター固有プロンプトを自動合成する機能
  * 【改善内容】: TDD Refactorフェーズでコード品質向上とリファクタリングを完了
  * 【設計方針】: 単一責任原則と型安全性を重視し、パフォーマンス要件を満たす
@@ -8,7 +8,7 @@
  * 【保守性】: モジュール化された構造と包括的な日本語コメントで長期保守性を確保
  * 【リファクタリング】: 定数外部化、エラーハンドリング改善、パフォーマンス最適化、保守性向上
  * 🟢 信頼性レベル: TASK-101要件定義書とテストケース仕様に基づく
- * 
+ *
  * @version 1.0.0
  * @author NovelAI Auto Generator Team
  * @since 2025-09-20
@@ -135,25 +135,27 @@ const SYNTHESIS_CONFIG = {
   MAX_PREVIEW_TIME: 50,
   /** 【警告メッセージ】: ユーザー向けの警告メッセージ */
   WARNING_MESSAGES: {
-    CHARACTER_LIMIT_EXCEEDED: (current: number, limit: number) => 
+    CHARACTER_LIMIT_EXCEEDED: (current: number, limit: number) =>
       `文字数が制限を超過しています: ${current}/${limit}`,
     COMMON_PROMPT_MISSING: '共通プロンプトが設定されていません',
     PRESET_PROMPT_MISSING: 'プリセットプロンプトが設定されていません',
     BOTH_PROMPTS_EMPTY: '共通プロンプトとプリセットプロンプトが両方とも空です',
-    SPECIAL_CHARACTERS_DETECTED: '特殊文字が含まれています。適切にエスケープされていることを確認してください',
-    SYNTHESIS_TIME_EXCEEDED: (time: number) => 
+    SPECIAL_CHARACTERS_DETECTED:
+      '特殊文字が含まれています。適切にエスケープされていることを確認してください',
+    SYNTHESIS_TIME_EXCEEDED: (time: number) =>
       `合成処理時間が制限を超過しました: ${time.toFixed(2)}ms`,
-    PREVIEW_TIME_EXCEEDED: (time: number) => 
-      `プレビュー処理時間が制限を超過しました: ${time.toFixed(2)}ms`
+    PREVIEW_TIME_EXCEEDED: (time: number) =>
+      `プレビュー処理時間が制限を超過しました: ${time.toFixed(2)}ms`,
   },
   /** 【エラーメッセージ】: システムエラー用のメッセージ */
   ERROR_MESSAGES: {
-    INVALID_RULE_ID: (ruleId: string) => `無効なルールID: ${ruleId}。デフォルトルールを使用します。`,
+    INVALID_RULE_ID: (ruleId: string) =>
+      `無効なルールID: ${ruleId}。デフォルトルールを使用します。`,
     SYNTHESIS_ERROR: 'プロンプト合成エラー:',
     VALIDATION_ERROR: 'バリデーションエラー:',
     TEMPLATE_ERROR: 'カスタムテンプレート適用エラー:',
-    UNKNOWN_ERROR: '不明なエラー'
-  }
+    UNKNOWN_ERROR: '不明なエラー',
+  },
 } as const;
 
 /**
@@ -197,8 +199,8 @@ export class PromptSynthesizer {
       template: '{common}, {preset}',
       parameters: {
         separator: SYNTHESIS_CONFIG.DEFAULT_SEPARATOR,
-        order: 'common-first'
-      }
+        order: 'common-first',
+      },
     });
 
     // 【プリセット優先ルール】: プリセット→共通の順序で合成
@@ -209,8 +211,8 @@ export class PromptSynthesizer {
       template: '{preset}, {common}',
       parameters: {
         separator: SYNTHESIS_CONFIG.DEFAULT_SEPARATOR,
-        order: 'preset-first'
-      }
+        order: 'preset-first',
+      },
     });
 
     // 【カスタムルール】: カスタムテンプレートでの合成
@@ -222,8 +224,8 @@ export class PromptSynthesizer {
       parameters: {
         separator: ' | ',
         order: 'custom',
-        customTemplate: '{preset} :: {common}'
-      }
+        customTemplate: '{preset} :: {common}',
+      },
     });
   }
 
@@ -250,45 +252,45 @@ export class PromptSynthesizer {
     try {
       // 【ルール取得】: 指定されたルールIDから合成ルールを取得
       const rule = this.getRule(ruleId);
-      
+
       // 【プロンプト合成】: 正方向と負方向のプロンプトを合成
       const positive = this.synthesizePrompt(common.base, preset.positive, rule);
       const negative = this.synthesizePrompt(common.negative, preset.negative, rule);
-      
+
       // 【文字数計算】: 合成結果の文字数を効率的に計算
       const positiveLength = positive.length;
       const negativeLength = negative.length;
       const characterCount = {
         positive: positiveLength,
         negative: negativeLength,
-        total: positiveLength + negativeLength
+        total: positiveLength + negativeLength,
       };
-      
+
       // 【警告生成】: 文字数制限やその他の問題をチェック
       const warnings = this.generateWarnings(characterCount, common, preset);
-      
+
       // 【パフォーマンス確認】: 処理時間が制限内であることを確認
       const endTime = performance.now();
       const processingTime = endTime - startTime;
-      
-    if (processingTime > SYNTHESIS_CONFIG.MAX_SYNTHESIS_TIME) {
-      warnings.push(SYNTHESIS_CONFIG.WARNING_MESSAGES.SYNTHESIS_TIME_EXCEEDED(processingTime));
-    }
-      
+
+      if (processingTime > SYNTHESIS_CONFIG.MAX_SYNTHESIS_TIME) {
+        warnings.push(SYNTHESIS_CONFIG.WARNING_MESSAGES.SYNTHESIS_TIME_EXCEEDED(processingTime));
+      }
+
       // 【合成結果返却】: 型安全な合成結果オブジェクトを返却
       return {
         positive,
         negative,
         characterCount,
         warnings,
-        appliedRule: rule
+        appliedRule: rule,
       };
-
     } catch (error) {
       // 【エラーハンドリング】: 合成処理中のエラーを適切に処理
-      const errorMessage = error instanceof Error ? error.message : SYNTHESIS_CONFIG.ERROR_MESSAGES.UNKNOWN_ERROR;
+      const errorMessage =
+        error instanceof Error ? error.message : SYNTHESIS_CONFIG.ERROR_MESSAGES.UNKNOWN_ERROR;
       console.error(SYNTHESIS_CONFIG.ERROR_MESSAGES.SYNTHESIS_ERROR, error);
-      
+
       // 【フォールバック結果】: エラー時でも安全な結果を返却
       return this.createFallbackResult(common, preset, errorMessage);
     }
@@ -306,25 +308,21 @@ export class PromptSynthesizer {
    * @param ruleId - 使用する合成ルールのID
    * @returns プレビュー用の合成結果
    */
-  preview(
-    common: CommonPrompts,
-    preset: PresetData,
-    ruleId: string = 'default'
-  ): SynthesisResult {
+  preview(common: CommonPrompts, preset: PresetData, ruleId: string = 'default'): SynthesisResult {
     // 【パフォーマンス測定開始】: プレビュー処理時間の監視
     const startTime = performance.now();
 
     // 【プレビュー処理】: synthesizeメソッドと同じロジックを使用
     const result = this.synthesize(common, preset, ruleId);
-    
+
     // 【パフォーマンス確認】: プレビュー処理時間が制限内であることを確認
     const endTime = performance.now();
     const processingTime = endTime - startTime;
-    
+
     if (processingTime > SYNTHESIS_CONFIG.MAX_PREVIEW_TIME) {
       result.warnings.push(SYNTHESIS_CONFIG.WARNING_MESSAGES.PREVIEW_TIME_EXCEEDED(processingTime));
     }
-    
+
     return result;
   }
 
@@ -344,33 +342,32 @@ export class PromptSynthesizer {
       if (result.characterCount.total > SYNTHESIS_CONFIG.MAX_CHARACTERS) {
         return {
           valid: false,
-          reason: 'CHAR_LIMIT_EXCEEDED'
+          reason: 'CHAR_LIMIT_EXCEEDED',
         };
       }
-      
+
       // 【警告チェック】: 重大な警告がないことを確認
-      const criticalWarnings = result.warnings.filter(warning => 
-        warning.includes('制限を超過') || warning.includes('エラー')
+      const criticalWarnings = result.warnings.filter(
+        (warning) => warning.includes('制限を超過') || warning.includes('エラー')
       );
-      
+
       if (criticalWarnings.length > 0) {
         return {
           valid: false,
-          reason: 'CRITICAL_WARNINGS'
+          reason: 'CRITICAL_WARNINGS',
         };
       }
-      
+
       // 【バリデーション成功】: すべてのチェックを通過
       return {
-        valid: true
+        valid: true,
       };
-
     } catch (error) {
       // 【バリデーションエラー】: バリデーション処理中のエラー
       console.error(SYNTHESIS_CONFIG.ERROR_MESSAGES.VALIDATION_ERROR, error);
       return {
         valid: false,
-        reason: 'VALIDATION_ERROR'
+        reason: 'VALIDATION_ERROR',
       };
     }
   }
@@ -396,28 +393,28 @@ export class PromptSynthesizer {
           cfgScale: 7,
           sampler: 'k_euler',
           seed: Date.now(),
-          count: 1
-        }
+          count: 1,
+        },
       });
 
       // 【レスポンス確認】: 適用結果を確認
       if (response && response.success) {
         return {
-          success: true
+          success: true,
         };
       } else {
         return {
           success: false,
-          error: response?.error || 'Unknown error occurred'
+          error: response?.error || 'Unknown error occurred',
         };
       }
-
     } catch (error) {
       // 【エラーハンドリング】: 適用処理中のエラーを適切に処理
       console.error('NovelAI UI適用エラー:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : SYNTHESIS_CONFIG.ERROR_MESSAGES.UNKNOWN_ERROR
+        error:
+          error instanceof Error ? error.message : SYNTHESIS_CONFIG.ERROR_MESSAGES.UNKNOWN_ERROR,
       };
     }
   }
@@ -434,13 +431,13 @@ export class PromptSynthesizer {
    */
   private getRule(ruleId: string): SynthesisRule {
     const rule = this.rules.get(ruleId);
-    
+
     if (!rule) {
       // 【フォールバック処理】: 無効なルールIDの場合はデフォルトルールを使用
       console.warn(SYNTHESIS_CONFIG.ERROR_MESSAGES.INVALID_RULE_ID(ruleId));
       return this.rules.get('default')!;
     }
-    
+
     return rule;
   }
 
@@ -460,18 +457,22 @@ export class PromptSynthesizer {
     // 【入力値正規化】: 空文字列やnull/undefinedを安全に処理（パフォーマンス最適化）
     const normalizedCommon = common ?? '';
     const normalizedPreset = preset ?? '';
-    
+
     // 【ルール別合成処理】: ルールの種類に応じて合成方法を選択
     switch (rule.parameters.order) {
       case 'common-first':
         return this.combinePrompts(normalizedCommon, normalizedPreset, rule.parameters.separator);
-      
+
       case 'preset-first':
         return this.combinePrompts(normalizedPreset, normalizedCommon, rule.parameters.separator);
-      
+
       case 'custom':
-        return this.applyCustomTemplate(normalizedCommon, normalizedPreset, rule.parameters.customTemplate || rule.template);
-      
+        return this.applyCustomTemplate(
+          normalizedCommon,
+          normalizedPreset,
+          rule.parameters.customTemplate || rule.template
+        );
+
       default:
         // 【デフォルト処理】: 不明なルールの場合はcommon-firstで処理
         return this.combinePrompts(normalizedCommon, normalizedPreset, rule.parameters.separator);
@@ -494,7 +495,7 @@ export class PromptSynthesizer {
     // 【空文字列処理】: 空のプロンプトを適切に処理（パフォーマンス最適化）
     if (!first) return second;
     if (!second) return first;
-    
+
     // 【結合処理】: 区切り文字を使用して結合
     return `${first}${separator}${second}`;
   }
@@ -514,9 +515,7 @@ export class PromptSynthesizer {
   private applyCustomTemplate(common: string, preset: string, template: string): string {
     try {
       // 【テンプレート置換】: プレースホルダーを実際の値に置換（パフォーマンス最適化）
-      return template
-        .replace(/{common}/g, common ?? '')
-        .replace(/{preset}/g, preset ?? '');
+      return template.replace(/{common}/g, common ?? '').replace(/{preset}/g, preset ?? '');
     } catch (error) {
       // 【エラーハンドリング】: テンプレート処理エラーの場合
       console.error(SYNTHESIS_CONFIG.ERROR_MESSAGES.TEMPLATE_ERROR, error);
@@ -545,10 +544,12 @@ export class PromptSynthesizer {
 
     // 【文字数制限チェック】: NovelAIの文字数制限を確認
     if (characterCount.total > SYNTHESIS_CONFIG.MAX_CHARACTERS) {
-      warnings.push(SYNTHESIS_CONFIG.WARNING_MESSAGES.CHARACTER_LIMIT_EXCEEDED(
-        characterCount.total, 
-        SYNTHESIS_CONFIG.MAX_CHARACTERS
-      ));
+      warnings.push(
+        SYNTHESIS_CONFIG.WARNING_MESSAGES.CHARACTER_LIMIT_EXCEEDED(
+          characterCount.total,
+          SYNTHESIS_CONFIG.MAX_CHARACTERS
+        )
+      );
     }
 
     // 【空プロンプトチェック】: 空のプロンプトに関する警告
@@ -582,23 +583,23 @@ export class PromptSynthesizer {
    * @returns 安全なフォールバック結果
    */
   private createFallbackResult(
-    common: CommonPrompts, 
-    preset: PresetData, 
+    common: CommonPrompts,
+    preset: PresetData,
     errorMessage: string
   ): SynthesisResult {
     const positive = preset.positive || '';
     const negative = preset.negative || '';
-    
+
     return {
       positive,
       negative,
       characterCount: {
         positive: positive.length,
         negative: negative.length,
-        total: positive.length + negative.length
+        total: positive.length + negative.length,
       },
       warnings: [`合成処理エラー: ${errorMessage}`],
-      appliedRule: this.rules.get('default')!
+      appliedRule: this.rules.get('default')!,
     };
   }
 }

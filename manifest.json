@@ -4,20 +4,14 @@
   "version": "0.1.0",
   "description": "NovelAIのWeb UIを自動化し、事前定義されたプロンプトで複数の画像を生成・保存するChrome拡張機能",
   "permissions": ["storage", "tabs", "downloads"],
-  "host_permissions": [
-    "https://novelai.net/*",
-    "https://*.novelai.net/*"
-  ],
+  "host_permissions": ["https://novelai.net/*", "https://*.novelai.net/*"],
   "background": {
     "service_worker": "dist/background.js",
     "type": "module"
   },
   "content_scripts": [
     {
-      "matches": [
-        "https://novelai.net/*",
-        "https://*.novelai.net/*"
-      ],
+      "matches": ["https://novelai.net/*", "https://*.novelai.net/*"],
       "js": ["dist/content.js"],
       "run_at": "document_end",
       "all_frames": false
@@ -44,12 +38,10 @@
       "resources": [
         "config/prompts.json",
         "config/samplers.json",
+        "config/dom-selectors.json",
         "dist/config/*"
       ],
-      "matches": [
-        "https://novelai.net/*",
-        "https://*.novelai.net/*"
-      ]
+      "matches": ["https://novelai.net/*", "https://*.novelai.net/*"]
     }
   ],
   "minimum_chrome_version": "96"

@@ -5,7 +5,11 @@
  * 🟢 信頼性レベル: 高（TC-072-201ログローテーション要件とChrome Storage API仕様に基づく）
  */
 
-import { STORAGE_DOWNLOAD_CONFIG, LOG_LEVELS, ERROR_MESSAGES } from './storage-download-compatibility-config';
+import {
+  STORAGE_DOWNLOAD_CONFIG,
+  LOG_LEVELS,
+  ERROR_MESSAGES,
+} from './storage-download-compatibility-config';
 
 /**
  * ログエントリの構造定義
@@ -91,7 +95,6 @@ export class DownloadLogger {
 
       // 【ストレージ保存】: 更新されたログをストレージに非同期保存
       await this.saveLogsToStorage(updatedLogs);
-
     } catch (error) {
       // 【ログ失敗処理】: ログ記録失敗時も主処理を継続
       // 【運用継続性】: ログ失敗によるシステム停止を防止
@@ -117,7 +120,6 @@ export class DownloadLogger {
 
       // 【フォールバック】: 不正なデータの場合は空配列を返す
       return [];
-
     } catch (error) {
       // 【読み込み失敗フォールバック】: ストレージアクセス失敗時の安全な対応
       console.warn('ログ読み込みに失敗しました:', error);
@@ -148,8 +150,7 @@ export class DownloadLogger {
     const nextId = this.generateNextId(existingLogs);
 
     // 【ログレベル決定】: 成功可否とオプションからレベルを決定
-    const level = options?.overrideLevel ||
-                  (success ? LOG_LEVELS.INFO : LOG_LEVELS.ERROR);
+    const level = options?.overrideLevel || (success ? LOG_LEVELS.INFO : LOG_LEVELS.ERROR);
 
     // 【メッセージ構築】: アクションと詳細を統一形式で結合
     const message = `${action}: ${details}`;
@@ -158,7 +159,7 @@ export class DownloadLogger {
       id: nextId,
       timestamp: Date.now(),
       level: level,
-      message: message
+      message: message,
     };
   }
 
@@ -176,7 +177,7 @@ export class DownloadLogger {
 
     // 【最大ID検索】: 既存ログから最大IDを安全に取得
     try {
-      const maxId = Math.max(...logs.map(log => log.id || 0));
+      const maxId = Math.max(...logs.map((log) => log.id || 0));
       return maxId + 1;
     } catch (error) {
       // 【フォールバック】: 最大ID計算失敗時の安全な対応
@@ -203,8 +204,8 @@ export class DownloadLogger {
     const updatedLogs = [...logs, newEntry];
 
     // 【ローテーション判定】: 上限超過または強制実行の判定
-    const shouldRotate = updatedLogs.length > STORAGE_DOWNLOAD_CONFIG.LOG_LIMIT ||
-                        options?.forceRotation;
+    const shouldRotate =
+      updatedLogs.length > STORAGE_DOWNLOAD_CONFIG.LOG_LIMIT || options?.forceRotation;
 
     if (shouldRotate) {
       // 【FIFO削除】: 上限を超えた分だけ最古エントリを削除

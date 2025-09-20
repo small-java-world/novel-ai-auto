@@ -30,7 +30,9 @@ describe('UI スケルトン/状態管理 - Red Phase', () => {
       // 【処理内容】: 未実装クラスのインスタンス化によりエラー発生を確認
 
       // 【Red Phase 検証】: UIStateManager が未実装のためエラーが発生することを確認 🟢
-      expect(() => new UIStateManager(mockElements)).toThrow('UIStateManager is not implemented yet');
+      expect(() => new UIStateManager(mockElements)).toThrow(
+        'UIStateManager is not implemented yet'
+      );
     });
   });
 
@@ -46,7 +48,9 @@ describe('UI スケルトン/状態管理 - Red Phase', () => {
       const mockElements = {};
 
       // 【Red Phase 検証】: UIStateManager が未実装のためインスタンス作成でエラー 🟢
-      expect(() => new UIStateManager(mockElements)).toThrow('UIStateManager is not implemented yet');
+      expect(() => new UIStateManager(mockElements)).toThrow(
+        'UIStateManager is not implemented yet'
+      );
     });
   });
 

@@ -8,6 +8,43 @@ NovelAI のWeb UIをChrome拡張（Manifest V3）で自動操作し、事前定�
 - Service Worker (Background): ダウンロード管理、タブ制御、再試行制御、永続ログ。
 - Storage: `chrome.storage` に設定・プロンプト・履歴・ジョブ状態を保存。
 - Config: 静的な `config/prompts.json` によるプロンプト定義。
+  - DOM セレクタは `config/dom-selectors.json` に定義し、Content Script 起動時に `chrome.runtime.getURL` と `fetch` で読み込む。
+  - ファイルは2つのスキーマをサポート:
+    1) フラット: ElementType をキーに優先度順セレクタ配列を持つ。
+    2) プロファイル対応: `profiles` ルートに複数プロファイルを定義し、`detect` セレクタでマッチしたプロファイルの `selectors` を使用。`default/$default/common` のいずれかがフォールバック。
+  - 例（プロファイル対応、キャラクター別UI想定）:
+    ```json
+    {
+      "profiles": {
+        "$default": {
+          "selectors": {
+            "prompt-input": ["#prompt-input", "[data-testid=\"prompt-input\"] textarea"],
+            "negative-input": [
+              "#negative-prompt-input",
+              "[data-testid=\"negative-prompt\"] textarea",
+              "textarea[aria-label*=\"negative\" i]"
+            ]
+          }
+        },
+        "character-anime": {
+          "detect": [".anime-character-ui", "[data-style=\"anime\"]"],
+          "selectors": {
+            "prompt-input": [
+              { "scope": ".anime-character-ui", "selectors": ["textarea", "[contenteditable=true]"] }
+            ],
+            "negative-input": [
+              { "scope": ".anime-character-ui", "selectors": [".negative textarea"] }
+            ]
+          }
+        }
+      }
+    }
+    ```
+  - `scope` + `selectors` 形式のエントリはスコープセレクタと子セレクタを結合して優先展開される。
+  - セレクタ変更はこの設定ファイルの編集のみで完結し、Content Script はビルド済みバンドルからでも最新のマッピングを参照する。
+- **キャラクター別自動選択**: プロンプトファイルで `selectorProfile` を指定すると、対応するプロファイルのセレクタが自動選択される。
+  - 例: `"selectorProfile": "character-anime"` → `character-anime` プロファイルのセレクタを使用
+  - 未指定または存在しないプロファイルの場合は `$default` にフォールバック
 
 ## アーキテクチャパターン
 - パターン: MV3 Event-driven Extension + Message Passing

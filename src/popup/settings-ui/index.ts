@@ -6,11 +6,7 @@
  * 🟢 全11テストケースとの完全互換性を保った確実なリファクタリング
  */
 
-import {
-  SettingsInput,
-  SaveResult,
-  DEFAULT_SETTINGS
-} from './types';
+import { SettingsInput, SaveResult, DEFAULT_SETTINGS } from './types';
 import { SettingsValidator } from './validation';
 import { SettingsStorageAdapter } from './storage-adapter';
 
@@ -73,23 +69,23 @@ export class SettingsUI {
       return {
         validationResult,
         savedSettings: this.currentSettings,
-        storageStatus: "error"
+        storageStatus: 'error',
       };
     }
 
     // 【ストレージ保存段階】: 専用アダプターによる安全な永続化
     const saveResult = await SettingsStorageAdapter.saveSettings(settings);
 
-    if (saveResult.storageStatus === "success") {
+    if (saveResult.storageStatus === 'success') {
       // 保存成功時のみ内部状態を更新
       this.currentSettings = settings;
     }
 
     return {
       validationResult,
-      savedSettings: saveResult.storageStatus === "success" ? settings : this.currentSettings,
+      savedSettings: saveResult.storageStatus === 'success' ? settings : this.currentSettings,
       storageStatus: saveResult.storageStatus,
-      errorMessage: saveResult.errorMessage
+      errorMessage: saveResult.errorMessage,
     };
   }
 
@@ -109,7 +105,7 @@ export class SettingsUI {
    * 【シードモード取得】: 現在のシードモード設定を取得
    * 🟢 "random" | "fixed" の型安全な返却
    */
-  getSeedMode(): "random" | "fixed" {
+  getSeedMode(): 'random' | 'fixed' {
     return this.currentSettings.seedMode;
   }
 

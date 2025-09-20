@@ -52,7 +52,7 @@ describe('ジョブキュー/キャンセル制御', () => {
       imageCount: 1,
       seed: 123456,
       filenameTemplate: '{date}_{prompt}_{seed}_{idx}',
-      retrySettings: { maxRetries: 3, baseDelay: 500, factor: 2.0 }
+      retrySettings: { maxRetries: 3, baseDelay: 500, factor: 2.0 },
     };
 
     const job: GenerationJob = {
@@ -63,7 +63,7 @@ describe('ジョブキュー/キャンセル制御', () => {
       status: 'pending',
       createdAt: new Date(),
       updatedAt: new Date(),
-      progress: { current: 0, total: 1, status: 'waiting' }
+      progress: { current: 0, total: 1, status: 'waiting' },
     };
 
     // 【実際の処理実行】: ジョブをキューに追加し実行開始
@@ -71,7 +71,12 @@ describe('ジョブキュー/キャンセル制御', () => {
     await jobQueueManager.startJob(job);
 
     // Content Scriptからの画像完了を模擬
-    await jobQueueManager.handleImageReady('test-job-1', 'https://example.com/image1.png', 0, 'image1.png');
+    await jobQueueManager.handleImageReady(
+      'test-job-1',
+      'https://example.com/image1.png',
+      0,
+      'image1.png'
+    );
 
     // 【結果検証】: ジョブの最終状態と進捗が期待値と一致することを確認
     // 【期待値確認】: 単枚生成なので進捗は1/1、ステータスはcompletedになる
@@ -94,7 +99,7 @@ describe('ジョブキュー/キャンセル制御', () => {
       imageCount: 3,
       seed: 123456,
       filenameTemplate: '{date}_{prompt}_{seed}_{idx}',
-      retrySettings: { maxRetries: 3, baseDelay: 500, factor: 2.0 }
+      retrySettings: { maxRetries: 3, baseDelay: 500, factor: 2.0 },
     };
 
     const job: GenerationJob = {
@@ -105,7 +110,7 @@ describe('ジョブキュー/キャンセル制御', () => {
       status: 'pending',
       createdAt: new Date(),
       updatedAt: new Date(),
-      progress: { current: 0, total: 3, status: 'waiting' }
+      progress: { current: 0, total: 3, status: 'waiting' },
     };
 
     // 【実際の処理実行】: 複数枚ジョブを開始し、各画像完了を順次模擬
@@ -113,17 +118,32 @@ describe('ジョブキュー/キャンセル制御', () => {
     await jobQueueManager.startJob(job);
 
     // 1枚目完了
-    await jobQueueManager.handleImageReady('test-job-3', 'https://example.com/image1.png', 0, 'image1.png');
+    await jobQueueManager.handleImageReady(
+      'test-job-3',
+      'https://example.com/image1.png',
+      0,
+      'image1.png'
+    );
     let currentJob = jobQueueManager.getJob('test-job-3');
     expect(currentJob.progress.current).toBe(1); // 【確認内容】: 1枚目完了で進捗が1になることを確認 🟢
 
     // 2枚目完了
-    await jobQueueManager.handleImageReady('test-job-3', 'https://example.com/image2.png', 1, 'image2.png');
+    await jobQueueManager.handleImageReady(
+      'test-job-3',
+      'https://example.com/image2.png',
+      1,
+      'image2.png'
+    );
     currentJob = jobQueueManager.getJob('test-job-3');
     expect(currentJob.progress.current).toBe(2); // 【確認内容】: 2枚目完了で進捗が2になることを確認 🟢
 
     // 3枚目完了
-    await jobQueueManager.handleImageReady('test-job-3', 'https://example.com/image3.png', 2, 'image3.png');
+    await jobQueueManager.handleImageReady(
+      'test-job-3',
+      'https://example.com/image3.png',
+      2,
+      'image3.png'
+    );
 
     // 【結果検証】: 全枚数完了時の最終状態確認
     // 【期待値確認】: 進捗が3/3、ステータスがcompletedになることを確認
@@ -146,7 +166,7 @@ describe('ジョブキュー/キャンセル制御', () => {
       imageCount: 5,
       seed: 123456,
       filenameTemplate: '{date}_{prompt}_{seed}_{idx}',
-      retrySettings: { maxRetries: 3, baseDelay: 500, factor: 2.0 }
+      retrySettings: { maxRetries: 3, baseDelay: 500, factor: 2.0 },
     };
 
     const job: GenerationJob = {
@@ -157,7 +177,7 @@ describe('ジョブキュー/キャンセル制御', () => {
       status: 'pending',
       createdAt: new Date(),
       updatedAt: new Date(),
-      progress: { current: 0, total: 5, status: 'waiting' }
+      progress: { current: 0, total: 5, status: 'waiting' },
     };
 
     // 【実際の処理実行】: ジョブ開始後、2枚目完了時にキャンセルを実行
@@ -165,10 +185,20 @@ describe('ジョブキュー/キャンセル制御', () => {
     await jobQueueManager.startJob(job);
 
     // 1枚目完了
-    await jobQueueManager.handleImageReady('cancel-test-job', 'https://example.com/image1.png', 0, 'image1.png');
+    await jobQueueManager.handleImageReady(
+      'cancel-test-job',
+      'https://example.com/image1.png',
+      0,
+      'image1.png'
+    );
 
     // 2枚目完了後にキャンセル実行
-    await jobQueueManager.handleImageReady('cancel-test-job', 'https://example.com/image2.png', 1, 'image2.png');
+    await jobQueueManager.handleImageReady(
+      'cancel-test-job',
+      'https://example.com/image2.png',
+      1,
+      'image2.png'
+    );
 
     // キャンセル処理実行
     await jobQueueManager.cancelJob('cancel-test-job');
@@ -187,8 +217,8 @@ describe('ジョブキュー/キャンセル制御', () => {
         type: 'PROGRESS_UPDATE',
         payload: expect.objectContaining({
           jobId: 'cancel-test-job',
-          status: 'cancelled'
-        })
+          status: 'cancelled',
+        }),
       })
     ); // 【確認内容】: キャンセル完了通知がUIに送信されることを確認 🟢
   });
@@ -220,9 +250,9 @@ describe('ジョブキュー/キャンセル制御', () => {
         type: 'ERROR',
         payload: expect.objectContaining({
           error: expect.objectContaining({
-            code: 'JOB_NOT_FOUND'
-          })
-        })
+            code: 'JOB_NOT_FOUND',
+          }),
+        }),
       })
     ); // 【確認内容】: エラー情報がUIに適切に通知されることを確認 🟡
   });
@@ -239,7 +269,7 @@ describe('ジョブキュー/キャンセル制御', () => {
       imageCount: 1,
       seed: 999999,
       filenameTemplate: '{date}_{prompt}_{seed}_{idx}',
-      retrySettings: { maxRetries: 3, baseDelay: 500, factor: 2.0 }
+      retrySettings: { maxRetries: 3, baseDelay: 500, factor: 2.0 },
     };
 
     const job: GenerationJob = {
@@ -250,13 +280,18 @@ describe('ジョブキュー/キャンセル制御', () => {
       status: 'pending',
       createdAt: new Date(),
       updatedAt: new Date(),
-      progress: { current: 0, total: 1, status: 'waiting' }
+      progress: { current: 0, total: 1, status: 'waiting' },
     };
 
     // 【実際の処理実行】: 最小枚数でのジョブ実行
     // 【処理内容】: 境界値での安定動作とエラーなし処理の確認
     await jobQueueManager.startJob(job);
-    await jobQueueManager.handleImageReady('boundary-test-1', 'https://example.com/boundary.png', 0, 'boundary.png');
+    await jobQueueManager.handleImageReady(
+      'boundary-test-1',
+      'https://example.com/boundary.png',
+      0,
+      'boundary.png'
+    );
 
     // 【結果検証】: 最小境界での正確な処理結果確認
     // 【期待値確認】: 1回のみの実行で正しく完了状態になることを確認
@@ -281,7 +316,7 @@ describe('ジョブキュー/キャンセル制御', () => {
       imageCount: 0, // 不正値
       seed: 123456,
       filenameTemplate: '{date}_{prompt}_{seed}_{idx}',
-      retrySettings: { maxRetries: 3, baseDelay: 500, factor: 2.0 }
+      retrySettings: { maxRetries: 3, baseDelay: 500, factor: 2.0 },
     };
 
     const invalidJob: GenerationJob = {
@@ -292,7 +327,7 @@ describe('ジョブキュー/キャンセル制御', () => {
       status: 'pending',
       createdAt: new Date(),
       updatedAt: new Date(),
-      progress: { current: 0, total: 0, status: 'waiting' }
+      progress: { current: 0, total: 0, status: 'waiting' },
     };
 
     // 【実際の処理実行】: 不正データでのジョブ開始試行
@@ -321,7 +356,7 @@ describe('ジョブキュー/キャンセル制御', () => {
       imageCount: 10,
       seed: 123456,
       filenameTemplate: '{date}_{prompt}_{seed}_{idx}',
-      retrySettings: { maxRetries: 3, baseDelay: 500, factor: 2.0 }
+      retrySettings: { maxRetries: 3, baseDelay: 500, factor: 2.0 },
     };
 
     const job: GenerationJob = {
@@ -332,7 +367,7 @@ describe('ジョブキュー/キャンセル制御', () => {
       status: 'pending',
       createdAt: new Date(),
       updatedAt: new Date(),
-      progress: { current: 0, total: 10, status: 'waiting' }
+      progress: { current: 0, total: 10, status: 'waiting' },
     };
 
     // 【実際の処理実行】: ジョブ開始後に同時キャンセル要求を実行
@@ -340,14 +375,24 @@ describe('ジョブキュー/キャンセル制御', () => {
     await jobQueueManager.startJob(job);
 
     // 2枚完了後に同時キャンセル要求（競合模擬）
-    await jobQueueManager.handleImageReady('race-condition-job', 'https://example.com/race1.png', 0, 'race1.png');
-    await jobQueueManager.handleImageReady('race-condition-job', 'https://example.com/race2.png', 1, 'race2.png');
+    await jobQueueManager.handleImageReady(
+      'race-condition-job',
+      'https://example.com/race1.png',
+      0,
+      'race1.png'
+    );
+    await jobQueueManager.handleImageReady(
+      'race-condition-job',
+      'https://example.com/race2.png',
+      1,
+      'race2.png'
+    );
 
     // 複数のキャンセル要求を並行実行
     const cancelPromises = [
       jobQueueManager.cancelJob('race-condition-job'),
       jobQueueManager.cancelJob('race-condition-job'),
-      jobQueueManager.cancelJob('race-condition-job')
+      jobQueueManager.cancelJob('race-condition-job'),
     ];
 
     const results = await Promise.all(cancelPromises);
@@ -358,8 +403,10 @@ describe('ジョブキュー/キャンセル制御', () => {
     expect(finalJob.status).toBe('cancelled'); // 【確認内容】: 最終的に'cancelled'状態で一意に収束することを確認 🟡
 
     // 複数リクエストの結果確認（最初の1つが成功、残りは既にキャンセル済み）
-    const successfulCancels = results.filter(r => r.success && r.operation === 'cancelled');
-    const alreadyCancelled = results.filter(r => r.success && r.operation === 'already_cancelled');
+    const successfulCancels = results.filter((r) => r.success && r.operation === 'cancelled');
+    const alreadyCancelled = results.filter(
+      (r) => r.success && r.operation === 'already_cancelled'
+    );
 
     expect(successfulCancels).toHaveLength(1); // 【確認内容】: 1回のみ実際のキャンセル処理が実行されることを確認 🟡
     expect(alreadyCancelled).toHaveLength(2); // 【確認内容】: 残り2回は既にキャンセル済みとして処理されることを確認 🟡

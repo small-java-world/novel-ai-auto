@@ -18,7 +18,7 @@ import type {
   MetadataDisplayResult,
   FilterResult,
   PresetV1,
-  PromptFileV1
+  PromptFileV1,
 } from '../types/metadata';
 import { ERROR_MESSAGES, WARNING_MESSAGES } from './metadata-manager-config';
 
@@ -36,7 +36,7 @@ export class LoadResultBuilder {
     this.result = {
       success: false,
       errors: [],
-      warnings: []
+      warnings: [],
     };
   }
 
@@ -123,7 +123,7 @@ export class LoadResultBuilder {
       metadata: this.result.metadata,
       presets: this.result.presets ? [...this.result.presets] : undefined,
       errors: [...this.result.errors],
-      warnings: [...this.result.warnings]
+      warnings: [...this.result.warnings],
     };
   }
 
@@ -149,11 +149,7 @@ export class LoadResultBuilder {
    * 【利便性】: よく使用される失敗パターンの簡略化
    */
   static createFailure(errors: string[], warnings: string[] = []): LoadResult {
-    return new LoadResultBuilder()
-      .failure()
-      .addErrors(errors)
-      .addWarnings(warnings)
-      .build();
+    return new LoadResultBuilder().failure().addErrors(errors).addWarnings(warnings).build();
   }
 
   /**
@@ -198,7 +194,7 @@ export class ConversionResultBuilder {
     this.result = {
       success: false,
       warnings: [],
-      errors: []
+      errors: [],
     };
   }
 
@@ -258,7 +254,7 @@ export class ConversionResultBuilder {
       success: this.result.success,
       convertedData: this.result.convertedData,
       warnings: [...this.result.warnings],
-      errors: [...this.result.errors]
+      errors: [...this.result.errors],
     };
   }
 
@@ -270,7 +266,7 @@ export class ConversionResultBuilder {
     convertedData: PromptFileV1,
     warnings: string[] = [
       WARNING_MESSAGES.LEGACY_FORMAT_CONVERTED,
-      WARNING_MESSAGES.METADATA_DEFAULTS_APPLIED
+      WARNING_MESSAGES.METADATA_DEFAULTS_APPLIED,
     ]
   ): ConversionResult {
     return new ConversionResultBuilder()
@@ -332,7 +328,7 @@ export class FilterResultBuilder {
     return {
       filteredPresets: [...this.filteredPresets],
       matchCount: this.filteredPresets.length,
-      appliedTags: [...this.appliedTags]
+      appliedTags: [...this.appliedTags],
     };
   }
 

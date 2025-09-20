@@ -1,13 +1,13 @@
 /**
  * TASK-102: 新フォーマット対応・メタデータ管理 統合テスト
- * 
+ *
  * 【機能概要】: 新フォーマット（v1.0）とメタデータ管理機能の既存機能との統合テスト
  * 【実装状況】: 統合フェーズ - プロンプト合成機能との連携テスト
  * 【設計方針】: 既存機能との互換性を保ちながら新機能を統合
  * 【パフォーマンス】: 統合処理200ms以内、メタデータ読み込み100ms以内
  * 【保守性】: モジュール化された構造と包括的な日本語コメントで長期保守性を確保
  * 🟢 信頼性レベル: TASK-102要件定義書と既存機能の仕様に基づく
- * 
+ *
  * @version 1.0.0
  * @author NovelAI Auto Generator Team
  * @since 2025-09-20
@@ -35,7 +35,7 @@ describe('IntegrationManager - TASK-102 Integration Tests', () => {
           author: 'テストユーザー',
           created: '2025-09-20T00:00:00Z',
           modified: '2025-09-20T00:00:00Z',
-          tags: ['integration', 'test', 'v1.0']
+          tags: ['integration', 'test', 'v1.0'],
         },
         presets: [
           {
@@ -49,20 +49,20 @@ describe('IntegrationManager - TASK-102 Integration Tests', () => {
               cfgScale: 7,
               sampler: 'k_euler',
               seed: -1,
-              count: 1
+              count: 1,
             },
             tags: ['anime', 'girl', 'beautiful'],
             created: '2025-09-20T00:00:00Z',
-            modified: '2025-09-20T00:00:00Z'
-          }
-        ]
+            modified: '2025-09-20T00:00:00Z',
+          },
+        ],
       };
 
       const options: IntegrationOptions = {
         autoConvert: false,
         loadMetadata: true,
         enableSynthesis: true,
-        createBackup: false
+        createBackup: false,
       };
 
       try {
@@ -102,17 +102,17 @@ describe('IntegrationManager - TASK-102 Integration Tests', () => {
               cfgScale: 7,
               sampler: 'k_euler',
               seed: -1,
-              count: 1
-            }
-          }
-        ]
+              count: 1,
+            },
+          },
+        ],
       };
 
       const options: IntegrationOptions = {
         autoConvert: true,
         loadMetadata: true,
         enableSynthesis: true,
-        createBackup: true
+        createBackup: true,
       };
 
       try {
@@ -147,7 +147,7 @@ describe('IntegrationManager - TASK-102 Integration Tests', () => {
           author: 'テストユーザー',
           created: '2025-09-20T00:00:00Z',
           modified: '2025-09-20T00:00:00Z',
-          tags: ['synthesis', 'integration', 'test']
+          tags: ['synthesis', 'integration', 'test'],
         },
         presets: [
           {
@@ -161,20 +161,20 @@ describe('IntegrationManager - TASK-102 Integration Tests', () => {
               cfgScale: 7,
               sampler: 'k_euler',
               seed: -1,
-              count: 1
+              count: 1,
             },
             tags: ['anime', 'girl', 'beautiful'],
             created: '2025-09-20T00:00:00Z',
-            modified: '2025-09-20T00:00:00Z'
-          }
-        ]
+            modified: '2025-09-20T00:00:00Z',
+          },
+        ],
       };
 
       const options: IntegrationOptions = {
         autoConvert: false,
         loadMetadata: true,
         enableSynthesis: true,
-        createBackup: false
+        createBackup: false,
       };
 
       try {
@@ -208,9 +208,9 @@ describe('IntegrationManager - TASK-102 Integration Tests', () => {
           author: 'テストユーザー',
           created: '2025-09-20T00:00:00Z',
           modified: '2025-09-20T00:00:00Z',
-          tags: ['options', 'test']
+          tags: ['options', 'test'],
         },
-        presets: []
+        presets: [],
       };
 
       // 【オプションテスト1】: 合成機能無効
@@ -218,7 +218,7 @@ describe('IntegrationManager - TASK-102 Integration Tests', () => {
         autoConvert: false,
         loadMetadata: true,
         enableSynthesis: false,
-        createBackup: false
+        createBackup: false,
       };
 
       const result1 = await integrationManager.integrateV1File(v1File, options1);
@@ -230,7 +230,7 @@ describe('IntegrationManager - TASK-102 Integration Tests', () => {
         autoConvert: false,
         loadMetadata: false,
         enableSynthesis: true,
-        createBackup: false
+        createBackup: false,
       };
 
       const result2 = await integrationManager.integrateV1File(v1File, options2);
@@ -247,7 +247,7 @@ describe('IntegrationManager - TASK-102 Integration Tests', () => {
         autoConvert: false,
         loadMetadata: true,
         enableSynthesis: true,
-        createBackup: false
+        createBackup: false,
       };
 
       try {
@@ -277,7 +277,7 @@ describe('IntegrationManager - TASK-102 Integration Tests', () => {
           author: 'テストユーザー',
           created: '2025-09-20T00:00:00Z',
           modified: '2025-09-20T00:00:00Z',
-          tags: ['performance', 'test']
+          tags: ['performance', 'test'],
         },
         presets: Array.from({ length: 10 }, (_, i) => ({
           id: `perf_preset_${i}`,
@@ -290,19 +290,19 @@ describe('IntegrationManager - TASK-102 Integration Tests', () => {
             cfgScale: 7,
             sampler: 'k_euler',
             seed: -1,
-            count: 1
+            count: 1,
           },
           tags: ['anime', 'girl', 'beautiful'],
           created: '2025-09-20T00:00:00Z',
-          modified: '2025-09-20T00:00:00Z'
-        }))
+          modified: '2025-09-20T00:00:00Z',
+        })),
       };
 
       const options: IntegrationOptions = {
         autoConvert: false,
         loadMetadata: true,
         enableSynthesis: true,
-        createBackup: false
+        createBackup: false,
       };
 
       const startTime = performance.now();
@@ -341,7 +341,7 @@ describe('IntegrationManager - TASK-102 Integration Tests', () => {
           author: 'テストユーザー',
           created: '2025-09-20T00:00:00Z',
           modified: '2025-09-20T00:00:00Z',
-          tags: ['reliability', 'test']
+          tags: ['reliability', 'test'],
         },
         presets: [
           {
@@ -355,20 +355,20 @@ describe('IntegrationManager - TASK-102 Integration Tests', () => {
               cfgScale: 7,
               sampler: 'k_euler',
               seed: -1,
-              count: 1
+              count: 1,
             },
             tags: ['anime', 'girl', 'beautiful'],
             created: '2025-09-20T00:00:00Z',
-            modified: '2025-09-20T00:00:00Z'
-          }
-        ]
+            modified: '2025-09-20T00:00:00Z',
+          },
+        ],
       }));
 
       const options: IntegrationOptions = {
         autoConvert: false,
         loadMetadata: true,
         enableSynthesis: true,
-        createBackup: false
+        createBackup: false,
       };
 
       let successCount = 0;
@@ -405,16 +405,16 @@ describe('IntegrationManager - TASK-102 Integration Tests', () => {
           author: 'テストユーザー',
           created: '2025-09-20T00:00:00Z',
           modified: '2025-09-20T00:00:00Z',
-          tags: ['statistics', 'test']
+          tags: ['statistics', 'test'],
         },
-        presets: []
+        presets: [],
       };
 
       const options: IntegrationOptions = {
         autoConvert: false,
         loadMetadata: true,
         enableSynthesis: true,
-        createBackup: false
+        createBackup: false,
       };
 
       try {

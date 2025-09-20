@@ -22,7 +22,7 @@ import {
   UrlChangeResult,
   LoginRequiredMessage,
   LoginCompletedMessage,
-  JobResumeMessage
+  JobResumeMessage,
 } from '../types';
 
 import {
@@ -30,7 +30,7 @@ import {
   LOGIN_DETECTION_SELECTORS,
   LOGIN_DETECTION_THRESHOLDS,
   LOGIN_DETECTION_MESSAGES,
-  LOGIN_DETECTION_DEFAULTS
+  LOGIN_DETECTION_DEFAULTS,
 } from './login-detection-config';
 
 /**
@@ -156,14 +156,15 @@ export function detectLoginRequired(currentJobId?: string | null): LoginDetectio
     return {
       detected: false,
       handled: true,
-      fallback: LOGIN_DETECTION_DEFAULTS.DEFAULT_JOB_ID
+      fallback: LOGIN_DETECTION_DEFAULTS.DEFAULT_JOB_ID,
     } as LoginDetectionResult & { handled: boolean; fallback: string };
   }
 
   // 【セキュリティ強化】: 空文字列や不正な値のチェック追加 🟢
-  const sanitizedJobId = (typeof currentJobId === 'string' && currentJobId.trim().length > 0)
-    ? currentJobId.trim()
-    : LOGIN_DETECTION_DEFAULTS.DEFAULT_JOB_ID;
+  const sanitizedJobId =
+    typeof currentJobId === 'string' && currentJobId.trim().length > 0
+      ? currentJobId.trim()
+      : LOGIN_DETECTION_DEFAULTS.DEFAULT_JOB_ID;
 
   // 【パフォーマンス最適化】: キャッシュ機能付きDOM要素検索 🟡
   const loginForm = DOMElementCache.getCachedElement(LOGIN_DETECTION_SELECTORS.LOGIN_FORM);
@@ -171,11 +172,7 @@ export function detectLoginRequired(currentJobId?: string | null): LoginDetectio
   const passwordInput = DOMElementCache.getCachedElement(LOGIN_DETECTION_SELECTORS.PASSWORD_INPUT);
 
   // 【検出判定強化】: より厳密な要素存在チェック 🟡
-  const isLoginFormPresent = Boolean(
-    loginForm &&
-    emailInput &&
-    passwordInput
-  );
+  const isLoginFormPresent = Boolean(loginForm && emailInput && passwordInput);
 
   if (isLoginFormPresent) {
     // 【メッセージ生成最適化】: 設定値を使用した保守性向上 🟢
@@ -183,19 +180,19 @@ export function detectLoginRequired(currentJobId?: string | null): LoginDetectio
       type: 'LOGIN_REQUIRED',
       currentJobId: sanitizedJobId,
       detectedAt: Date.now(),
-      redirectUrl: LOGIN_DETECTION_URLS.NOVELAI_LOGIN
+      redirectUrl: LOGIN_DETECTION_URLS.NOVELAI_LOGIN,
     };
 
     return {
       detected: true,
-      message: message
+      message: message,
     };
   } else {
     // 【フォールバック処理強化】: 設定されたメッセージとより詳細な情報 🟡
     return {
       detected: false,
       fallbackResult: 'assume_logged_in',
-      warning: LOGIN_DETECTION_MESSAGES.WARNINGS.LOGIN_ELEMENTS_NOT_FOUND
+      warning: LOGIN_DETECTION_MESSAGES.WARNINGS.LOGIN_ELEMENTS_NOT_FOUND,
     };
   }
 }
@@ -225,13 +222,13 @@ export function pauseCurrentJob(runningJob: GenerationJob): JobPauseResult {
     ...runningJob,
     status: 'paused',
     updatedAt: new Date(), // 【更新時刻も記録】: より詳細な履歴管理
-    pausedAt: Date.now()
+    pausedAt: Date.now(),
   };
 
   // 【結果オブジェクト最適化】: 明確な型定義で安全性向上 🟢
   return {
     success: true,
-    pausedJob: pausedJob
+    pausedJob: pausedJob,
   };
 }
 
@@ -245,7 +242,9 @@ export function pauseCurrentJob(runningJob: GenerationJob): JobPauseResult {
  * @param pausedJob - 保存対象の一時停止ジョブ
  * @returns Promise<SaveStateResult> - 保存処理の結果
  */
-export async function saveJobState(pausedJob: GenerationJob & { pausedAt: number }): Promise<SaveStateResult> {
+export async function saveJobState(
+  pausedJob: GenerationJob & { pausedAt: number }
+): Promise<SaveStateResult> {
   // 【入力値検証強化】: 保存前のデータ整合性チェック 🟢
   if (!pausedJob || !pausedJob.id || typeof pausedJob.pausedAt !== 'number') {
     throw new Error('保存対象のジョブデータが不正です');
@@ -256,24 +255,26 @@ export async function saveJobState(pausedJob: GenerationJob & { pausedAt: number
     try {
       // 【データ形式最適化】: 必要最小限の情報のみ保存 🟡
       const storageData = {
-        'paused_jobs': [{
-          id: pausedJob.id,
-          status: pausedJob.status,
-          prompt: pausedJob.prompt,
-          parameters: pausedJob.parameters,
-          progress: pausedJob.progress,
-          resumePoint: (pausedJob as any).resumePoint || LOGIN_DETECTION_DEFAULTS.DEFAULT_RESUME_POINT,
-          pausedAt: pausedJob.pausedAt
-        }]
+        paused_jobs: [
+          {
+            id: pausedJob.id,
+            status: pausedJob.status,
+            prompt: pausedJob.prompt,
+            parameters: pausedJob.parameters,
+            progress: pausedJob.progress,
+            resumePoint:
+              (pausedJob as any).resumePoint || LOGIN_DETECTION_DEFAULTS.DEFAULT_RESUME_POINT,
+            pausedAt: pausedJob.pausedAt,
+          },
+        ],
       };
 
       await chrome.storage.local.set(storageData);
 
       // 【成功時の詳細情報】: より情報豊富な成功レスポンス 🟢
       return {
-        storageResult: 'success'
+        storageResult: 'success',
       } as SaveStateResult;
-
     } catch (error) {
       // 【最後の試行での失敗】: 全試行失敗時のフォールバック処理 🟡
       if (attempt === LOGIN_DETECTION_THRESHOLDS.STORAGE_RETRY_COUNT) {
@@ -283,13 +284,13 @@ export async function saveJobState(pausedJob: GenerationJob & { pausedAt: number
           warning: LOGIN_DETECTION_MESSAGES.WARNINGS.STORAGE_FAILED_MEMORY_FALLBACK,
           memoryState: {
             jobId: pausedJob.id,
-            tempStatus: pausedJob.status
-          }
+            tempStatus: pausedJob.status,
+          },
         };
       }
 
       // 【リトライ間の待機】: 指数バックオフで再試行 🟡
-      await new Promise(resolve => setTimeout(resolve, 100 * attempt));
+      await new Promise((resolve) => setTimeout(resolve, 100 * attempt));
     }
   }
 
@@ -306,7 +307,9 @@ export async function saveJobState(pausedJob: GenerationJob & { pausedAt: number
  * @param pageTransition - ページ遷移情報（URL変化とPageState）
  * @returns LoginCompletedResult - ログイン完了検出の結果
  */
-export function detectLoginCompleted(pageTransition: PageTransition | undefined): LoginCompletedResult {
+export function detectLoginCompleted(
+  pageTransition: PageTransition | undefined
+): LoginCompletedResult {
   // 【null安全性強化】: より詳細な入力値チェック 🟢
   if (!pageTransition || !InputValidator.validatePageTransition(pageTransition)) {
     return {
@@ -316,8 +319,8 @@ export function detectLoginCompleted(pageTransition: PageTransition | undefined)
       message: {
         type: 'LOGIN_COMPLETED',
         detectedAt: Date.now(),
-        availableForResume: false
-      }
+        availableForResume: false,
+      },
     } as LoginCompletedResult & { handled: boolean; fallback: string };
   }
 
@@ -332,8 +335,8 @@ export function detectLoginCompleted(pageTransition: PageTransition | undefined)
       message: {
         type: 'LOGIN_COMPLETED',
         detectedAt: Date.now(),
-        availableForResume: false
-      }
+        availableForResume: false,
+      },
     };
   }
 
@@ -355,12 +358,12 @@ export function detectLoginCompleted(pageTransition: PageTransition | undefined)
   const message: LoginCompletedMessage = {
     type: 'LOGIN_COMPLETED',
     detectedAt: Date.now(),
-    availableForResume: isCompleted
+    availableForResume: isCompleted,
   };
 
   return {
     completed: isCompleted,
-    message: message
+    message: message,
   };
 }
 
@@ -383,20 +386,21 @@ export async function resumeSavedJob(): Promise<JobResumeResult> {
       // 【復元ジョブなし】: 詳細な情報を含む結果 🟡
       return {
         success: false,
-        action: 'no_jobs_to_resume'
+        action: 'no_jobs_to_resume',
       };
     }
 
     const savedJob = pausedJobs[0]; // 【先頭ジョブを処理】: 将来的には複数ジョブ対応を検討
 
     // 【データバリデーション強化】: より厳密なジョブデータの検証 🟡
-    if (!savedJob ||
-        typeof savedJob.id !== 'string' ||
-        savedJob.id.trim().length === 0 ||
-        typeof savedJob.status !== 'string' ||
-        !savedJob.pausedAt ||
-        typeof savedJob.pausedAt !== 'number') {
-
+    if (
+      !savedJob ||
+      typeof savedJob.id !== 'string' ||
+      savedJob.id.trim().length === 0 ||
+      typeof savedJob.status !== 'string' ||
+      !savedJob.pausedAt ||
+      typeof savedJob.pausedAt !== 'number'
+    ) {
       // 【データクリーンアップ】: 破損データの除去 🟡
       await chrome.storage.local.remove('paused_jobs');
 
@@ -405,21 +409,22 @@ export async function resumeSavedJob(): Promise<JobResumeResult> {
         action: 'skip_restoration',
         message: LOGIN_DETECTION_MESSAGES.VALIDATION_ERRORS.INVALID_JOB_DATA,
         cleanupResult: 'corrupted_data_removed',
-        success: false
+        success: false,
       };
     }
 
     // 【再開ポイント決定】: より詳細な再開ポイント判定 🟡
-    const resumePoint = savedJob.resumePoint &&
+    const resumePoint =
+      savedJob.resumePoint &&
       ['prompt_application', 'generation_start', 'download_start'].includes(savedJob.resumePoint)
-      ? savedJob.resumePoint
-      : LOGIN_DETECTION_DEFAULTS.DEFAULT_RESUME_POINT;
+        ? savedJob.resumePoint
+        : LOGIN_DETECTION_DEFAULTS.DEFAULT_RESUME_POINT;
 
     // 【復元メッセージ生成最適化】: 型安全性を確保した詳細なメッセージ 🟢
     const resumeMessage: JobResumeMessage = {
       type: 'RESUME_JOB',
       jobId: savedJob.id,
-      resumePoint: resumePoint as 'prompt_application' | 'generation_start' | 'download_start'
+      resumePoint: resumePoint as 'prompt_application' | 'generation_start' | 'download_start',
     };
 
     // 【復元成功結果最適化】: より詳細な情報を含む結果オブジェクト 🟢
@@ -427,11 +432,10 @@ export async function resumeSavedJob(): Promise<JobResumeResult> {
       success: true,
       resumedJob: {
         id: savedJob.id,
-        resumePoint: resumePoint
+        resumePoint: resumePoint,
       },
-      message: resumeMessage
+      message: resumeMessage,
     };
-
   } catch (error) {
     // 【エラー分類強化】: Chrome API エラーの詳細な分類と対応 🟡
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -439,7 +443,7 @@ export async function resumeSavedJob(): Promise<JobResumeResult> {
     return {
       success: false,
       action: 'storage_error',
-      message: `${LOGIN_DETECTION_MESSAGES.VALIDATION_ERRORS.STORAGE_ACCESS_FAILED}: ${errorMessage}`
+      message: `${LOGIN_DETECTION_MESSAGES.VALIDATION_ERRORS.STORAGE_ACCESS_FAILED}: ${errorMessage}`,
     };
   }
 }
@@ -469,7 +473,7 @@ export class LoginDetectionManager {
       tabResult: 'failed',
       userAction: 'manual_required',
       message: LOGIN_DETECTION_MESSAGES.USER_GUIDANCE.MANUAL_TAB_ACTIVATION,
-      instructions: [...LOGIN_DETECTION_MESSAGES.USER_GUIDANCE.INSTRUCTIONS]
+      instructions: [...LOGIN_DETECTION_MESSAGES.USER_GUIDANCE.INSTRUCTIONS],
     };
   }
 
@@ -491,17 +495,17 @@ export class LoginDetectionManager {
     if (duration < threshold) {
       return {
         detected: false,
-        reason: 'below_threshold'
+        reason: 'below_threshold',
       };
     } else if (duration === threshold) {
       return {
         detected: true,
-        reason: 'threshold_met'
+        reason: 'threshold_met',
       };
     } else {
       return {
         detected: true,
-        reason: 'above_threshold'
+        reason: 'above_threshold',
       };
     }
   }
@@ -525,12 +529,12 @@ export class LoginDetectionManager {
       return {
         blocked: true,
         autoResumeEnabled: false,
-        reason: 'rate_limit_exceeded'
+        reason: 'rate_limit_exceeded',
       };
     } else {
       return {
         blocked: false,
-        autoResumeEnabled: true
+        autoResumeEnabled: true,
       };
     }
   }
@@ -555,7 +559,7 @@ export class LoginDetectionManager {
     return {
       completed: true,
       withinSLA: withinSLA,
-      warning: hasWarning
+      warning: hasWarning,
     };
   }
 
@@ -569,7 +573,7 @@ export class LoginDetectionManager {
     // 【null安全性処理強化】: より詳細なnull/undefined処理 🟡
     return {
       handled: true,
-      fallback: url === null ? '' : LOGIN_DETECTION_DEFAULTS.DEFAULT_JOB_ID
+      fallback: url === null ? '' : LOGIN_DETECTION_DEFAULTS.DEFAULT_JOB_ID,
     };
   }
 

@@ -38,6 +38,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       case 'DOWNLOAD_IMAGE':
         await handleDownloadImage(message, sender, sendResponse);
         break;
+      case 'GENERATION_PROGRESS':
+        // Broadcast to popup (and any listeners)
+        try {
+          await chrome.runtime.sendMessage({
+            type: 'GENERATION_PROGRESS',
+            progress: message.progress,
+          });
+        } catch {}
+        break;
+      case 'GENERATION_COMPLETE':
+        try {
+          await chrome.runtime.sendMessage({ type: 'GENERATION_COMPLETE', count: message.count });
+        } catch {}
+        break;
+      case 'GENERATION_ERROR':
+        try {
+          await chrome.runtime.sendMessage({ type: 'GENERATION_ERROR', error: message.error });
+        } catch {}
+        break;
       default:
         console.warn('Unknown message type:', message?.type);
     }
@@ -95,6 +114,8 @@ export async function handleStartGeneration(
         type: 'APPLY_PROMPT',
         prompt: message.prompt,
         parameters: message.parameters,
+        // Forward optional selectorProfile to force a profile on CS side
+        selectorProfile: message.selectorProfile,
       });
     }
 
@@ -118,7 +139,16 @@ export async function handleCancelJob(
 ): Promise<void> {
   try {
     console.log('Cancelling job:', message.jobId);
-    // TODO: Implement job cancellation logic
+    // Broadcast cancel request to all tabs on novelai.net
+    const tabs = (await chrome.tabs.query({ url: 'https://novelai.net/*' })) || [];
+    for (const t of tabs) {
+      if (!t || !t.id) continue;
+      try {
+        await chrome.tabs.sendMessage(t.id, { type: 'CANCEL_JOB', jobId: message.jobId });
+      } catch (e) {
+        // ignore per-tab errors
+      }
+    }
     _sendResponse({ success: true });
   } catch (error) {
     console.error('Failed to cancel job:', error);
@@ -182,8 +212,3 @@ export async function ensureNovelAITab(): Promise<chrome.tabs.Tab> {
     throw error;
   }
 }
-
-
-
-
-

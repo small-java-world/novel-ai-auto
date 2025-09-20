@@ -88,8 +88,11 @@ export class ProgressStateManager {
     }
 
     // 【論理検証】: currentIndexがtotalCount以下であることを確認
-    if (message.totalCount != null && message.currentIndex != null &&
-        message.currentIndex > message.totalCount) {
+    if (
+      message.totalCount != null &&
+      message.currentIndex != null &&
+      message.currentIndex > message.totalCount
+    ) {
       return false;
     }
 
@@ -102,13 +105,20 @@ export class ProgressStateManager {
    */
   getStatusText(status: string): string {
     switch (status) {
-      case 'waiting': return '待機中';
-      case 'generating': return '生成中';
-      case 'downloading': return 'ダウンロード中';
-      case 'completed': return '完了しました';
-      case 'error': return 'エラーが発生しました';
-      case 'cancelled': return 'キャンセル済み';
-      default: return '処理中';
+      case 'waiting':
+        return '待機中';
+      case 'generating':
+        return '生成中';
+      case 'downloading':
+        return 'ダウンロード中';
+      case 'completed':
+        return '完了しました';
+      case 'error':
+        return 'エラーが発生しました';
+      case 'cancelled':
+        return 'キャンセル済み';
+      default:
+        return '処理中';
     }
   }
 

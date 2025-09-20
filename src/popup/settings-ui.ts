@@ -14,15 +14,11 @@ export type {
   SettingsInput,
   SaveResult,
   ValidationResult,
-  ValidationError
+  ValidationError,
 } from './settings-ui/types';
 
 // 【バリデータエクスポート】: 独立したバリデーション機能の提供
 export { SettingsValidator } from './settings-ui/validation';
 
 // 【定数エクスポート】: 設定値とメッセージの再利用を可能に
-export {
-  DEFAULT_SETTINGS,
-  VALIDATION_CONSTRAINTS,
-  ERROR_MESSAGES
-} from './settings-ui/types';
+export { DEFAULT_SETTINGS, VALIDATION_CONSTRAINTS, ERROR_MESSAGES } from './settings-ui/types';

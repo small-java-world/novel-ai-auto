@@ -92,7 +92,7 @@ export class OptimizedTagFilter {
     }
 
     // 【実際のフィルタリング処理】: AND条件での効率的なフィルタリング
-    const filteredPresets = presets.filter(preset => {
+    const filteredPresets = presets.filter((preset) => {
       // 【早期リターン】: タグがないプリセットは除外
       if (!preset.tags || preset.tags.length === 0) {
         return false;
@@ -100,7 +100,7 @@ export class OptimizedTagFilter {
 
       // 【高速マッチング】: Set を使用したO(1)のタグマッチング
       const presetTagsSet = new Set(preset.tags);
-      return selectedTags.every(selectedTag => presetTagsSet.has(selectedTag));
+      return selectedTags.every((selectedTag) => presetTagsSet.has(selectedTag));
     });
 
     // 【キャッシュ管理】: LRU方式でキャッシュサイズを制御
@@ -194,14 +194,16 @@ export class PerformanceMonitor {
    */
   private checkPerformanceTarget(operationName: string, duration: number): void {
     const thresholds: Record<string, number> = {
-      'metadata_load': PERFORMANCE_CONFIG.METADATA_LOAD_TARGET_MS,
-      'tag_filtering': PERFORMANCE_CONFIG.TAG_FILTERING_TARGET_MS,
-      'format_conversion': PERFORMANCE_CONFIG.FORMAT_CONVERSION_TARGET_MS,
+      metadata_load: PERFORMANCE_CONFIG.METADATA_LOAD_TARGET_MS,
+      tag_filtering: PERFORMANCE_CONFIG.TAG_FILTERING_TARGET_MS,
+      format_conversion: PERFORMANCE_CONFIG.FORMAT_CONVERSION_TARGET_MS,
     };
 
     const threshold = thresholds[operationName];
     if (threshold && duration > threshold) {
-      console.warn(`Performance warning: ${operationName} took ${duration.toFixed(2)}ms (target: ${threshold}ms)`);
+      console.warn(
+        `Performance warning: ${operationName} took ${duration.toFixed(2)}ms (target: ${threshold}ms)`
+      );
     }
   }
 
@@ -293,7 +295,7 @@ export async function* processLargeDataStream(
 
     // 【メモリ解放】: ガベージコレクションの機会を提供
     if (offset % (chunkSize * 10) === 0) {
-      await new Promise(resolve => setTimeout(resolve, 1));
+      await new Promise((resolve) => setTimeout(resolve, 1));
     }
   }
 }

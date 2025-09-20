@@ -54,7 +54,7 @@ export class AccessibilityChecker {
       results.push({
         passed: hasValueNow && hasValueMin && hasValueMax,
         message: `進捗バーのARIA属性: ${hasValueNow && hasValueMin && hasValueMax ? '✅ 適切' : '❌ 不完全'}`,
-        element: progressBar as HTMLElement
+        element: progressBar as HTMLElement,
       });
     }
 
@@ -87,7 +87,7 @@ export class AccessibilityChecker {
       'input:not([disabled])',
       'select:not([disabled])',
       '[tabindex]:not([tabindex="-1"])',
-      'summary'
+      'summary',
     ].join(', ');
 
     const focusableElements = document.querySelectorAll(focusableSelector);
@@ -99,8 +99,8 @@ export class AccessibilityChecker {
 
     // 【tabindex=-1の不適切使用チェック】
     const negativeTabindex = document.querySelectorAll('[tabindex="-1"]');
-    const appropriateNegativeTabindex = Array.from(negativeTabindex).every(el =>
-      el.classList.contains('sr-only') || el.getAttribute('aria-hidden') === 'true'
+    const appropriateNegativeTabindex = Array.from(negativeTabindex).every(
+      (el) => el.classList.contains('sr-only') || el.getAttribute('aria-hidden') === 'true'
     );
 
     results.push({
@@ -134,7 +134,7 @@ export class AccessibilityChecker {
 
     // 【ラベル関連付けチェック】
     const inputs = document.querySelectorAll('input, select');
-    const labeledInputs = Array.from(inputs).filter(input => {
+    const labeledInputs = Array.from(inputs).filter((input) => {
       const id = input.getAttribute('id');
       return id && document.querySelector(`label[for="${id}"]`);
     });
@@ -185,7 +185,7 @@ export class AccessibilityChecker {
     results.push({
       passed: !!skipLink,
       message: `スキップリンク: ${skipLink ? '✅ 存在' : '❌ 不存在'}`,
-      element: skipLink as HTMLElement
+      element: skipLink as HTMLElement,
     });
 
     // 【フォーカス表示CSSチェック】
@@ -208,11 +208,11 @@ export class AccessibilityChecker {
     try {
       for (const sheet of styleSheets) {
         const rules = Array.from(sheet.cssRules || []);
-        const hasFocusRules = rules.some(rule => {
+        const hasFocusRules = rules.some((rule) => {
           if (rule instanceof CSSStyleRule) {
-            return rule.selectorText && (
-              rule.selectorText.includes(':focus') ||
-              rule.selectorText.includes(':focus-visible')
+            return (
+              rule.selectorText &&
+              (rule.selectorText.includes(':focus') || rule.selectorText.includes(':focus-visible'))
             );
           }
           return false;
@@ -223,7 +223,7 @@ export class AccessibilityChecker {
     } catch (e) {
       // CORS制限等でアクセスできない場合は、要素に直接設定されているかチェック
       const focusableElements = document.querySelectorAll('button, input, select');
-      return Array.from(focusableElements).some(el => {
+      return Array.from(focusableElements).some((el) => {
         const computedStyle = getComputedStyle(el, ':focus');
         return computedStyle.outline !== 'none' || computedStyle.boxShadow !== 'none';
       });
@@ -243,21 +243,19 @@ export class AccessibilityChecker {
     score: number;
     details: string[];
   } {
-    const passed = results.filter(r => r.passed).length;
-    const failed = results.filter(r => !r.passed).length;
+    const passed = results.filter((r) => r.passed).length;
+    const failed = results.filter((r) => !r.passed).length;
     const total = results.length;
     const score = Math.round((passed / total) * 100);
 
-    const details = results.map(r =>
-      `${r.passed ? '✅' : '❌'} ${r.message}`
-    );
+    const details = results.map((r) => `${r.passed ? '✅' : '❌'} ${r.message}`);
 
     return {
       passed,
       failed,
       total,
       score,
-      details
+      details,
     };
   }
 }

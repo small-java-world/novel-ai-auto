@@ -5,7 +5,10 @@
  * 🟢 信頼性レベル: 高（TC-072-203テストケース要件とセキュリティベストプラクティスに基づく）
  */
 
-import { STORAGE_DOWNLOAD_CONFIG, FILENAME_PATTERNS } from './storage-download-compatibility-config';
+import {
+  STORAGE_DOWNLOAD_CONFIG,
+  FILENAME_PATTERNS,
+} from './storage-download-compatibility-config';
 
 /**
  * ファイル名サニタイズ結果の詳細情報
@@ -58,7 +61,7 @@ export class FilenameSanitizer {
         sanitizedName: 'download' + STORAGE_DOWNLOAD_CONFIG.DEFAULT_EXTENSION,
         originalName: originalName,
         wasModified: true,
-        issues: ['無効な入力値のためデフォルト名を使用']
+        issues: ['無効な入力値のためデフォルト名を使用'],
       };
     }
 
@@ -102,7 +105,7 @@ export class FilenameSanitizer {
       sanitizedName: result,
       originalName: originalName,
       wasModified: result !== originalName,
-      issues: issues
+      issues: issues,
     };
   }
 
@@ -123,7 +126,7 @@ export class FilenameSanitizer {
 
     return {
       baseName: fileName.substring(0, lastDotIndex),
-      extension: fileName.substring(lastDotIndex)
+      extension: fileName.substring(lastDotIndex),
     };
   }
 

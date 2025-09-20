@@ -54,13 +54,13 @@ describe('TASK-042 Settings UI - 設定画面機能', () => {
       // 【期待値確認】: TASK-042要件定義で明示されたデフォルト値との整合性確認
       // 【品質保証】: ユーザー体験における第一印象の品質確保
       expect(settingsUI.getImageCount()).toBe(10); // 【確認内容】: 画像生成数デフォルト値10の設定確認 🟢
-      expect(settingsUI.getSeedMode()).toBe("random"); // 【確認内容】: シードモードがランダムに設定されることを確認 🟢
+      expect(settingsUI.getSeedMode()).toBe('random'); // 【確認内容】: シードモードがランダムに設定されることを確認 🟢
       expect(settingsUI.getSeedValue()).toBeUndefined(); // 【確認内容】: ランダムモード時はシード値が未設定であることを確認 🟢
-      expect(settingsUI.getFilenameTemplate()).toBe("{date}_{prompt}_{seed}_{idx}"); // 【確認内容】: ファイル名テンプレートデフォルト値の設定確認 🟢
+      expect(settingsUI.getFilenameTemplate()).toBe('{date}_{prompt}_{seed}_{idx}'); // 【確認内容】: ファイル名テンプレートデフォルト値の設定確認 🟢
       expect(settingsUI.getRetrySettings()).toEqual({
         maxAttempts: 3,
         baseDelayMs: 1000,
-        factor: 2.0
+        factor: 2.0,
       }); // 【確認内容】: リトライ設定のデフォルト値が全て正しく設定されることを確認 🟢
     });
 
@@ -75,14 +75,14 @@ describe('TASK-042 Settings UI - 設定画面機能', () => {
       // 【前提条件確認】: 全制約条件内の有効値を使用してバリデーション通過を保証
       const testSettings = {
         imageCount: 25,
-        seedMode: "fixed" as const,
+        seedMode: 'fixed' as const,
         seedValue: 12345,
-        filenameTemplate: "{date}_custom_{seed}",
+        filenameTemplate: '{date}_custom_{seed}',
         retrySettings: {
           maxAttempts: 5,
           baseDelayMs: 2000,
-          factor: 1.5
-        }
+          factor: 1.5,
+        },
       };
 
       mockChromeStorage.local.set.mockResolvedValue(void 0);
@@ -99,10 +99,10 @@ describe('TASK-042 Settings UI - 設定画面機能', () => {
       // 【品質保証】: 設定保存機能の信頼性とユーザー体験の確保
       expect(result.validationResult.isValid).toBe(true); // 【確認内容】: バリデーション成功の確認 🟢
       expect(result.validationResult.errors).toEqual({}); // 【確認内容】: エラーが存在しないことの確認 🟢
-      expect(result.storageStatus).toBe("success"); // 【確認内容】: ストレージ保存成功ステータスの確認 🟢
+      expect(result.storageStatus).toBe('success'); // 【確認内容】: ストレージ保存成功ステータスの確認 🟢
       expect(result.savedSettings).toEqual(testSettings); // 【確認内容】: 保存された設定値が入力値と一致することの確認 🟢
       expect(mockChromeStorage.local.set).toHaveBeenCalledWith({
-        namespace_settings: testSettings
+        namespace_settings: testSettings,
       }); // 【確認内容】: Chrome storage API が正しい値で呼び出されることの確認 🟢
     });
 
@@ -117,18 +117,18 @@ describe('TASK-042 Settings UI - 設定画面機能', () => {
       // 【前提条件確認】: 保存済み設定値は全て有効な値で構成されている
       const savedSettings = {
         imageCount: 50,
-        seedMode: "fixed" as const,
+        seedMode: 'fixed' as const,
         seedValue: 98765,
-        filenameTemplate: "{prompt}_{idx}_custom",
+        filenameTemplate: '{prompt}_{idx}_custom',
         retrySettings: {
           maxAttempts: 8,
           baseDelayMs: 3000,
-          factor: 2.5
-        }
+          factor: 2.5,
+        },
       };
 
       mockChromeStorage.local.get.mockResolvedValue({
-        namespace_settings: savedSettings
+        namespace_settings: savedSettings,
       });
 
       // 【実際の処理実行】: 設定読み込みと UI 初期化処理を実行
@@ -141,13 +141,13 @@ describe('TASK-042 Settings UI - 設定画面機能', () => {
       // 【期待値確認】: 保存済み設定値とUI表示値の完全一致を検証
       // 【品質保証】: 設定永続化機能の信頼性とデータ整合性の確保
       expect(settingsUI.getImageCount()).toBe(50); // 【確認内容】: 画像生成数の復元確認 🟢
-      expect(settingsUI.getSeedMode()).toBe("fixed"); // 【確認内容】: シードモードの復元確認 🟢
+      expect(settingsUI.getSeedMode()).toBe('fixed'); // 【確認内容】: シードモードの復元確認 🟢
       expect(settingsUI.getSeedValue()).toBe(98765); // 【確認内容】: シード値の復元確認 🟢
-      expect(settingsUI.getFilenameTemplate()).toBe("{prompt}_{idx}_custom"); // 【確認内容】: ファイル名テンプレートの復元確認 🟢
+      expect(settingsUI.getFilenameTemplate()).toBe('{prompt}_{idx}_custom'); // 【確認内容】: ファイル名テンプレートの復元確認 🟢
       expect(settingsUI.getRetrySettings()).toEqual({
         maxAttempts: 8,
         baseDelayMs: 3000,
-        factor: 2.5
+        factor: 2.5,
       }); // 【確認内容】: リトライ設定の復元確認 🟢
     });
   });
@@ -164,9 +164,9 @@ describe('TASK-042 Settings UI - 設定画面機能', () => {
       // 【前提条件確認】: 0および101は明確に制約範囲外の値
       const invalidSettings = {
         imageCount: 0,
-        seedMode: "random" as const,
-        filenameTemplate: "{date}_{prompt}_{seed}_{idx}",
-        retrySettings: { maxAttempts: 3, baseDelayMs: 1000, factor: 2.0 }
+        seedMode: 'random' as const,
+        filenameTemplate: '{date}_{prompt}_{seed}_{idx}',
+        retrySettings: { maxAttempts: 3, baseDelayMs: 1000, factor: 2.0 },
       };
 
       const settingsUI = new SettingsUI();
@@ -181,8 +181,8 @@ describe('TASK-042 Settings UI - 設定画面機能', () => {
       // 【期待値確認】: バリデーション失敗、具体的エラーメッセージ、保存処理の阻止
       // 【品質保証】: ユーザーエラーの事前防止とシステム安定性の保証
       expect(result.validationResult.isValid).toBe(false); // 【確認内容】: バリデーション失敗の確認 🟢
-      expect(result.validationResult.errors.imageCount).toBe("1以上100以下の値を入力してください"); // 【確認内容】: 具体的なエラーメッセージの確認 🟢
-      expect(result.storageStatus).toBe("error"); // 【確認内容】: 保存処理が実行されないことの確認 🟢
+      expect(result.validationResult.errors.imageCount).toBe('1以上100以下の値を入力してください'); // 【確認内容】: 具体的なエラーメッセージの確認 🟢
+      expect(result.storageStatus).toBe('error'); // 【確認内容】: 保存処理が実行されないことの確認 🟢
       expect(mockChromeStorage.local.set).not.toHaveBeenCalled(); // 【確認内容】: 無効値での保存が阻止されることの確認 🟢
     });
 
@@ -197,10 +197,10 @@ describe('TASK-042 Settings UI - 設定画面機能', () => {
       // 【前提条件確認】: seedMode="fixed"時はseedValueが0以上2^32-1以下の整数である必要
       const invalidSettings = {
         imageCount: 10,
-        seedMode: "fixed" as const,
+        seedMode: 'fixed' as const,
         seedValue: -1, // 負の値は無効
-        filenameTemplate: "{date}_{prompt}_{seed}_{idx}",
-        retrySettings: { maxAttempts: 3, baseDelayMs: 1000, factor: 2.0 }
+        filenameTemplate: '{date}_{prompt}_{seed}_{idx}',
+        retrySettings: { maxAttempts: 3, baseDelayMs: 1000, factor: 2.0 },
       };
 
       const settingsUI = new SettingsUI();
@@ -215,8 +215,8 @@ describe('TASK-042 Settings UI - 設定画面機能', () => {
       // 【期待値確認】: シード値固有のエラーメッセージとバリデーション失敗の確認
       // 【品質保証】: NovelAI連携における生成パラメータの整合性保証
       expect(result.validationResult.isValid).toBe(false); // 【確認内容】: バリデーション失敗の確認 🟢
-      expect(result.validationResult.errors.seedValue).toBe("0以上の整数値を入力してください"); // 【確認内容】: シード値固有のエラーメッセージ確認 🟡
-      expect(result.storageStatus).toBe("error"); // 【確認内容】: 保存処理が実行されないことの確認 🟢
+      expect(result.validationResult.errors.seedValue).toBe('0以上の整数値を入力してください'); // 【確認内容】: シード値固有のエラーメッセージ確認 🟡
+      expect(result.storageStatus).toBe('error'); // 【確認内容】: 保存処理が実行されないことの確認 🟢
     });
 
     test('TC-002-003: ファイル名テンプレートの無効文字エラー', async () => {
@@ -230,9 +230,9 @@ describe('TASK-042 Settings UI - 設定画面機能', () => {
       // 【前提条件確認】: これらの文字はWindows/macOS/Linuxで共通してファイル名に使用不可
       const invalidSettings = {
         imageCount: 10,
-        seedMode: "random" as const,
-        filenameTemplate: "{date}<>:|?{prompt}",
-        retrySettings: { maxAttempts: 3, baseDelayMs: 1000, factor: 2.0 }
+        seedMode: 'random' as const,
+        filenameTemplate: '{date}<>:|?{prompt}',
+        retrySettings: { maxAttempts: 3, baseDelayMs: 1000, factor: 2.0 },
       };
 
       const settingsUI = new SettingsUI();
@@ -247,8 +247,10 @@ describe('TASK-042 Settings UI - 設定画面機能', () => {
       // 【期待値確認】: 禁止文字の特定とユーザーフレンドリーなエラーメッセージ
       // 【品質保証】: ファイルダウンロード時のエラー防止とセキュリティ確保
       expect(result.validationResult.isValid).toBe(false); // 【確認内容】: バリデーション失敗の確認 🟢
-      expect(result.validationResult.errors.filenameTemplate).toContain("ファイル名に使用できない文字が含まれています"); // 【確認内容】: ファイル名禁止文字エラーメッセージの確認 🟢
-      expect(result.storageStatus).toBe("error"); // 【確認内容】: 保存処理が実行されないことの確認 🟢
+      expect(result.validationResult.errors.filenameTemplate).toContain(
+        'ファイル名に使用できない文字が含まれています'
+      ); // 【確認内容】: ファイル名禁止文字エラーメッセージの確認 🟢
+      expect(result.storageStatus).toBe('error'); // 【確認内容】: 保存処理が実行されないことの確認 🟢
     });
 
     test('TC-002-004: Chrome Storage保存失敗エラー', async () => {
@@ -262,12 +264,12 @@ describe('TASK-042 Settings UI - 設定画面機能', () => {
       // 【前提条件確認】: 設定値自体は有効だが、ストレージ操作でエラーが発生する状況
       const validSettings = {
         imageCount: 25,
-        seedMode: "random" as const,
-        filenameTemplate: "{date}_{prompt}_{seed}_{idx}",
-        retrySettings: { maxAttempts: 5, baseDelayMs: 2000, factor: 1.5 }
+        seedMode: 'random' as const,
+        filenameTemplate: '{date}_{prompt}_{seed}_{idx}',
+        retrySettings: { maxAttempts: 5, baseDelayMs: 2000, factor: 1.5 },
       };
 
-      mockChromeStorage.local.set.mockRejectedValue(new Error("Storage quota exceeded"));
+      mockChromeStorage.local.set.mockRejectedValue(new Error('Storage quota exceeded'));
       const settingsUI = new SettingsUI();
       await settingsUI.initialize();
 
@@ -280,8 +282,10 @@ describe('TASK-042 Settings UI - 設定画面機能', () => {
       // 【期待値確認】: バリデーション通過後のストレージエラー処理と分かりやすいエラーメッセージ
       // 【品質保証】: ブラウザ環境制約に対する適切な対応とユーザー体験の維持
       expect(result.validationResult.isValid).toBe(true); // 【確認内容】: バリデーションは成功していることの確認 🟢
-      expect(result.storageStatus).toBe("error"); // 【確認内容】: ストレージ処理のエラーステータス確認 🟢
-      expect(result.errorMessage).toBe("設定の保存に失敗しました。しばらく時間をおいて再試行してください。"); // 【確認内容】: ユーザーフレンドリーなエラーメッセージ確認 🔴
+      expect(result.storageStatus).toBe('error'); // 【確認内容】: ストレージ処理のエラーステータス確認 🟢
+      expect(result.errorMessage).toBe(
+        '設定の保存に失敗しました。しばらく時間をおいて再試行してください。'
+      ); // 【確認内容】: ユーザーフレンドリーなエラーメッセージ確認 🔴
     });
   });
 
@@ -297,16 +301,16 @@ describe('TASK-042 Settings UI - 設定画面機能', () => {
       // 【前提条件確認】: 1と100は制約範囲内の有効な境界値
       const minBoundarySettings = {
         imageCount: 1, // 最小境界値
-        seedMode: "random" as const,
-        filenameTemplate: "{date}_{prompt}_{seed}_{idx}",
-        retrySettings: { maxAttempts: 3, baseDelayMs: 1000, factor: 2.0 }
+        seedMode: 'random' as const,
+        filenameTemplate: '{date}_{prompt}_{seed}_{idx}',
+        retrySettings: { maxAttempts: 3, baseDelayMs: 1000, factor: 2.0 },
       };
 
       const maxBoundarySettings = {
         imageCount: 100, // 最大境界値
-        seedMode: "random" as const,
-        filenameTemplate: "{date}_{prompt}_{seed}_{idx}",
-        retrySettings: { maxAttempts: 3, baseDelayMs: 1000, factor: 2.0 }
+        seedMode: 'random' as const,
+        filenameTemplate: '{date}_{prompt}_{seed}_{idx}',
+        retrySettings: { maxAttempts: 3, baseDelayMs: 1000, factor: 2.0 },
       };
 
       mockChromeStorage.local.set.mockResolvedValue(void 0);
@@ -328,8 +332,8 @@ describe('TASK-042 Settings UI - 設定画面機能', () => {
       // 【品質保証】: 極端な条件でもアプリケーションが安定動作することを確認
       expect(minResult.validationResult.isValid).toBe(true); // 【確認内容】: 最小境界値（1）のバリデーション成功確認 🟢
       expect(maxResult.validationResult.isValid).toBe(true); // 【確認内容】: 最大境界値（100）のバリデーション成功確認 🟢
-      expect(minResult.storageStatus).toBe("success"); // 【確認内容】: 最小境界値での保存成功確認 🟢
-      expect(maxResult.storageStatus).toBe("success"); // 【確認内容】: 最大境界値での保存成功確認 🟢
+      expect(minResult.storageStatus).toBe('success'); // 【確認内容】: 最小境界値での保存成功確認 🟢
+      expect(maxResult.storageStatus).toBe('success'); // 【確認内容】: 最大境界値での保存成功確認 🟢
     });
 
     test('TC-003-002: リトライ設定の境界値組み合わせテスト', async () => {
@@ -343,13 +347,13 @@ describe('TASK-042 Settings UI - 設定画面機能', () => {
       // 【前提条件確認】: maxAttempts=1, baseDelayMs=5000, factor=3.0 が各々の境界値
       const boundaryRetrySettings = {
         imageCount: 10,
-        seedMode: "random" as const,
-        filenameTemplate: "{date}_{prompt}_{seed}_{idx}",
+        seedMode: 'random' as const,
+        filenameTemplate: '{date}_{prompt}_{seed}_{idx}',
         retrySettings: {
-          maxAttempts: 1,      // 最小値境界
-          baseDelayMs: 5000,   // 最大値境界
-          factor: 3.0          // 最大値境界
-        }
+          maxAttempts: 1, // 最小値境界
+          baseDelayMs: 5000, // 最大値境界
+          factor: 3.0, // 最大値境界
+        },
       };
 
       mockChromeStorage.local.set.mockResolvedValue(void 0);
@@ -365,11 +369,11 @@ describe('TASK-042 Settings UI - 設定画面機能', () => {
       // 【期待値確認】: 各制約が相互影響せず、個別境界値が正しく有効判定される
       // 【品質保証】: パラメータ間の相互影響を排除し、個別制約の確実な動作を保証
       expect(result.validationResult.isValid).toBe(true); // 【確認内容】: 複合境界値でのバリデーション成功確認 🟡
-      expect(result.storageStatus).toBe("success"); // 【確認内容】: 複合境界値での保存成功確認 🟡
+      expect(result.storageStatus).toBe('success'); // 【確認内容】: 複合境界値での保存成功確認 🟡
       expect(result.savedSettings.retrySettings).toEqual({
         maxAttempts: 1,
         baseDelayMs: 5000,
-        factor: 3.0
+        factor: 3.0,
       }); // 【確認内容】: 境界値が正確に保存されることの確認 🟡
     });
 
@@ -382,12 +386,12 @@ describe('TASK-042 Settings UI - 設定画面機能', () => {
       // 【テストデータ準備】: 255文字の有効なテンプレート文字列を構築
       // 【初期条件設定】: 基本トークン + 226文字の追加文字で255文字に調整
       // 【前提条件確認】: 255文字がファイルシステム制約とTASK-042要件の上限値
-      const maxLengthTemplate = "{date}_{prompt}_{seed}_{idx}_" + "a".repeat(226); // 合計255文字
+      const maxLengthTemplate = '{date}_{prompt}_{seed}_{idx}_' + 'a'.repeat(226); // 合計255文字
       const maxLengthSettings = {
         imageCount: 10,
-        seedMode: "random" as const,
+        seedMode: 'random' as const,
         filenameTemplate: maxLengthTemplate,
-        retrySettings: { maxAttempts: 3, baseDelayMs: 1000, factor: 2.0 }
+        retrySettings: { maxAttempts: 3, baseDelayMs: 1000, factor: 2.0 },
       };
 
       mockChromeStorage.local.set.mockResolvedValue(void 0);
@@ -404,7 +408,7 @@ describe('TASK-042 Settings UI - 設定画面機能', () => {
       // 【品質保証】: ファイルシステム制限ギリギリでの安定動作を保証
       expect(maxLengthTemplate.length).toBe(255); // 【確認内容】: テンプレート文字列が正確に255文字であることの確認 🟢
       expect(result.validationResult.isValid).toBe(true); // 【確認内容】: 最大長でのバリデーション成功確認 🟡
-      expect(result.storageStatus).toBe("success"); // 【確認内容】: 最大長での保存成功確認 🟡
+      expect(result.storageStatus).toBe('success'); // 【確認内容】: 最大長での保存成功確認 🟡
       expect(result.savedSettings.filenameTemplate).toBe(maxLengthTemplate); // 【確認内容】: 最大長テンプレートが正確に保存されることの確認 🟡
     });
 
@@ -419,10 +423,10 @@ describe('TASK-042 Settings UI - 設定画面機能', () => {
       // 【前提条件確認】: これらの値は全て必須フィールドの最小存在条件を満たしていない
       const emptySettings = {
         imageCount: null as any, // null値
-        seedMode: "fixed" as const,
+        seedMode: 'fixed' as const,
         seedValue: undefined, // undefined（固定シードモード時は必須）
-        filenameTemplate: "", // 空文字
-        retrySettings: { maxAttempts: 3, baseDelayMs: 1000, factor: 2.0 }
+        filenameTemplate: '', // 空文字
+        retrySettings: { maxAttempts: 3, baseDelayMs: 1000, factor: 2.0 },
       };
 
       const settingsUI = new SettingsUI();
@@ -437,10 +441,14 @@ describe('TASK-042 Settings UI - 設定画面機能', () => {
       // 【期待値確認】: 空値が確実に無効値として識別され、適切なエラーメッセージが表示される
       // 【品質保証】: 予期しない空値に対する適切なエラーハンドリングとユーザビリティの確保
       expect(result.validationResult.isValid).toBe(false); // 【確認内容】: バリデーション失敗の確認 🟢
-      expect(result.validationResult.errors.imageCount).toBe("画像生成数を入力してください"); // 【確認内容】: null値に対するエラーメッセージ確認 🟢
-      expect(result.validationResult.errors.seedValue).toBe("固定シードモード時はシード値が必要です"); // 【確認内容】: undefined値に対するエラーメッセージ確認 🟢
-      expect(result.validationResult.errors.filenameTemplate).toBe("ファイル名テンプレートは必須です"); // 【確認内容】: 空文字に対するエラーメッセージ確認 🟢
-      expect(result.storageStatus).toBe("error"); // 【確認内容】: 保存処理が実行されないことの確認 🟢
+      expect(result.validationResult.errors.imageCount).toBe('画像生成数を入力してください'); // 【確認内容】: null値に対するエラーメッセージ確認 🟢
+      expect(result.validationResult.errors.seedValue).toBe(
+        '固定シードモード時はシード値が必要です'
+      ); // 【確認内容】: undefined値に対するエラーメッセージ確認 🟢
+      expect(result.validationResult.errors.filenameTemplate).toBe(
+        'ファイル名テンプレートは必須です'
+      ); // 【確認内容】: 空文字に対するエラーメッセージ確認 🟢
+      expect(result.storageStatus).toBe('error'); // 【確認内容】: 保存処理が実行されないことの確認 🟢
     });
   });
 });

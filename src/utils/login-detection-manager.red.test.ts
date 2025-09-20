@@ -32,7 +32,7 @@ import {
   pauseCurrentJob,
   saveJobState,
   detectLoginCompleted,
-  resumeSavedJob
+  resumeSavedJob,
 } from './login-detection-manager';
 
 describe('LoginDetectionManager - TASK-070 ログイン要求の検出と再開', () => {
@@ -97,7 +97,7 @@ describe('LoginDetectionManager - TASK-070 ログイン要求の検出と再開'
         progress: { current: 3, total: 10 },
         resumePoint: 'generation_start' as const,
         prompt: 'beautiful landscape',
-        parameters: { steps: 28, cfgScale: 7 }
+        parameters: { steps: 28, cfgScale: 7 },
       };
 
       const pausedAt = Date.now();
@@ -132,7 +132,7 @@ describe('LoginDetectionManager - TASK-070 ログイン要求の検出と再開'
         parameters: { steps: 28, cfgScale: 7 },
         progress: { current: 2, total: 5 },
         resumePoint: 'generation_start' as const,
-        pausedAt: Date.now()
+        pausedAt: Date.now(),
       };
 
       mockChrome.storage.local.set.mockResolvedValue(undefined);
@@ -145,15 +145,17 @@ describe('LoginDetectionManager - TASK-070 ログイン要求の検出と再開'
       // 【期待値確認】: ストレージAPI 呼び出し、データ形式、必須フィールドの存在を検証
       await expect(result).resolves.toMatchObject({ storageResult: 'success' }); // 【確認内容】: ストレージ保存処理が成功することを確認 🟢
       expect(mockChrome.storage.local.set).toHaveBeenCalledWith({
-        'paused_jobs': [{
-          id: 'job-789',
-          status: 'paused',
-          prompt: 'beautiful landscape',
-          parameters: { steps: 28, cfgScale: 7 },
-          progress: { current: 2, total: 5 },
-          resumePoint: 'generation_start',
-          pausedAt: expect.any(Number)
-        }]
+        paused_jobs: [
+          {
+            id: 'job-789',
+            status: 'paused',
+            prompt: 'beautiful landscape',
+            parameters: { steps: 28, cfgScale: 7 },
+            progress: { current: 2, total: 5 },
+            resumePoint: 'generation_start',
+            pausedAt: expect.any(Number),
+          },
+        ],
       }); // 【確認内容】: chrome.storage.local.set が正しいデータ形式で呼び出されることを確認 🟢
     });
 
@@ -172,8 +174,8 @@ describe('LoginDetectionManager - TASK-070 ログイン要求の検出と再開'
           isLoggedIn: true,
           hasPromptInput: true,
           isNovelAIPage: true,
-          currentUrl: 'https://novelai.net/'
-        }
+          currentUrl: 'https://novelai.net/',
+        },
       };
 
       // NovelAI メインページのDOM構造を模擬
@@ -211,11 +213,11 @@ describe('LoginDetectionManager - TASK-070 ログイン要求の検出と再開'
         progress: { current: 2, total: 5 },
         prompt: 'anime character portrait',
         parameters: { steps: 30, cfgScale: 8 },
-        pausedAt: Date.now() - 10000 // 10秒前に一時停止
+        pausedAt: Date.now() - 10000, // 10秒前に一時停止
       };
 
       mockChrome.storage.local.get.mockResolvedValue({
-        'paused_jobs': [savedJob]
+        paused_jobs: [savedJob],
       });
 
       // 【実際の処理実行】: ジョブ復元機能を呼び出し、ストレージからの読み取りと再開メッセージ生成を実行
@@ -228,13 +230,13 @@ describe('LoginDetectionManager - TASK-070 ログイン要求の検出と再開'
         success: true,
         resumedJob: {
           id: 'job-restore-001',
-          resumePoint: 'generation_start'
+          resumePoint: 'generation_start',
         },
         message: {
           type: 'RESUME_JOB',
           jobId: 'job-restore-001',
-          resumePoint: 'generation_start'
-        }
+          resumePoint: 'generation_start',
+        },
       }); // 【確認内容】: ジョブ復元処理が成功し、正しい形式で結果が返されることを確認 🟢
 
       expect(mockChrome.storage.local.get).toHaveBeenCalledWith('paused_jobs'); // 【確認内容】: chrome.storage から正しいキーでデータが読み取られることを確認 🟢
@@ -286,7 +288,7 @@ describe('LoginDetectionManager - TASK-070 ログイン要求の検出と再開'
         progress: { current: 1, total: 3 },
         prompt: 'test prompt',
         parameters: { steps: 28, cfgScale: 7 },
-        pausedAt: Date.now()
+        pausedAt: Date.now(),
       };
 
       const storageError = new Error('QUOTA_EXCEEDED_ERR');
@@ -304,8 +306,8 @@ describe('LoginDetectionManager - TASK-070 ログイン要求の検出と再開'
         warning: expect.stringContaining('Storage failed'),
         memoryState: {
           jobId: 'job-error-001',
-          tempStatus: 'paused'
-        }
+          tempStatus: 'paused',
+        },
       }); // 【確認内容】: ストレージ失敗時にメモリ内フォールバックが正しく動作することを確認 🟡
     });
 
@@ -346,11 +348,11 @@ describe('LoginDetectionManager - TASK-070 ログイン要求の検出と再開'
       const corruptedJob = {
         id: null,
         status: 'unknown_status' as any,
-        progress: { current: -1, total: 'invalid' as any }
+        progress: { current: -1, total: 'invalid' as any },
       };
 
       mockChrome.storage.local.get.mockResolvedValue({
-        'paused_jobs': [corruptedJob]
+        paused_jobs: [corruptedJob],
       });
 
       mockChrome.storage.local.remove = vi.fn().mockResolvedValue(undefined);
@@ -365,7 +367,7 @@ describe('LoginDetectionManager - TASK-070 ログイン要求の検出と再開'
         validationResult: 'failed',
         action: 'skip_restoration',
         message: expect.stringContaining('保存されたジョブデータが無効'),
-        cleanupResult: 'corrupted_data_removed'
+        cleanupResult: 'corrupted_data_removed',
       }); // 【確認内容】: 無効データが適切に処理され、安全な状態に復旧することを確認 🟡
     });
   });
@@ -382,7 +384,7 @@ describe('LoginDetectionManager - TASK-070 ログイン要求の検出と再開'
       const testCases = [
         { duration: 499, shouldDetect: false },
         { duration: 500, shouldDetect: true },
-        { duration: 501, shouldDetect: true }
+        { duration: 501, shouldDetect: true },
       ];
 
       document.body.innerHTML = `<form class="login-form"><input type="email"></form>`;
@@ -396,7 +398,9 @@ describe('LoginDetectionManager - TASK-070 ログイン要求の検出と再開'
         // 【期待値確認】: 境界値前後での判定ロジックに矛盾がないことを検証
         if (testCase.shouldDetect) {
           expect(result.detected).toBe(true); // 【確認内容】: 閾値以上で検出が動作することを確認 🟢
-          expect(result.reason).toBe(testCase.duration === 500 ? 'threshold_met' : 'above_threshold'); // 【確認内容】: 閾値での正確な判定理由が記録されることを確認 🟢
+          expect(result.reason).toBe(
+            testCase.duration === 500 ? 'threshold_met' : 'above_threshold'
+          ); // 【確認内容】: 閾値での正確な判定理由が記録されることを確認 🟢
         } else {
           expect(result.detected).toBe(false); // 【確認内容】: 閾値未満で検出されないことを確認 🟢
           expect(result.reason).toBe('below_threshold'); // 【確認内容】: 閾値未満の理由が正しく記録されることを確認 🟢
@@ -416,7 +420,7 @@ describe('LoginDetectionManager - TASK-070 ログイン要求の検出と再開'
       const testCases = [
         { attempts: 4, withinWindow: true, shouldBlock: false },
         { attempts: 5, withinWindow: true, shouldBlock: true },
-        { attempts: 6, withinWindow: true, shouldBlock: true }
+        { attempts: 6, withinWindow: true, shouldBlock: true },
       ];
 
       for (const testCase of testCases) {
@@ -448,7 +452,7 @@ describe('LoginDetectionManager - TASK-070 ログイン要求の検出と再開'
       const testScenarios = [
         { processingTime: 999, expectSuccess: true, expectWarning: false },
         { processingTime: 1000, expectSuccess: true, expectWarning: false },
-        { processingTime: 1001, expectSuccess: true, expectWarning: true }
+        { processingTime: 1001, expectSuccess: true, expectWarning: true },
       ];
 
       document.body.innerHTML = `<form class="login-form"><input type="email"></form>`;
@@ -483,7 +487,7 @@ describe('LoginDetectionManager - TASK-070 ログイン要求の検出と再開'
         { jobId: null, expectedBehavior: 'use_default_or_skip' },
         { jobId: undefined, expectedBehavior: 'use_default_or_skip' },
         { currentUrl: null, expectedBehavior: 'use_empty_string' },
-        { pageState: undefined, expectedBehavior: 'use_default_state' }
+        { pageState: undefined, expectedBehavior: 'use_default_state' },
       ];
 
       for (const testCase of testCases) {

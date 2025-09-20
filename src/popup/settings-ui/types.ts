@@ -12,14 +12,14 @@
  * 🟢 TASK-042要件定義とテストケースに基づく確実な定義
  */
 export interface SettingsInput {
-  imageCount: number;        // 1-100の範囲制限
-  seedMode: "random" | "fixed";  // ランダムまたは固定シード
-  seedValue?: number;        // seedMode="fixed"時の具体値（0～2^32-1）
-  filenameTemplate: string;  // ファイル名テンプレート（最大255文字）
+  imageCount: number; // 1-100の範囲制限
+  seedMode: 'random' | 'fixed'; // ランダムまたは固定シード
+  seedValue?: number; // seedMode="fixed"時の具体値（0～2^32-1）
+  filenameTemplate: string; // ファイル名テンプレート（最大255文字）
   retrySettings: {
-    maxAttempts: number;     // リトライ最大回数（1-10）
-    baseDelayMs: number;     // 基本遅延時間（100-5000ms）
-    factor: number;          // 遅延倍率（1.1-3.0）
+    maxAttempts: number; // リトライ最大回数（1-10）
+    baseDelayMs: number; // 基本遅延時間（100-5000ms）
+    factor: number; // 遅延倍率（1.1-3.0）
   };
 }
 
@@ -30,7 +30,7 @@ export interface SettingsInput {
  */
 export interface ValidationResult {
   isValid: boolean;
-  errors: Record<string, string>;  // フィールド名 → エラーメッセージ
+  errors: Record<string, string>; // フィールド名 → エラーメッセージ
 }
 
 /**
@@ -50,9 +50,9 @@ export interface ValidationError {
  */
 export interface SaveResult {
   validationResult: ValidationResult;
-  savedSettings: SettingsInput;      // 保存された設定値
-  storageStatus: "success" | "error"; // 保存処理の成否
-  errorMessage?: string;             // ストレージエラー時のメッセージ
+  savedSettings: SettingsInput; // 保存された設定値
+  storageStatus: 'success' | 'error'; // 保存処理の成否
+  errorMessage?: string; // ストレージエラー時のメッセージ
 }
 
 /**
@@ -64,21 +64,21 @@ export interface SaveResult {
 export const VALIDATION_CONSTRAINTS = {
   imageCount: {
     min: 1,
-    max: 100
+    max: 100,
   },
   seedValue: {
     min: 0,
-    max: Math.pow(2, 32) - 1  // 2^32-1 (4294967295)
+    max: Math.pow(2, 32) - 1, // 2^32-1 (4294967295)
   },
   filenameTemplate: {
     maxLength: 255,
-    forbiddenChars: /[<>:|?*]/g  // セキュリティ強化: *文字を追加
+    forbiddenChars: /[<>:|?*]/g, // セキュリティ強化: *文字を追加
   },
   retry: {
     maxAttempts: { min: 1, max: 10 },
     baseDelayMs: { min: 100, max: 5000 },
-    factor: { min: 1.1, max: 3.0 }
-  }
+    factor: { min: 1.1, max: 3.0 },
+  },
 } as const;
 
 /**
@@ -89,14 +89,14 @@ export const VALIDATION_CONSTRAINTS = {
  */
 export const DEFAULT_SETTINGS: SettingsInput = {
   imageCount: 10,
-  seedMode: "random",
+  seedMode: 'random',
   seedValue: undefined,
-  filenameTemplate: "{date}_{prompt}_{seed}_{idx}",
+  filenameTemplate: '{date}_{prompt}_{seed}_{idx}',
   retrySettings: {
     maxAttempts: 3,
     baseDelayMs: 1000,
-    factor: 2.0
-  }
+    factor: 2.0,
+  },
 };
 
 /**
@@ -107,25 +107,25 @@ export const DEFAULT_SETTINGS: SettingsInput = {
  */
 export const ERROR_MESSAGES = {
   imageCount: {
-    required: "画像生成数を入力してください",
-    range: "1以上100以下の値を入力してください"
+    required: '画像生成数を入力してください',
+    range: '1以上100以下の値を入力してください',
   },
   seedValue: {
-    required: "固定シードモード時はシード値が必要です",
-    range: "0以上の整数値を入力してください"
+    required: '固定シードモード時はシード値が必要です',
+    range: '0以上の整数値を入力してください',
   },
   filenameTemplate: {
-    required: "ファイル名テンプレートは必須です",
-    invalidChars: "ファイル名に使用できない文字が含まれています",
-    tooLong: "ファイル名テンプレートは255文字以下で入力してください"
+    required: 'ファイル名テンプレートは必須です',
+    invalidChars: 'ファイル名に使用できない文字が含まれています',
+    tooLong: 'ファイル名テンプレートは255文字以下で入力してください',
   },
   retrySettings: {
-    required: "リトライ設定は必須です",
-    maxAttempts: "リトライ回数は1以上10以下で入力してください",
-    baseDelayMs: "基本遅延時間は100以上5000以下で入力してください",
-    factor: "遅延倍率は1.1以上3.0以下で入力してください"
+    required: 'リトライ設定は必須です',
+    maxAttempts: 'リトライ回数は1以上10以下で入力してください',
+    baseDelayMs: '基本遅延時間は100以上5000以下で入力してください',
+    factor: '遅延倍率は1.1以上3.0以下で入力してください',
   },
   storage: {
-    saveFailed: "設定の保存に失敗しました。しばらく時間をおいて再試行してください。"
-  }
+    saveFailed: '設定の保存に失敗しました。しばらく時間をおいて再試行してください。',
+  },
 } as const;

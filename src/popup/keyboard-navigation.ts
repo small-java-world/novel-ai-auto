@@ -36,7 +36,7 @@ export class KeyboardNavigationManager {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['tabindex', 'disabled', 'aria-hidden']
+      attributeFilter: ['tabindex', 'disabled', 'aria-hidden'],
     });
   }
 
@@ -51,7 +51,7 @@ export class KeyboardNavigationManager {
       'select:not([disabled]):not([aria-hidden="true"])',
       'textarea:not([disabled]):not([aria-hidden="true"])',
       '[tabindex]:not([tabindex="-1"]):not([disabled]):not([aria-hidden="true"])',
-      'details summary:not([disabled]):not([aria-hidden="true"])'
+      'details summary:not([disabled]):not([aria-hidden="true"])',
     ].join(', ');
 
     this.focusableElements = Array.from(document.querySelectorAll(selector));

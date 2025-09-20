@@ -54,32 +54,33 @@ export class SettingsStorageAdapter {
     try {
       // 【データサイズ検証】: Chrome Storage制限の事前チェック
       const serializedSize = JSON.stringify(settings).length;
-      if (serializedSize > 8 * 1024 * 1024) { // 8MB制限
+      if (serializedSize > 8 * 1024 * 1024) {
+        // 8MB制限
         return {
           validationResult: { isValid: true, errors: {} },
           savedSettings: settings,
-          storageStatus: "error",
-          errorMessage: "設定データが大きすぎます。"
+          storageStatus: 'error',
+          errorMessage: '設定データが大きすぎます。',
         };
       }
 
       // 【Chrome Storage保存】: 既存パターンに準拠した保存処理
       await chrome.storage.local.set({
-        [this.STORAGE_KEY]: settings
+        [this.STORAGE_KEY]: settings,
       });
 
       return {
         validationResult: { isValid: true, errors: {} },
         savedSettings: settings,
-        storageStatus: "success"
+        storageStatus: 'success',
       };
     } catch (error) {
       // 【詳細エラー分析】: Chrome Storage固有のエラーパターンを識別
       return {
         validationResult: { isValid: true, errors: {} },
         savedSettings: settings,
-        storageStatus: "error",
-        errorMessage: this.categorizeStorageError(error)
+        storageStatus: 'error',
+        errorMessage: this.categorizeStorageError(error),
       };
     }
   }

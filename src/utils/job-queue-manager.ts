@@ -61,10 +61,12 @@ export interface JobQueueManager {
  * 🟢 信頼性レベル: OWASP入力検証ガイドラインに基づく
  */
 function validateJobId(jobId: string): boolean {
-  return typeof jobId === 'string' &&
-         jobId.trim().length > 0 &&
-         jobId.length <= SECURITY_LIMITS.MAX_JOB_ID_LENGTH &&
-         /^[a-zA-Z0-9_-]+$/.test(jobId); // 【文字制限】: 英数字、ハイフン、アンダースコアのみ許可
+  return (
+    typeof jobId === 'string' &&
+    jobId.trim().length > 0 &&
+    jobId.length <= SECURITY_LIMITS.MAX_JOB_ID_LENGTH &&
+    /^[a-zA-Z0-9_-]+$/.test(jobId)
+  ); // 【文字制限】: 英数字、ハイフン、アンダースコアのみ許可
 }
 
 /**
@@ -73,9 +75,7 @@ function validateJobId(jobId: string): boolean {
  * 🟢 信頼性レベル: REQ-103要件とセキュリティ制限に基づく
  */
 function validateImageCount(count: number): boolean {
-  return Number.isInteger(count) &&
-         count >= 1 &&
-         count <= SECURITY_LIMITS.MAX_IMAGE_COUNT;
+  return Number.isInteger(count) && count >= 1 && count <= SECURITY_LIMITS.MAX_IMAGE_COUNT;
 }
 
 /**
@@ -187,7 +187,7 @@ class JobQueueManagerImpl implements JobQueueManager {
     // 【成功応答】: 標準化されたレスポンス 🟢
     return {
       success: true,
-      operation: 'started'
+      operation: 'started',
     };
   }
 
@@ -217,7 +217,7 @@ class JobQueueManagerImpl implements JobQueueManager {
     if (job.status === 'cancelled') {
       return {
         success: true,
-        operation: 'already_cancelled'
+        operation: 'already_cancelled',
       };
     }
 
@@ -231,7 +231,7 @@ class JobQueueManagerImpl implements JobQueueManager {
     // 【成功応答】: キャンセル完了の通知 🟢
     return {
       success: true,
-      operation: 'cancelled'
+      operation: 'cancelled',
     };
   }
 
@@ -268,7 +268,12 @@ class JobQueueManagerImpl implements JobQueueManager {
    * 【保守性】: 詳細なバリデーションとエラー分類
    * 🟢 信頼性レベル: データフロー設計とセキュリティ要件に基づく
    */
-  async handleImageReady(jobId: string, url: string, index: number, fileName: string): Promise<void> {
+  async handleImageReady(
+    jobId: string,
+    url: string,
+    index: number,
+    fileName: string
+  ): Promise<void> {
     // 【包括的入力検証】: すべてのパラメータの安全性確認 🟢
     if (!validateJobId(jobId)) {
       this.logError('Invalid job ID in handleImageReady', { jobId });
@@ -343,7 +348,7 @@ class JobQueueManagerImpl implements JobQueueManager {
   private createErrorResponse(code: string, message: string): OperationResult {
     return {
       success: false,
-      error: { code, message }
+      error: { code, message },
     };
   }
 
@@ -352,7 +357,11 @@ class JobQueueManagerImpl implements JobQueueManager {
    * 【競合状態対応】: 安全な状態変更処理
    * 【パフォーマンス】: 効率的な直接更新
    */
-  private updateJobStatusAtomic(jobId: string, status: GenerationJob['status'], progressStatus?: string): void {
+  private updateJobStatusAtomic(
+    jobId: string,
+    status: GenerationJob['status'],
+    progressStatus?: string
+  ): void {
     const job = this.jobs.get(jobId);
     if (job) {
       job.status = status;
@@ -373,7 +382,7 @@ class JobQueueManagerImpl implements JobQueueManager {
     if (tabs && tabs.length > 0) {
       await this.chrome.tabs.sendMessage(tabs[0].id, {
         type: 'APPLY_AND_GENERATE',
-        payload: { job }
+        payload: { job },
       });
     }
   }
@@ -383,11 +392,15 @@ class JobQueueManagerImpl implements JobQueueManager {
    * 【改善内容】: エラーハンドリング改善、ログ追加
    * 【パフォーマンス】: 効率的なメッセージ送信
    */
-  private async sendProgressUpdate(jobId: string, progress: GenerationProgress, status: string): Promise<void> {
+  private async sendProgressUpdate(
+    jobId: string,
+    progress: GenerationProgress,
+    status: string
+  ): Promise<void> {
     try {
       await this.chrome.runtime.sendMessage({
         type: 'PROGRESS_UPDATE',
-        payload: { jobId, status, progress }
+        payload: { jobId, status, progress },
       });
     } catch (error) {
       this.logError('Failed to send progress update', { jobId, error });
@@ -403,7 +416,7 @@ class JobQueueManagerImpl implements JobQueueManager {
     try {
       await this.chrome.runtime.sendMessage({
         type: 'ERROR',
-        payload: { error: { code, message } }
+        payload: { error: { code, message } },
       });
     } catch (error) {
       this.logError('Failed to send error to runtime', { code, message, error });
@@ -419,7 +432,7 @@ class JobQueueManagerImpl implements JobQueueManager {
     try {
       await this.chrome.runtime.sendMessage({
         type: 'DOWNLOAD_IMAGE',
-        payload: { url, fileName }
+        payload: { url, fileName },
       });
     } catch (error) {
       this.logError('Failed to send download request', { url, fileName, error });
@@ -432,9 +445,12 @@ class JobQueueManagerImpl implements JobQueueManager {
    * 🟡 信頼性レベル: 運用効率を考慮した自動管理機能
    */
   private startPeriodicCleanup(): void {
-    this.cleanupTimer = setInterval(() => {
-      this.performCleanup();
-    }, 60 * 60 * 1000); // 1時間ごとにクリーンアップ
+    this.cleanupTimer = setInterval(
+      () => {
+        this.performCleanup();
+      },
+      60 * 60 * 1000
+    ); // 1時間ごとにクリーンアップ
   }
 
   /**

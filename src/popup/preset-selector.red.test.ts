@@ -31,7 +31,7 @@ describe('プロンプトプリセット読み込み/選択UI', () => {
       searchInput: {
         value: '',
         addEventListener: vi.fn(),
-      }
+      },
     };
 
     // 【テスト対象初期化】: PresetSelector インスタンスを作成（Red フェーズで失敗予定）
@@ -54,9 +54,9 @@ describe('プロンプトプリセット読み込み/選択UI', () => {
         parameters: {
           steps: 28,
           cfgScale: 7,
-          sampler: 'euler_a'
-        }
-      }
+          sampler: 'euler_a',
+        },
+      },
     ];
 
     // 【実際の処理実行】: PresetSelectorのloadPresets関数を呼び出してプリセットをUI要素に読み込む
@@ -91,14 +91,14 @@ describe('プロンプトプリセット読み込み/選択UI', () => {
       parameters: {
         steps: 28,
         cfgScale: 7,
-        sampler: 'euler_a'
-      }
+        sampler: 'euler_a',
+      },
     };
 
     const generationSettings = {
       imageCount: 1,
       seed: -1,
-      filenameTemplate: '{date}_{prompt}_{idx}'
+      filenameTemplate: '{date}_{prompt}_{idx}',
     };
 
     // プリセットを読み込んで選択状態を設定
@@ -108,7 +108,10 @@ describe('プロンプトプリセット読み込み/選択UI', () => {
     // 【実際の処理実行】: 選択されたプリセットデータを取得し、START_GENERATIONメッセージを構築
     // 【処理内容】: getSelectedPreset関数で現在選択中のプリセットを取得し、buildStartGenerationMessage関数でメッセージを構築
     const selectedPresetData = presetSelector.getSelectedPreset();
-    const message = presetSelector.buildStartGenerationMessage(selectedPresetData, generationSettings);
+    const message = presetSelector.buildStartGenerationMessage(
+      selectedPresetData,
+      generationSettings
+    );
 
     // 【結果検証】: 構築されたメッセージがSTART_GENERATION規格に準拠し、データが正確であることを確認
     // 【期待値確認】: REQ-006メッセージ通信要件とService Worker連携要件に基づくメッセージ形状
@@ -121,7 +124,9 @@ describe('プロンプトプリセット読み込み/選択UI', () => {
     expect(message.type).toBe('START_GENERATION');
 
     // 【確認内容】: プロンプトデータが正確にメッセージに含まれることを確認 🟢
-    expect(message.prompt).toBe('beautiful landscape, scenic view, natural lighting, high quality, detailed');
+    expect(message.prompt).toBe(
+      'beautiful landscape, scenic view, natural lighting, high quality, detailed'
+    );
 
     // 【確認内容】: パラメータが正しくマージされてメッセージに含まれることを確認 🟢
     expect(message.parameters).toEqual({
@@ -129,14 +134,14 @@ describe('プロンプトプリセット読み込み/選択UI', () => {
       cfgScale: 7,
       sampler: 'euler_a',
       seed: -1,
-      count: 1
+      count: 1,
     });
 
     // 【確認内容】: 設定値が正しくメッセージに含まれることを確認 🟢
     expect(message.settings).toEqual({
       imageCount: 1,
       seed: -1,
-      filenameTemplate: '{date}_{prompt}_{idx}'
+      filenameTemplate: '{date}_{prompt}_{idx}',
     });
   });
 
@@ -153,20 +158,20 @@ describe('プロンプトプリセット読み込み/選択UI', () => {
         name: '美しい風景',
         prompt: 'beautiful landscape',
         negative: '',
-        parameters: { steps: 28, cfgScale: 7, sampler: 'euler_a' }
+        parameters: { steps: 28, cfgScale: 7, sampler: 'euler_a' },
       },
       {
         name: 'アニメキャラ',
         prompt: 'anime character',
         negative: '',
-        parameters: { steps: 32, cfgScale: 8, sampler: 'euler_a' }
+        parameters: { steps: 32, cfgScale: 8, sampler: 'euler_a' },
       },
       {
         name: '風景画',
         prompt: 'landscape painting',
         negative: '',
-        parameters: { steps: 30, cfgScale: 7.5, sampler: 'dpm_2m' }
-      }
+        parameters: { steps: 30, cfgScale: 7.5, sampler: 'dpm_2m' },
+      },
     ];
 
     // プリセットを読み込み
@@ -209,7 +214,9 @@ describe('プロンプトプリセット読み込み/選択UI', () => {
     // 【確認内容】: デフォルト表示が設定され、ユーザーに適切な案内が表示されることを確認 🟢
     // 【セキュリティ改善対応】: innerHTML の代わりに options プロパティによる安全なDOM操作を検証
     expect(mockElements.promptSelect.options).toHaveLength(1);
-    expect(mockElements.promptSelect.options[0].textContent).toContain('プリセットが見つかりません');
+    expect(mockElements.promptSelect.options[0].textContent).toContain(
+      'プリセットが見つかりません'
+    );
 
     // 【確認内容】: エラー状態でも他機能には影響しないことを確認 🟢
     expect(result.continueOperation).toBe(true);
@@ -230,8 +237,8 @@ describe('プロンプトプリセット読み込み/選択UI', () => {
         name: '単一プリセット',
         prompt: 'single preset test',
         negative: '',
-        parameters: { steps: 28, cfgScale: 7, sampler: 'euler_a' }
-      }
+        parameters: { steps: 28, cfgScale: 7, sampler: 'euler_a' },
+      },
     ];
 
     // 最大ケース: 50個のプリセット
@@ -239,7 +246,7 @@ describe('プロンプトプリセット読み込み/選択UI', () => {
       name: `プリセット${i + 1}`,
       prompt: `test prompt ${i + 1}`,
       negative: '',
-      parameters: { steps: 28, cfgScale: 7, sampler: 'euler_a' }
+      parameters: { steps: 28, cfgScale: 7, sampler: 'euler_a' },
     }));
 
     // 【実際の処理実行】: loadPresets関数で境界値データの読み込み処理を実行し、処理時間を測定

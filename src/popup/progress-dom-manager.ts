@@ -49,7 +49,10 @@ export class ProgressDomManager {
     const progressBarContainer = this.progressBar.parentElement;
     if (progressBarContainer?.getAttribute('role') === 'progressbar') {
       progressBarContainer.setAttribute('aria-valuenow', percentage.toString());
-      progressBarContainer.setAttribute('aria-valuetext', `${currentIndex} / ${totalCount} 完了 (${percentage}%)`);
+      progressBarContainer.setAttribute(
+        'aria-valuetext',
+        `${currentIndex} / ${totalCount} 完了 (${percentage}%)`
+      );
     }
   }
 

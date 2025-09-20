@@ -1,13 +1,13 @@
-import { beforeEach, describe, expect, test, vi } from "vitest";
-import type { Mock } from "vitest";
-import { createLoginDetectionChannel, LOGIN_DETECTION_MESSAGES } from "./loginDetectionChannel";
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+import type { Mock } from 'vitest';
+import { createLoginDetectionChannel, LOGIN_DETECTION_MESSAGES } from './loginDetectionChannel';
 import type {
   LoginDetectionResult,
   LoginCompletedResult,
   JobPauseResult,
   SaveStateResult,
   JobResumeResult,
-} from "../types";
+} from '../types';
 
 const runtimeSend = (globalThis.chrome as any).runtime.sendMessage as Mock;
 
@@ -16,16 +16,17 @@ type ChannelDeps = Parameters<typeof createLoginDetectionChannel>[0];
 function createDeps(overrides: Partial<ChannelDeps> = {}): ChannelDeps {
   const defaults: ChannelDeps = {
     detectLoginRequired: vi.fn<[], LoginDetectionResult>().mockReturnValue({ detected: false }),
-    detectLoginCompleted: vi
-      .fn<[], LoginCompletedResult>()
-      .mockReturnValue({
-        completed: false,
-        message: { type: "LOGIN_COMPLETED", detectedAt: Date.now(), availableForResume: false },
-      }),
+    detectLoginCompleted: vi.fn<[], LoginCompletedResult>().mockReturnValue({
+      completed: false,
+      message: { type: 'LOGIN_COMPLETED', detectedAt: Date.now(), availableForResume: false },
+    }),
     pauseCurrentJob: vi
       .fn()
-      .mockReturnValue({ success: true, pausedJob: { id: "job", status: "paused", pausedAt: Date.now() } } as JobPauseResult),
-    saveJobState: vi.fn().mockResolvedValue({ storageResult: "success" } as SaveStateResult),
+      .mockReturnValue({
+        success: true,
+        pausedJob: { id: 'job', status: 'paused', pausedAt: Date.now() },
+      } as JobPauseResult),
+    saveJobState: vi.fn().mockResolvedValue({ storageResult: 'success' } as SaveStateResult),
     resumeSavedJob: vi.fn().mockResolvedValue({ success: true } as JobResumeResult),
     clearDOMCache: vi.fn(),
   };
@@ -37,42 +38,42 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("login-detection channel", () => {
-  test("LOGIN_REQUIRED_CHECK delegates to detectLoginRequired and forwards result", async () => {
+describe('login-detection channel', () => {
+  test('LOGIN_REQUIRED_CHECK delegates to detectLoginRequired and forwards result', async () => {
     const detection: LoginDetectionResult = { detected: true };
     const deps = createDeps({ detectLoginRequired: vi.fn().mockReturnValue(detection) });
     const channel = createLoginDetectionChannel(deps);
 
     const handled = await channel.handle({
       type: LOGIN_DETECTION_MESSAGES.LOGIN_REQUIRED_CHECK,
-      payload: { currentJobId: "job-42" },
-      requestId: "req-1",
+      payload: { currentJobId: 'job-42' },
+      requestId: 'req-1',
     });
 
     expect(handled).toBe(true);
-    expect(deps.detectLoginRequired).toHaveBeenCalledWith("job-42");
+    expect(deps.detectLoginRequired).toHaveBeenCalledWith('job-42');
     expect(runtimeSend).toHaveBeenCalledWith({
       type: LOGIN_DETECTION_MESSAGES.LOGIN_REQUIRED_RESULT,
       payload: detection,
-      requestId: "req-1",
+      requestId: 'req-1',
     });
   });
 
-  test("LOGIN_COMPLETED_CHECK calls detectLoginCompleted and replies", async () => {
+  test('LOGIN_COMPLETED_CHECK calls detectLoginCompleted and replies', async () => {
     const completion: LoginCompletedResult = {
       completed: true,
-      message: { type: "LOGIN_COMPLETED", detectedAt: 123, availableForResume: true },
+      message: { type: 'LOGIN_COMPLETED', detectedAt: 123, availableForResume: true },
     };
     const deps = createDeps({ detectLoginCompleted: vi.fn().mockReturnValue(completion) });
     const channel = createLoginDetectionChannel(deps);
     const transition = {
-      previousUrl: "https://novelai.net/login",
-      currentUrl: "https://novelai.net/",
+      previousUrl: 'https://novelai.net/login',
+      currentUrl: 'https://novelai.net/',
       pageState: {
         isNovelAIPage: true,
         isLoggedIn: true,
         hasPromptInput: true,
-        currentUrl: "https://novelai.net/",
+        currentUrl: 'https://novelai.net/',
       },
     };
 
@@ -89,11 +90,11 @@ describe("login-detection channel", () => {
     });
   });
 
-  test("PAUSE_RUNNING_JOB invokes pauseCurrentJob", async () => {
-    const job = { id: "job", status: "running" } as any;
+  test('PAUSE_RUNNING_JOB invokes pauseCurrentJob', async () => {
+    const job = { id: 'job', status: 'running' } as any;
     const pauseResult: JobPauseResult = {
       success: true,
-      pausedJob: { ...job, status: "paused", pausedAt: Date.now() },
+      pausedJob: { ...job, status: 'paused', pausedAt: Date.now() },
     };
     const deps = createDeps({ pauseCurrentJob: vi.fn().mockReturnValue(pauseResult) });
     const channel = createLoginDetectionChannel(deps);
@@ -111,10 +112,10 @@ describe("login-detection channel", () => {
     });
   });
 
-  test("SAVE_JOB_STATE awaits saveJobState and includes request id", async () => {
-    const pausedJob = { id: "job", status: "paused", pausedAt: 111 } as any;
+  test('SAVE_JOB_STATE awaits saveJobState and includes request id', async () => {
+    const pausedJob = { id: 'job', status: 'paused', pausedAt: 111 } as any;
     const saveResult: SaveStateResult = {
-      storageResult: "success",
+      storageResult: 'success',
       fallbackResult: undefined,
     };
     const deps = createDeps({ saveJobState: vi.fn().mockResolvedValue(saveResult) });
@@ -123,7 +124,7 @@ describe("login-detection channel", () => {
     const handled = await channel.handle({
       type: LOGIN_DETECTION_MESSAGES.SAVE_JOB_STATE,
       payload: { pausedJob },
-      requestId: "req-save",
+      requestId: 'req-save',
     });
 
     expect(handled).toBe(true);
@@ -131,14 +132,14 @@ describe("login-detection channel", () => {
     expect(runtimeSend).toHaveBeenCalledWith({
       type: LOGIN_DETECTION_MESSAGES.JOB_SAVE_RESULT,
       payload: saveResult,
-      requestId: "req-save",
+      requestId: 'req-save',
     });
   });
 
-  test("RESUME_SAVED_JOB relays async result", async () => {
+  test('RESUME_SAVED_JOB relays async result', async () => {
     const resumeResult: JobResumeResult = {
       success: true,
-      resumedJob: { id: "job", resumePoint: "generation_start" },
+      resumedJob: { id: 'job', resumePoint: 'generation_start' },
     };
     const deps = createDeps({ resumeSavedJob: vi.fn().mockResolvedValue(resumeResult) });
     const channel = createLoginDetectionChannel(deps);
@@ -156,7 +157,7 @@ describe("login-detection channel", () => {
     });
   });
 
-  test("LOGIN_CACHE_RESET clears DOM cache and acknowledges", async () => {
+  test('LOGIN_CACHE_RESET clears DOM cache and acknowledges', async () => {
     const deps = createDeps();
     const channel = createLoginDetectionChannel(deps);
 
@@ -173,7 +174,7 @@ describe("login-detection channel", () => {
     );
   });
 
-  test("missing payload yields INVALID_PAYLOAD error", async () => {
+  test('missing payload yields INVALID_PAYLOAD error', async () => {
     const deps = createDeps();
     const channel = createLoginDetectionChannel(deps);
 
@@ -185,16 +186,16 @@ describe("login-detection channel", () => {
     expect(runtimeSend).toHaveBeenCalledWith({
       type: LOGIN_DETECTION_MESSAGES.LOGIN_DETECTION_ERROR,
       payload: {
-        code: "INVALID_PAYLOAD",
-        message: expect.stringContaining("pausedJob"),
+        code: 'INVALID_PAYLOAD',
+        message: expect.stringContaining('pausedJob'),
       },
     });
   });
 
-  test("handler exception surfaces LOGIN_DETECTION_ERROR", async () => {
+  test('handler exception surfaces LOGIN_DETECTION_ERROR', async () => {
     const deps = createDeps({
       detectLoginRequired: vi.fn().mockImplementation(() => {
-        throw new Error("boom");
+        throw new Error('boom');
       }),
     });
     const channel = createLoginDetectionChannel(deps);
@@ -202,28 +203,24 @@ describe("login-detection channel", () => {
     const handled = await channel.handle({
       type: LOGIN_DETECTION_MESSAGES.LOGIN_REQUIRED_CHECK,
       payload: {},
-      requestId: "req-err",
+      requestId: 'req-err',
     });
 
     expect(handled).toBe(true);
     expect(runtimeSend).toHaveBeenCalledWith({
       type: LOGIN_DETECTION_MESSAGES.LOGIN_DETECTION_ERROR,
-      requestId: "req-err",
-      payload: { code: "HANDLER_EXCEPTION", message: "boom" },
+      requestId: 'req-err',
+      payload: { code: 'HANDLER_EXCEPTION', message: 'boom' },
     });
   });
 
-  test("unknown message returns false and does nothing", async () => {
+  test('unknown message returns false and does nothing', async () => {
     const deps = createDeps();
     const channel = createLoginDetectionChannel(deps);
 
-    const handled = await channel.handle({ type: "SOMETHING_ELSE" });
+    const handled = await channel.handle({ type: 'SOMETHING_ELSE' });
 
     expect(handled).toBe(false);
     expect(runtimeSend).not.toHaveBeenCalled();
   });
 });
-
-
-
-
