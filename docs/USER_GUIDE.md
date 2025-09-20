@@ -68,6 +68,12 @@ NovelAI Auto Generatorは、NovelAIのWeb UIを自動化し、効率的に画像
 │  ├─ プレビュー表示              │
 │  └─ NovelAIに適用ボタン         │
 ├─────────────────────────────────┤
+│  🎭 キャラクター別プロンプト    │
+│  ├─ プリセット選択              │
+│  ├─ カテゴリフィルター          │
+│  ├─ カスタムプロンプト          │
+│  └─ 一括生成設定                │
+├─────────────────────────────────┤
 │  📁 新フォーマット対応          │
 │  ├─ フォーマット選択            │
 │  ├─ ファイルアップロード        │
@@ -138,6 +144,184 @@ lowres, bad anatomy, bad hands, text, error, missing fingers
 
 // ネガティブプロンプトも含める
 '{commonPositive}, {presetPositive} | {commonNegative}, {presetNegative}';
+```
+
+## キャラクター別プロンプト管理
+
+### 概要
+
+キャラクター別のプロンプトプリセットを管理し、効率的に画像生成を行う機能です。
+
+### プリセットの種類
+
+#### アニメキャラクター
+
+**基本アニメ少女**
+
+```json
+{
+  "id": "anime_girl_basic",
+  "name": "基本アニメ少女",
+  "positive": "1girl, solo, beautiful, anime style, detailed face, colorful eyes, long hair",
+  "negative": "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit",
+  "category": "anime",
+  "tags": ["anime", "girl", "beautiful", "basic"]
+}
+```
+
+**アニメ少年**
+
+```json
+{
+  "id": "anime_boy_cool",
+  "name": "クールなアニメ少年",
+  "positive": "1boy, solo, handsome, anime style, cool pose, detailed face, short hair",
+  "negative": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+  "category": "anime",
+  "tags": ["anime", "boy", "handsome", "cool"]
+}
+```
+
+**アニメキャラクター（複数）**
+
+```json
+{
+  "id": "anime_group",
+  "name": "アニメグループ",
+  "positive": "multiple girls, anime style, group photo, detailed faces, colorful outfits",
+  "negative": "lowres, bad anatomy, bad hands, text, error, missing fingers",
+  "category": "anime",
+  "tags": ["anime", "group", "multiple", "colorful"]
+}
+```
+
+#### リアル系キャラクター
+
+**リアルポートレート**
+
+```json
+{
+  "id": "realistic_portrait",
+  "name": "リアルポートレート",
+  "positive": "portrait, realistic, detailed face, professional photography, high quality, natural lighting",
+  "negative": "anime, cartoon, lowres, bad anatomy, bad hands, artificial",
+  "category": "realistic",
+  "tags": ["realistic", "portrait", "photography", "natural"]
+}
+```
+
+**リアル全身像**
+
+```json
+{
+  "id": "realistic_fullbody",
+  "name": "リアル全身像",
+  "positive": "full body, realistic, detailed, professional photography, natural pose, high quality",
+  "negative": "anime, cartoon, lowres, bad anatomy, bad hands, artificial",
+  "category": "realistic",
+  "tags": ["realistic", "fullbody", "photography", "natural"]
+}
+```
+
+#### ファンタジーキャラクター
+
+**ファンタジー騎士**
+
+```json
+{
+  "id": "fantasy_knight",
+  "name": "ファンタジー騎士",
+  "positive": "fantasy knight, armor, medieval, detailed costume, epic pose, sword, heroic",
+  "negative": "modern, casual clothes, lowres, bad anatomy, bad hands",
+  "category": "fantasy",
+  "tags": ["fantasy", "knight", "medieval", "armor", "heroic"]
+}
+```
+
+**魔法使い**
+
+```json
+{
+  "id": "fantasy_mage",
+  "name": "魔法使い",
+  "positive": "fantasy mage, wizard, magical, robe, staff, mystical, detailed costume",
+  "negative": "modern, casual clothes, lowres, bad anatomy, bad hands",
+  "category": "fantasy",
+  "tags": ["fantasy", "mage", "magical", "mystical", "wizard"]
+}
+```
+
+**エルフ**
+
+```json
+{
+  "id": "fantasy_elf",
+  "name": "エルフ",
+  "positive": "fantasy elf, pointed ears, elegant, nature, forest, detailed costume, ethereal",
+  "negative": "modern, casual clothes, lowres, bad anatomy, bad hands",
+  "category": "fantasy",
+  "tags": ["fantasy", "elf", "elegant", "nature", "ethereal"]
+}
+```
+
+### プリセットの使用方法
+
+#### 1. プリセット選択
+
+1. **「キャラクター別プロンプト」セクション**を開く
+2. **カテゴリフィルター**で種類を選択（アニメ/リアル/ファンタジー）
+3. **プリセットドロップダウン**からキャラクターを選択
+
+#### 2. カスタマイズ
+
+1. **「カスタムプロンプト」**でプロンプトを編集
+2. **「プレビュー更新」**で結果を確認
+3. **「保存」**でカスタムプリセットとして保存
+
+#### 3. 一括生成
+
+1. **「一括生成設定」**で複数キャラクターを選択
+2. **「生成枚数」**を設定（キャラクターごと）
+3. **「一括生成開始」**で自動生成
+
+### カテゴリ別の特徴
+
+#### アニメ系
+
+- **特徴**: アニメ風のイラストスタイル
+- **用途**: イラスト、マンガ、アニメ風画像
+- **キーワード**: `anime style`, `detailed face`, `colorful eyes`
+
+#### リアル系
+
+- **特徴**: 写真のようなリアルな描写
+- **用途**: ポートレート、商品写真、リアルな画像
+- **キーワード**: `realistic`, `professional photography`, `natural lighting`
+
+#### ファンタジー系
+
+- **特徴**: ファンタジー世界のキャラクター
+- **用途**: ゲーム、小説、ファンタジーアート
+- **キーワード**: `fantasy`, `medieval`, `magical`, `epic`
+
+### プロンプトの組み合わせ例
+
+#### アニメ + ファンタジー
+
+```
+1girl, anime style, fantasy knight, armor, detailed costume, epic pose
+```
+
+#### リアル + ポートレート
+
+```
+portrait, realistic, professional photography, natural lighting, detailed face
+```
+
+#### 複数キャラクター
+
+```
+multiple girls, anime style, group photo, fantasy setting, detailed costumes
 ```
 
 ## 新フォーマット対応
