@@ -288,8 +288,9 @@ export class UIStateManager {
    * 🟢 信頼性レベル: REQ-006 メッセージ通信要件に基づく本格実装
    * @param promptData - プロンプトデータ（name/prompt/parameters）
    * @param settings - 生成設定（imageCount/seed/filenameTemplate）
+   * @param selectorProfile - セレクタープロファイル（NovelAI UI要素選択用）
    */
-  async startGeneration(promptData: PromptData, settings: GenerationSettings): Promise<void> {
+  async startGeneration(promptData: PromptData, settings: GenerationSettings, selectorProfile?: string): Promise<void> {
     if (!promptData || !settings) {
       throw new Error('Invalid parameters: promptData and settings are required');
     }
@@ -309,6 +310,7 @@ export class UIStateManager {
           seed: settings.seed,
           filenameTemplate: settings.filenameTemplate,
         },
+        selectorProfile: selectorProfile || 'default',
       };
 
       // 【Chrome Runtime 送信】: Service Workerにメッセージを送信

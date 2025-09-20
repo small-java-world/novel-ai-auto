@@ -7,6 +7,11 @@
 
 import { PromptData, LocalFileLoadResult } from '../types';
 
+// 【セレクタープロファイル自動選択結果型】: ファイル読み込みと同時にselectorProfileも返す
+export interface LocalFileLoadResultWithSelector extends LocalFileLoadResult {
+  selectorProfile?: string;
+}
+
 // 【定数定義】: ファイル処理に関する設定値を一元管理 🟢
 const FILE_SIZE_LIMITS = {
   MAX_SIZE_BYTES: 10 * 1024 * 1024, // 10MB
@@ -158,6 +163,24 @@ function createSuccessResult(data: PromptData[], file: File): LocalFileLoadResul
 }
 
 /**
+ * 【機能概要】: selectorProfile付き成功結果のLocalFileLoadResultWithSelectorオブジェクトを生成
+ * 【実装方針】: セレクタープロファイル自動選択機能付きの成功レスポンス
+ * @param data - PromptData配列
+ * @param file - 対象ファイル
+ * @param selectorProfile - 自動選択されたセレクタープロファイル
+ * @returns LocalFileLoadResultWithSelector - selectorProfile付き成功結果
+ */
+function createSuccessResultWithSelector(data: PromptData[], file: File, selectorProfile?: string): LocalFileLoadResultWithSelector {
+  return {
+    success: true,
+    data,
+    fileSize: file.size,
+    fileName: file.name,
+    selectorProfile,
+  };
+}
+
+/**
  * 【機能概要】: PromptData配列の各要素が必須フィールドを持っているかを検証
  * 【実装方針】: 配列の各要素に対して必須・オプションフィールドの型安全性を検証
  * 【テスト対応】: TC-002-003テストケースで期待される検証処理
@@ -214,6 +237,24 @@ function validatePromptDataElements(data: unknown[]): string | null {
  * @returns Promise<LocalFileLoadResult> - 読み込み結果
  */
 export async function loadLocalPromptFile(file: File): Promise<LocalFileLoadResult> {
+  const result = await loadLocalPromptFileWithSelector(file);
+  return {
+    success: result.success,
+    data: result.data,
+    error: result.error,
+    fileSize: result.fileSize,
+    fileName: result.fileName,
+  };
+}
+
+/**
+ * 【機能概要】: ローカルプロンプトファイルを読み込み、selectorProfileも自動選択して返す
+ * 【実装方針】: セレクタープロファイルの自動選択機能を追加
+ * 【使用場面】: popup.js で selectorProfile を自動設定する際に使用
+ * @param file - 読み込み対象のFileオブジェクト
+ * @returns Promise<LocalFileLoadResultWithSelector> - selectorProfile付き読み込み結果
+ */
+export async function loadLocalPromptFileWithSelector(file: File): Promise<LocalFileLoadResultWithSelector> {
   // 【段階1: ファイル基本検証】: サイズと基本属性をチェック 🟢
   const basicValidation = validateFileBasics(file);
   if (!basicValidation.isValid) {
@@ -230,22 +271,20 @@ export async function loadLocalPromptFile(file: File): Promise<LocalFileLoadResu
       return createErrorResult(parseResult.errorMessage!, file);
     }
 
-    // 【段階4: データ正規化】: 2系統のスキーマをサポート
-    //   A) 直接の PromptData[]
-    //   B) { version, metadata?, characters: { [key]: { selectorProfile?, prompts: { positive, negative? }, settings? } } }
-    const normalized: PromptData[] | null = normalizeToPromptDataArray(parseResult.data);
-    if (!normalized) {
+    // 【段階4: データ正規化とselectorProfile検出】: 2系統のスキーマをサポート
+    const normalizationResult = normalizeToPromptDataArrayWithSelector(parseResult.data);
+    if (!normalizationResult.data) {
       return createErrorResult(ERROR_MESSAGES.INVALID_JSON, file);
     }
 
     // 【段階5: データ構造検証】: PromptData配列形式の検証 🟢
-    const dataValidation = validatePromptDataStructure(normalized);
+    const dataValidation = validatePromptDataStructure(normalizationResult.data);
     if (!dataValidation.isValid) {
       return createErrorResult(dataValidation.errorMessage!, file);
     }
 
-    // 【段階6: 成功結果返却】: 正常にパースされたデータを返す 🟢
-    return createSuccessResult(normalized, file);
+    // 【段階6: 成功結果返却】: 正常にパースされたデータとselectorProfileを返す 🟢
+    return createSuccessResultWithSelector(normalizationResult.data, file, normalizationResult.selectorProfile);
   } catch (error) {
     // 【例外処理】: 予期しないエラーに対する安全な処理 🟡
     return createErrorResult(ERROR_MESSAGES.READ_FAILED, file);
@@ -254,19 +293,46 @@ export async function loadLocalPromptFile(file: File): Promise<LocalFileLoadResu
 
 // Normalize various character-based schemas into PromptData[] with selectorProfile
 function normalizeToPromptDataArray(input: unknown): PromptData[] | null {
+  const result = normalizeToPromptDataArrayWithSelector(input);
+  return result.data;
+}
+
+/**
+ * 【機能概要】: データ正規化とselectorProfile自動検出を同時実行
+ * 【実装方針】: ファイル形式を判定し、共通selectorProfileがあれば検出
+ * @param input - 正規化対象のデータ
+ * @returns data: PromptData[], selectorProfile?: string
+ */
+function normalizeToPromptDataArrayWithSelector(input: unknown): { data: PromptData[] | null; selectorProfile?: string } {
   // Case A: Already PromptData[]
   if (Array.isArray(input)) {
-    return input as PromptData[];
+    // 【selectorProfile検出】: 配列内の共通selectorProfileを検出
+    const selectorProfiles = new Set<string>();
+    for (const item of input) {
+      if (item && typeof item === 'object' && 'selectorProfile' in item && typeof item.selectorProfile === 'string') {
+        selectorProfiles.add(item.selectorProfile);
+      }
+    }
+
+    // 共通のselectorProfileがある場合は自動選択
+    const commonSelectorProfile = selectorProfiles.size === 1 ? Array.from(selectorProfiles)[0] : undefined;
+
+    return {
+      data: input as PromptData[],
+      selectorProfile: commonSelectorProfile,
+    };
   }
 
   // Case B: characters block
   if (input && typeof input === 'object' && 'characters' in (input as any)) {
     const characters = (input as any).characters;
     if (!characters || typeof characters !== 'object') {
-      return null;
+      return { data: null };
     }
 
     const out: PromptData[] = [];
+    const selectorProfiles = new Set<string>();
+
     for (const [key, value] of Object.entries(characters as Record<string, any>)) {
       if (!value || typeof value !== 'object') continue;
       const name: string = value.name || key;
@@ -278,7 +344,14 @@ function normalizeToPromptDataArray(input: unknown): PromptData[] | null {
       const negative: string | undefined =
         typeof prompts.negative === 'string' ? prompts.negative : undefined;
       const settings: any = value.settings || undefined;
+
       if (!positive) continue;
+
+      // selectorProfile情報を収集
+      if (selectorProfile) {
+        selectorProfiles.add(selectorProfile);
+      }
+
       const pd: PromptData = {
         name,
         prompt: positive,
@@ -288,10 +361,17 @@ function normalizeToPromptDataArray(input: unknown): PromptData[] | null {
       };
       out.push(pd);
     }
-    return out;
+
+    // 共通のselectorProfileがある場合は自動選択
+    const commonSelectorProfile = selectorProfiles.size === 1 ? Array.from(selectorProfiles)[0] : undefined;
+
+    return {
+      data: out,
+      selectorProfile: commonSelectorProfile,
+    };
   }
 
-  return null;
+  return { data: null };
 }
 
 /**

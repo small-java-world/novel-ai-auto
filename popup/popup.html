@@ -119,6 +119,18 @@
                     <div id="format-help" class="sr-only">プロンプトファイルの形式を選択してください</div>
                 </div>
 
+                <!-- Selector Profile Selection -->
+                <div class="format-group">
+                    <label for="selectorProfile" class="label">セレクタープロファイル:</label>
+                    <select id="selectorProfile" class="select" aria-describedby="selector-help">
+                        <option value="default">デフォルト</option>
+                        <option value="novelai-v1">NovelAI v1</option>
+                        <option value="novelai-v2">NovelAI v2</option>
+                        <option value="custom">カスタム</option>
+                    </select>
+                    <div id="selector-help" class="sr-only">NovelAI のUI要素を選択するためのセレクタープロファイルを選択してください</div>
+                </div>
+
                 <!-- File Upload -->
                 <div class="format-group">
                     <label for="fileUpload" class="label">プロンプトファイル:</label>
