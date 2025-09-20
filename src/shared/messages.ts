@@ -11,11 +11,33 @@ export const MESSAGE_TYPES = {
   START_GENERATION: 'START_GENERATION',
   CANCEL_JOB: 'CANCEL_JOB',
   APPLY_AND_GENERATE: 'APPLY_AND_GENERATE',
+  APPLY_PROMPT: 'APPLY_PROMPT',
   PROGRESS_UPDATE: 'PROGRESS_UPDATE',
   IMAGE_READY: 'IMAGE_READY',
+  GENERATION_COMPLETE: 'GENERATION_COMPLETE',
+  GENERATION_ERROR: 'GENERATION_ERROR',
   DOWNLOAD_IMAGE: 'DOWNLOAD_IMAGE',
   OPEN_OR_FOCUS_TAB: 'OPEN_OR_FOCUS_TAB',
+  GET_PAGE_STATE: 'GET_PAGE_STATE',
   ERROR: 'ERROR',
+  // Login Detection Messages (TASK-070)
+  LOGIN_REQUIRED_CHECK: 'LOGIN_REQUIRED_CHECK',
+  LOGIN_REQUIRED_RESULT: 'LOGIN_REQUIRED_RESULT',
+  LOGIN_COMPLETED_CHECK: 'LOGIN_COMPLETED_CHECK',
+  LOGIN_COMPLETED_RESULT: 'LOGIN_COMPLETED_RESULT',
+  PAUSE_RUNNING_JOB: 'PAUSE_RUNNING_JOB',
+  JOB_PAUSE_RESULT: 'JOB_PAUSE_RESULT',
+  SAVE_JOB_STATE: 'SAVE_JOB_STATE',
+  JOB_SAVE_RESULT: 'JOB_SAVE_RESULT',
+  RESUME_SAVED_JOB: 'RESUME_SAVED_JOB',
+  JOB_RESUME_RESULT: 'JOB_RESUME_RESULT',
+  LOGIN_CACHE_RESET: 'LOGIN_CACHE_RESET',
+  LOGIN_CACHE_CLEARED: 'LOGIN_CACHE_CLEARED',
+  LOGIN_DETECTION_ERROR: 'LOGIN_DETECTION_ERROR',
+  // Network Recovery Messages (TASK-071)
+  NETWORK_STATE_CHANGED: 'NETWORK_STATE_CHANGED',
+  JOB_PAUSED: 'JOB_PAUSED',
+  JOB_RESUMED: 'JOB_RESUMED',
 } as const;
 
 export type MessageType = (typeof MESSAGE_TYPES)[keyof typeof MESSAGE_TYPES];
@@ -139,6 +161,217 @@ export function isErrorMsg(
   if (!hasType(v, MESSAGE_TYPES.ERROR)) return false;
   const p = (v as BaseMessage).payload as any;
   return p && typeof p.error?.code === 'string' && typeof p.error?.message === 'string';
+}
+
+// Additional message type guards for new message types
+
+export function isApplyPromptMsg(
+  v: unknown
+): v is BaseMessage<typeof MESSAGE_TYPES.APPLY_PROMPT, { prompt: string; parameters: unknown }> {
+  if (!hasType(v, MESSAGE_TYPES.APPLY_PROMPT)) return false;
+  const p = (v as BaseMessage).payload as any;
+  return p && typeof p.prompt === 'string' && p.parameters && typeof p.parameters === 'object';
+}
+
+export function isGenerationCompleteMsg(
+  v: unknown
+): v is BaseMessage<
+  typeof MESSAGE_TYPES.GENERATION_COMPLETE,
+  { count: number; downloadedFiles: string[] }
+> {
+  if (!hasType(v, MESSAGE_TYPES.GENERATION_COMPLETE)) return false;
+  const p = (v as BaseMessage).payload as any;
+  return p && typeof p.count === 'number' && Array.isArray(p.downloadedFiles);
+}
+
+export function isGenerationErrorMsg(
+  v: unknown
+): v is BaseMessage<typeof MESSAGE_TYPES.GENERATION_ERROR, { error: string }> {
+  if (!hasType(v, MESSAGE_TYPES.GENERATION_ERROR)) return false;
+  const p = (v as BaseMessage).payload as any;
+  return p && typeof p.error === 'string';
+}
+
+export function isGetPageStateMsg(
+  v: unknown
+): v is BaseMessage<typeof MESSAGE_TYPES.GET_PAGE_STATE, unknown> {
+  if (!hasType(v, MESSAGE_TYPES.GET_PAGE_STATE)) return false;
+  return true; // No payload required
+}
+
+// Login Detection Message Type Guards
+
+export function isLoginRequiredCheckMsg(
+  v: unknown
+): v is BaseMessage<typeof MESSAGE_TYPES.LOGIN_REQUIRED_CHECK, { currentJobId?: string }> {
+  if (!hasType(v, MESSAGE_TYPES.LOGIN_REQUIRED_CHECK)) return false;
+  const p = (v as BaseMessage).payload as any;
+  return (
+    p === undefined ||
+    (typeof p === 'object' && (p.currentJobId === undefined || typeof p.currentJobId === 'string'))
+  );
+}
+
+export function isLoginRequiredResultMsg(v: unknown): v is BaseMessage<
+  typeof MESSAGE_TYPES.LOGIN_REQUIRED_RESULT,
+  {
+    detected: boolean;
+    message?: unknown;
+    fallbackResult?: string;
+    warning?: string;
+    reason?: string;
+  }
+> {
+  if (!hasType(v, MESSAGE_TYPES.LOGIN_REQUIRED_RESULT)) return false;
+  const p = (v as BaseMessage).payload as any;
+  return p && typeof p.detected === 'boolean';
+}
+
+export function isLoginCompletedCheckMsg(
+  v: unknown
+): v is BaseMessage<typeof MESSAGE_TYPES.LOGIN_COMPLETED_CHECK, { pageTransition: unknown }> {
+  if (!hasType(v, MESSAGE_TYPES.LOGIN_COMPLETED_CHECK)) return false;
+  const p = (v as BaseMessage).payload as any;
+  return p && p.pageTransition && typeof p.pageTransition === 'object';
+}
+
+export function isLoginCompletedResultMsg(
+  v: unknown
+): v is BaseMessage<
+  typeof MESSAGE_TYPES.LOGIN_COMPLETED_RESULT,
+  { completed: boolean; message: unknown }
+> {
+  if (!hasType(v, MESSAGE_TYPES.LOGIN_COMPLETED_RESULT)) return false;
+  const p = (v as BaseMessage).payload as any;
+  return p && typeof p.completed === 'boolean' && p.message && typeof p.message === 'object';
+}
+
+export function isPauseRunningJobMsg(
+  v: unknown
+): v is BaseMessage<typeof MESSAGE_TYPES.PAUSE_RUNNING_JOB, { job: unknown }> {
+  if (!hasType(v, MESSAGE_TYPES.PAUSE_RUNNING_JOB)) return false;
+  const p = (v as BaseMessage).payload as any;
+  return p && p.job && typeof p.job === 'object';
+}
+
+export function isJobPauseResultMsg(
+  v: unknown
+): v is BaseMessage<
+  typeof MESSAGE_TYPES.JOB_PAUSE_RESULT,
+  { success: boolean; pausedJob: unknown }
+> {
+  if (!hasType(v, MESSAGE_TYPES.JOB_PAUSE_RESULT)) return false;
+  const p = (v as BaseMessage).payload as any;
+  return p && typeof p.success === 'boolean' && p.pausedJob && typeof p.pausedJob === 'object';
+}
+
+export function isSaveJobStateMsg(
+  v: unknown
+): v is BaseMessage<typeof MESSAGE_TYPES.SAVE_JOB_STATE, { pausedJob: unknown }> {
+  if (!hasType(v, MESSAGE_TYPES.SAVE_JOB_STATE)) return false;
+  const p = (v as BaseMessage).payload as any;
+  return p && p.pausedJob && typeof p.pausedJob === 'object';
+}
+
+export function isJobSaveResultMsg(
+  v: unknown
+): v is BaseMessage<
+  typeof MESSAGE_TYPES.JOB_SAVE_RESULT,
+  { storageResult: string; fallbackResult?: string; warning?: string; memoryState?: unknown }
+> {
+  if (!hasType(v, MESSAGE_TYPES.JOB_SAVE_RESULT)) return false;
+  const p = (v as BaseMessage).payload as any;
+  return p && typeof p.storageResult === 'string';
+}
+
+export function isResumeSavedJobMsg(
+  v: unknown
+): v is BaseMessage<typeof MESSAGE_TYPES.RESUME_SAVED_JOB, unknown> {
+  if (!hasType(v, MESSAGE_TYPES.RESUME_SAVED_JOB)) return false;
+  return true; // No payload required
+}
+
+export function isJobResumeResultMsg(v: unknown): v is BaseMessage<
+  typeof MESSAGE_TYPES.JOB_RESUME_RESULT,
+  {
+    success: boolean;
+    resumedJob?: unknown;
+    message?: unknown;
+    validationResult?: string;
+    action?: string;
+    cleanupResult?: string;
+  }
+> {
+  if (!hasType(v, MESSAGE_TYPES.JOB_RESUME_RESULT)) return false;
+  const p = (v as BaseMessage).payload as any;
+  return p && typeof p.success === 'boolean';
+}
+
+export function isLoginCacheResetMsg(
+  v: unknown
+): v is BaseMessage<typeof MESSAGE_TYPES.LOGIN_CACHE_RESET, unknown> {
+  if (!hasType(v, MESSAGE_TYPES.LOGIN_CACHE_RESET)) return false;
+  return true; // No payload required
+}
+
+export function isLoginCacheClearedMsg(
+  v: unknown
+): v is BaseMessage<typeof MESSAGE_TYPES.LOGIN_CACHE_CLEARED, unknown> {
+  if (!hasType(v, MESSAGE_TYPES.LOGIN_CACHE_CLEARED)) return false;
+  return true; // No payload required
+}
+
+export function isLoginDetectionErrorMsg(
+  v: unknown
+): v is BaseMessage<typeof MESSAGE_TYPES.LOGIN_DETECTION_ERROR, { code: string; message: string }> {
+  if (!hasType(v, MESSAGE_TYPES.LOGIN_DETECTION_ERROR)) return false;
+  const p = (v as BaseMessage).payload as any;
+  return p && typeof p.code === 'string' && typeof p.message === 'string';
+}
+
+// Network Recovery Message Type Guards
+
+export function isNetworkStateChangedMsg(
+  v: unknown
+): v is BaseMessage<
+  typeof MESSAGE_TYPES.NETWORK_STATE_CHANGED,
+  { isOnline: boolean; timestamp: number; affectedJobs?: string[] }
+> {
+  if (!hasType(v, MESSAGE_TYPES.NETWORK_STATE_CHANGED)) return false;
+  const p = (v as BaseMessage).payload as any;
+  return p && typeof p.isOnline === 'boolean' && typeof p.timestamp === 'number';
+}
+
+export function isJobPausedMsg(
+  v: unknown
+): v is BaseMessage<
+  typeof MESSAGE_TYPES.JOB_PAUSED,
+  { jobId: string; reason: string; pausedAt: number }
+> {
+  if (!hasType(v, MESSAGE_TYPES.JOB_PAUSED)) return false;
+  const p = (v as BaseMessage).payload as any;
+  return (
+    p &&
+    typeof p.jobId === 'string' &&
+    typeof p.reason === 'string' &&
+    typeof p.pausedAt === 'number'
+  );
+}
+
+export function isJobResumedMsg(
+  v: unknown
+): v is BaseMessage<
+  typeof MESSAGE_TYPES.JOB_RESUMED,
+  { jobId: string; reason: string; resumedAt: number }
+> {
+  if (!hasType(v, MESSAGE_TYPES.JOB_RESUMED)) return false;
+  const p = (v as BaseMessage).payload as any;
+  return (
+    p &&
+    typeof p.jobId === 'string' &&
+    typeof p.reason === 'string' &&
+    typeof p.resumedAt === 'number'
+  );
 }
 
 /**
