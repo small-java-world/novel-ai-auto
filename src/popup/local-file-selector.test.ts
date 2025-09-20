@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   loadLocalPromptFile,
+  loadLocalPromptFileWithSelector,
   validateFileSize,
   validatePromptData,
   isSupportedFileExtension,
@@ -98,5 +99,122 @@ describe('local-file-selector (TASK-100) - coverage', () => {
     expect(isSupportedFileExtension('x.json')).toBe(true);
     expect(isSupportedFileExtension('x.naiprompts')).toBe(true);
     expect(isSupportedFileExtension('x.txt')).toBe(false);
+  });
+
+  describe('selectorProfile auto-detection', () => {
+    it('detects common selectorProfile from characters block', async () => {
+      mockFileReaderSuccess();
+      const charactersData = {
+        version: '1.0',
+        characters: {
+          char1: {
+            name: 'Test Character 1',
+            selectorProfile: 'novelai-v2',
+            prompts: {
+              positive: 'beautiful girl',
+              negative: 'bad quality',
+            },
+          },
+          char2: {
+            name: 'Test Character 2',
+            selectorProfile: 'novelai-v2',
+            prompts: {
+              positive: 'handsome boy',
+              negative: 'ugly',
+            },
+          },
+        },
+      };
+
+      const file = new File([JSON.stringify(charactersData)], 'test.json', {
+        type: 'application/json',
+      });
+
+      const result = await loadLocalPromptFileWithSelector(file);
+
+      expect(result.success).toBe(true);
+      expect(result.selectorProfile).toBe('novelai-v2');
+      expect(result.data).toHaveLength(2);
+    });
+
+    it('returns undefined selectorProfile when multiple different profiles found', async () => {
+      mockFileReaderSuccess();
+      const charactersData = {
+        version: '1.0',
+        characters: {
+          char1: {
+            name: 'Test Character 1',
+            selectorProfile: 'novelai-v1',
+            prompts: {
+              positive: 'beautiful girl',
+            },
+          },
+          char2: {
+            name: 'Test Character 2',
+            selectorProfile: 'novelai-v2',
+            prompts: {
+              positive: 'handsome boy',
+            },
+          },
+        },
+      };
+
+      const file = new File([JSON.stringify(charactersData)], 'test.json', {
+        type: 'application/json',
+      });
+
+      const result = await loadLocalPromptFileWithSelector(file);
+
+      expect(result.success).toBe(true);
+      expect(result.selectorProfile).toBeUndefined();
+      expect(result.data).toHaveLength(2);
+    });
+
+    it('detects selectorProfile from PromptData array format', async () => {
+      mockFileReaderSuccess();
+      const promptDataArray = [
+        {
+          name: 'Test 1',
+          prompt: 'beautiful girl',
+          selectorProfile: 'novelai-v1',
+        },
+        {
+          name: 'Test 2',
+          prompt: 'handsome boy',
+          selectorProfile: 'novelai-v1',
+        },
+      ];
+
+      const file = new File([JSON.stringify(promptDataArray)], 'test.json', {
+        type: 'application/json',
+      });
+
+      const result = await loadLocalPromptFileWithSelector(file);
+
+      expect(result.success).toBe(true);
+      expect(result.selectorProfile).toBe('novelai-v1');
+      expect(result.data).toHaveLength(2);
+    });
+
+    it('maintains backward compatibility with loadLocalPromptFile', async () => {
+      mockFileReaderSuccess();
+      const promptDataArray = [
+        {
+          name: 'Test 1',
+          prompt: 'beautiful girl',
+          selectorProfile: 'novelai-v1',
+        },
+      ];
+
+      const file = new File([JSON.stringify(promptDataArray)], 'test.json', {
+        type: 'application/json',
+      });
+
+      const result = await loadLocalPromptFile(file);
+
+      expect(result.success).toBe(true);
+      expect('selectorProfile' in result).toBe(false); // selectorProfile should not be in basic result
+      expect(result.data).toHaveLength(1);
+    });
   });
 });

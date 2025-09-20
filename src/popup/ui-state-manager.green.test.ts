@@ -30,6 +30,16 @@ describe('UI スケルトン/状態管理 - Green Phase', () => {
       progressText: { textContent: '' },
       generateButton: { style: { display: '' } },
       cancelButton: { style: { display: '' } },
+      logsContainer: {
+        appendChild: vi.fn(),
+        removeChild: vi.fn(),
+        children: [],
+        scrollTop: 0,
+        scrollHeight: 0,
+        firstChild: null,
+      },
+      etaText: { textContent: '' },
+      progressSection: { style: { display: '' } },
     };
 
     // 【テスト対象初期化】: UIStateManagerインスタンスを作成
@@ -208,6 +218,32 @@ describe('UI スケルトン/状態管理 - Green Phase', () => {
       // 【期待値確認】: Promise が正常に resolve される
 
       // 【確認内容】: startGeneration()メソッドが例外を投げずに完了することを確認 🟢
+      expect(uiStateManager.startGeneration).toBeDefined();
+    });
+
+    test('selectorProfile指定でのSTART_GENERATIONメッセージ送信', async () => {
+      // 【テスト目的】: selectorProfileパラメータ付きstartGeneration()メソッドが正常実行されることを確認
+      // 【テスト内容】: プロンプトデータ、設定、selectorProfileでstartGeneration()メソッドを実行
+      // 【期待される動作】: エラーが発生せず、非同期処理が正常完了する
+
+      // 【テストデータ準備】: プロンプトデータと設定を準備
+      const promptData: PromptData = {
+        name: 'テストプロンプト',
+        prompt: 'beautiful landscape',
+        parameters: { steps: 20, cfgScale: 7 },
+      };
+      const settings: GenerationSettings = {
+        imageCount: 2,
+        seed: 123,
+        filenameTemplate: '{date}_{prompt}_{seed}_{idx}',
+      };
+
+      // 【実際の処理実行】: selectorProfile付き生成開始処理を実行
+      await expect(
+        uiStateManager.startGeneration(promptData, settings, 'novelai-v2')
+      ).resolves.toBeUndefined();
+
+      // 【結果検証】: selectorProfile付き生成開始処理が正常完了することを確認
       expect(uiStateManager.startGeneration).toBeDefined();
     });
   });
