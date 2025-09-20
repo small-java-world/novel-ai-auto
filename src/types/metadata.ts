@@ -202,15 +202,11 @@ export interface SearchQuery {
  */
 export interface FilterResult {
   /** フィルタリングされたプリセット配列 */
-  presets: PresetV1[];
-  /** マッチしたタグの配列 */
-  matchedTags: string[];
-  /** 検索結果の統計情報 */
-  statistics: {
-    total: number;
-    matched: number;
-    filtered: number;
-  };
+  filteredPresets: PresetV1[];
+  /** マッチしたプリセット数 */
+  matchCount: number;
+  /** 適用されたタグ配列 */
+  appliedTags: string[];
 }
 
 // 【変換処理の型定義】
@@ -239,16 +235,11 @@ export interface ConversionResult {
   /** 変換成功フラグ */
   success: boolean;
   /** 変換されたデータ */
-  data?: PromptFileV1;
-  /** エラーメッセージ */
-  error?: string;
-  /** 変換統計情報 */
-  statistics?: {
-    presetsConverted: number;
-    metadataAdded: boolean;
-    tagsNormalized: number;
-    processingTime: number;
-  };
+  convertedData?: PromptFileV1;
+  /** 警告メッセージ配列 */
+  warnings: string[];
+  /** エラーメッセージ配列 */
+  errors: string[];
 }
 
 // 【エラーハンドリングの型定義】
@@ -313,4 +304,47 @@ export interface PerformanceRequirements {
   maxMemoryUsage: number;
   /** 最小成功率（パーセント） */
   minSuccessRate: number;
+}
+
+// 【TDD Green フェーズ用の追加インターフェース】
+// 🟢 信頼性レベル: テストファイルの期待値に基づく
+
+/**
+ * ファイル読み込み結果
+ * @interface LoadResult
+ */
+export interface LoadResult {
+  /** 読み込み成功フラグ */
+  success: boolean;
+  /** 表示用メタデータ */
+  metadata?: MetadataDisplayResult;
+  /** プリセット配列 */
+  presets?: PresetV1[];
+  /** エラーメッセージ配列 */
+  errors: string[];
+  /** 警告メッセージ配列 */
+  warnings: string[];
+}
+
+/**
+ * メタデータ表示結果
+ * @interface MetadataDisplayResult
+ */
+export interface MetadataDisplayResult {
+  /** 表示用の名前 */
+  name: string;
+  /** 表示用の説明 */
+  description: string;
+  /** 表示用の作成者 */
+  author: string;
+  /** 表示用の作成日 */
+  dateCreated: string;
+  /** 表示用の更新日 */
+  dateModified: string;
+  /** 表示用のタグ配列 */
+  tags: string[];
+  /** 表示用のライセンス情報 */
+  license?: string;
+  /** 表示用の出典情報 */
+  source?: string;
 }

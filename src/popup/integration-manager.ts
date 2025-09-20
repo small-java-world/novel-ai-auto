@@ -121,8 +121,10 @@ export class IntegrationManager {
     const startTime = performance.now();
     
     try {
-      // メタデータの読み込み
-      const loadedFile = await this.metadataManager.loadPromptFile(file);
+      // メタデータの読み込み（オプションに応じて）
+      const loadedFile = options.loadMetadata
+        ? await this.metadataManager.loadPromptFile(file)
+        : file;
       
       // プロンプト合成機能との統合
       const synthesisResult = await this.integrateWithSynthesis(loadedFile, options);
@@ -130,7 +132,7 @@ export class IntegrationManager {
       // 統合統計の生成
       const statistics = {
         presetsProcessed: loadedFile.presets.length,
-        metadataLoaded: true,
+        metadataLoaded: !!options.loadMetadata,
         formatConverted: false,
         synthesisEnabled: options.enableSynthesis
       };
@@ -294,11 +296,15 @@ export class IntegrationManager {
    * @returns 統合統計情報
    */
   getIntegrationStatistics(): any {
+    const totalOperations = this.integrationMetrics.length;
+    const totalDuration = this.integrationMetrics.reduce((sum, metric) => sum + metric.duration, 0);
+    const averageDuration = totalOperations > 0 ? totalDuration / totalOperations : 0;
+    const lastOperation = totalOperations > 0 ? this.integrationMetrics[totalOperations - 1].operation : undefined;
     return {
-      totalOperations: this.integrationMetrics.length,
-      averageDuration: this.integrationMetrics.reduce((sum, metric) => sum + metric.duration, 0) / this.integrationMetrics.length,
-      errorCount: this.integrationMetrics.filter(metric => metric.duration > 1000).length, // 1秒以上はエラーとみなす
-      lastOperation: this.integrationMetrics[this.integrationMetrics.length - 1]
+      totalOperations,
+      averageDuration,
+      errorCount: this.integrationMetrics.filter(metric => metric.duration > 1000).length,
+      lastOperation
     };
   }
 

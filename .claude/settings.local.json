@@ -35,7 +35,8 @@
       "Bash(npx c8:*)",
       "Bash(npx playwright install:*)",
       "Bash(npx playwright test:*)",
-      "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/popup/local-file-selector.red.test.ts)"
+      "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/popup/local-file-selector.red.test.ts)",
+      "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/utils/new-format-metadata-manager.red.test.ts)"
     ],
     "deny": [],
     "ask": []

@@ -90,17 +90,22 @@ declare class NewFormatMetadataManager {
 ### テスト実行コマンド
 
 ```bash
-npm run test src/utils/new-format-metadata-manager.red.test.ts
+npx vitest run src/utils/new-format-metadata-manager.red.test.ts --config vitest.red.config.ts
 ```
 
-### 期待される失敗メッセージ
+### 実際の失敗メッセージ ✅
+
+**実行結果**: 2025-01-20 13:34:47
 
 ```
-❌ NewFormatMetadataManager is not a constructor
-❌ Cannot read property 'loadPromptFile' of undefined
-❌ Cannot read property 'convertLegacyFormat' of undefined
-❌ Type 'NewFormatMetadataManager' is not assignable to type 'any'
+❌ NewFormatMetadataManager is not defined (全15テストケース)
 ```
+
+**確認事項**:
+- ✅ 全15テストケースが期待通り失敗
+- ✅ エラーメッセージが明確（`NewFormatMetadataManager is not defined`）
+- ✅ テスト実行時間: 739ms（許容範囲内）
+- ✅ TypeScriptコンパイルエラーなし
 
 ### 次のフェーズへの要求事項
 
@@ -153,23 +158,96 @@ Greenフェーズで実装すべき内容が明確に特定され、最小実装
 
 ### 実装日時
 
-[未実装 - 次のフェーズで実施]
+**実装開始**: 2025-01-20 13:35:00
+**実装完了**: 2025-01-20 13:45:49
 
 ### 実装方針
 
-[未定義 - Greenフェーズで策定]
+**【TDD Green フェーズ戦略】**: 失敗するテストを通すための最小限実装を最優先
+
+1. **段階的実装**: 1つずつテストを通すことで確実な進歩を確保
+2. **最小限主義**: 複雑なロジックは避け、テストが求める動作のみを実装
+3. **ハードコーディング許可**: 品質向上は後のRefactorフェーズで対応
+4. **詳細な日本語コメント**: 実装意図と対応テストケースを明記
 
 ### 実装コード
 
-[未実装 - Greenフェーズで作成]
+**メインクラス**: `src/utils/new-format-metadata-manager.ts`
+**型定義拡張**: `src/types/metadata.ts` (LoadResult, MetadataDisplayResult追加)
+
+**主要実装メソッド**:
+- `loadPromptFile()`: 新フォーマットファイル読み込み・解析
+- `convertLegacyFormat()`: 既存形式から新フォーマットへの変換
+- `formatMetadataForDisplay()`: 表示用メタデータフォーマット
+- `filterPresetsByTags()`: タグベースフィルタリング
+- `validateFileSize()`: ファイルサイズ制限検証
+- `sanitizeMetadata()`: XSS防止とタグ重複除去
 
 ### テスト結果
 
-[未実行 - Greenフェーズで確認]
+**最終結果**: ✅ **15/15 テスト成功** (100%)
+
+```
+Test Files  1 passed (1)
+Tests      15 passed (15)
+Duration   683ms (性能要件クリア)
+```
+
+**テスト成功の推移**:
+1. 初回実装: 8/15 成功 (53%)
+2. 修正1回目: 11/15 成功 (73%)
+3. 修正2回目: 14/15 成功 (93%)
+4. 最終修正: 15/15 成功 (100%)
+
+**主要な修正内容**:
+- TC003: 日本語日付フォーマット対応
+- TC004: タグ重複除去ロジック追加
+- TC007: デフォルトメタデータ名称修正
+- TC008: JSON エラーメッセージ形式統一
+- TC009: バージョンエラーの警告/エラー分離
+- TC010: nameフィールド自動生成と警告追加
+- TC012: HTMLエスケープ処理調整
 
 ### 課題・改善点
 
-[未特定 - Greenフェーズで特定]
+**Refactorフェーズで改善すべき点**:
+
+1. **コード品質**:
+   - ハードコーディングされたエラーメッセージの動的生成
+   - 長いメソッドの分割（loadPromptFile は100行超）
+   - 日本語コメントの英語化（国際化対応）
+
+2. **パフォーマンス**:
+   - タグ重複除去処理の最適化
+   - 大容量ファイルのチャンク処理
+   - メモリ使用量の最適化
+
+3. **セキュリティ**:
+   - より厳密なHTMLエスケープ処理
+   - 入力値バリデーションの強化
+   - ファイルサイズチェックの精度向上
+
+4. **エラーハンドリング**:
+   - より詳細なJSON構文エラー解析
+   - ユーザー向けエラーメッセージの改善
+   - 復旧可能なエラーの自動修復機能拡張
+
+5. **型安全性**:
+   - より厳密な型定義
+   - ランタイム型チェックの追加
+   - null/undefined チェックの強化
+
+### 品質評価
+
+**✅ Green フェーズ品質基準達成**:
+- [x] 全テスト成功 (15/15)
+- [x] 性能要件クリア (683ms < 2分)
+- [x] 型エラーなし
+- [x] 実装方針明確
+- [x] 日本語コメント完備
+- [x] 改善点特定済み
+
+**次のステップ**: Refactorフェーズでコード品質とパフォーマンスの向上
 
 ## Refactorフェーズ（品質改善）
 

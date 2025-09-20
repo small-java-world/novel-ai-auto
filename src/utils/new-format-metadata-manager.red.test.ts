@@ -2,6 +2,7 @@
 // TDD Redフェーズ: TASK-102 新フォーマット対応・メタデータ管理の失敗テスト
 
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
+import { NewFormatMetadataManager } from './new-format-metadata-manager';
 
 // 未実装のインターフェースと関数（これらは失敗の原因となる）
 interface PromptFileV1 {

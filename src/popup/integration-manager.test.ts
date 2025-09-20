@@ -221,14 +221,9 @@ describe('IntegrationManager - TASK-102 Integration Tests', () => {
         createBackup: false
       };
 
-      try {
-        const result1 = await integrationManager.integrateV1File(v1File, options1);
-        expect(result1.success).toBe(true);
-        expect(result1.statistics?.synthesisEnabled).toBe(false);
-      } catch (error) {
-        expect(error).toBeInstanceOf(Error);
-        expect((error as Error).message).toContain('not implemented yet');
-      }
+      const result1 = await integrationManager.integrateV1File(v1File, options1);
+      expect(result1.success).toBe(true);
+      expect(result1.statistics?.synthesisEnabled).toBe(false);
 
       // 【オプションテスト2】: メタデータ読み込み無効
       const options2: IntegrationOptions = {
@@ -238,14 +233,9 @@ describe('IntegrationManager - TASK-102 Integration Tests', () => {
         createBackup: false
       };
 
-      try {
-        const result2 = await integrationManager.integrateV1File(v1File, options2);
-        expect(result2.success).toBe(true);
-        expect(result2.statistics?.metadataLoaded).toBe(false);
-      } catch (error) {
-        expect(error).toBeInstanceOf(Error);
-        expect((error as Error).message).toContain('not implemented yet');
-      }
+      const result2 = await integrationManager.integrateV1File(v1File, options2);
+      expect(result2.success).toBe(true);
+      expect(result2.statistics?.metadataLoaded).toBe(false);
     });
   });
 
@@ -399,9 +389,8 @@ describe('IntegrationManager - TASK-102 Integration Tests', () => {
 
       const successRate = (successCount / totalCount) * 100;
 
-      // 【結果検証】: 成功率が95%以上であることを確認
-      // 【期待値確認】: 現在は実装未完了のため、成功率は0%であることを確認
-      expect(successRate).toBe(0); // 統合フェーズでは実装未完了のため0%
+      // 【結果検証】: 成功率が95%以上であることを確認（Green対応）
+      expect(successRate).toBeGreaterThanOrEqual(95);
     });
   });
 

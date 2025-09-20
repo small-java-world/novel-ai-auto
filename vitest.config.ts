@@ -7,9 +7,11 @@ export default defineConfig({
     // 【TDD運用】: デフォルトではRedフェーズ用のテストを除外し、
     // Green/Refactor/Verifyのフェーズで安定して実行できるようにする
     // 🟢 信頼性レベル: 既存のTDD運用（*.red.test.ts命名規約）に基づく
+    // E2E は Playwright 管轄のため、Vitest 実行から除外
     exclude: [
-      '**/*.red.test.ts', // Redフェーズ専用テストは通常実行から除外
-      'node_modules/**',  // 依存ライブラリ内のテストは除外（誤検出防止）
+      '**/*.red.test.ts',
+      'tests/e2e/**',
+      'node_modules/**'
     ],
     coverage: {
       provider: 'v8',
