@@ -1,7 +1,7 @@
 {
   "name": "novelai-auto-generator",
-  "version": "0.1.0",
-  "description": "Chrome extension for automating NovelAI image generation",
+  "version": "1.0.0",
+  "description": "Chrome extension for automating NovelAI image generation with prompt synthesis and metadata management",
   "type": "module",
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
@@ -64,7 +64,20 @@
     "chrome-extension",
     "novelai",
     "automation",
-    "image-generation"
+    "image-generation",
+    "prompt-synthesis",
+    "metadata-management",
+    "ai-art",
+    "batch-processing"
   ],
+  "author": "NovelAI Auto Generator Team",
+  "homepage": "https://github.com/small-java-world/novel-ai-auto",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/small-java-world/novel-ai-auto.git"
+  },
+  "bugs": {
+    "url": "https://github.com/small-java-world/novel-ai-auto/issues"
+  },
   "license": "MIT"
 }
