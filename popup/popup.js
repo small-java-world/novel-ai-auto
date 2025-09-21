@@ -40,6 +40,7 @@ const elements = {
   convertFormatButton: document.getElementById('convertFormatButton'),
   exportFileButton: document.getElementById('exportFileButton'),
   formatStatus: document.getElementById('formatStatus'),
+  selectorProfile: document.getElementById('selectorProfile'),
 };
 
 // State
@@ -54,6 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadSettings();
   await initializePromptSynthesis();
   await initializeFormatSupport();
+  await loadSelectorProfiles();
   setupEventListeners();
   updateUI();
   addLog('ポップアップが初期化されました');
@@ -81,7 +83,7 @@ async function loadSettings() {
   try {
     const result = await chrome.storage.local.get(['settings']);
     const settings = result.settings || {};
-    
+
     // Apply saved settings to UI elements
     if (settings.imageCount !== undefined) {
       elements.imageCount.value = settings.imageCount;
@@ -92,7 +94,7 @@ async function loadSettings() {
     if (settings.filenameTemplate !== undefined) {
       elements.filenameTemplate.value = settings.filenameTemplate;
     }
-    
+
     console.log('Settings loaded:', settings);
   } catch (error) {
     console.error('Failed to load settings:', error);
@@ -106,13 +108,36 @@ function handlePromptSelection() {
   try {
     const selectedValue = elements.promptSelect.value;
     if (!selectedValue) return;
-    
+
     const promptData = JSON.parse(selectedValue);
-    
+
     // Check if this prompt has a specific imageCount setting
     if (promptData.imageCount && typeof promptData.imageCount === 'number') {
       elements.imageCount.value = promptData.imageCount;
       addLog(`「${promptData.name}」の生成枚数を${promptData.imageCount}に設定しました`, 'info');
+    }
+
+    // selectorProfile の自動選択（単一に決められる場合のみ）
+    if (elements.selectorProfile) {
+      let detectedProfile;
+      if (
+        promptData?.prompt?.selectorProfile &&
+        typeof promptData.prompt.selectorProfile === 'string'
+      ) {
+        detectedProfile = promptData.prompt.selectorProfile;
+      } else if (Array.isArray(promptData?.characters) && promptData.characters.length > 0) {
+        const profiles = promptData.characters
+          .map((c) => c?.selectorProfile)
+          .filter((v) => typeof v === 'string');
+        const unique = Array.from(new Set(profiles));
+        if (unique.length === 1) detectedProfile = unique[0];
+      }
+      if (detectedProfile) {
+        const opt = Array.from(elements.selectorProfile.options).find(
+          (o) => o.value === detectedProfile
+        );
+        if (opt) elements.selectorProfile.value = detectedProfile;
+      }
     }
   } catch (error) {
     console.error('Failed to handle prompt selection:', error);
@@ -156,7 +181,7 @@ function setupEventListeners() {
   elements.imageCount.addEventListener('change', saveSettings);
   elements.seed.addEventListener('change', saveSettings);
   elements.filenameTemplate.addEventListener('change', saveSettings);
-  
+
   // Prompt selection handler
   elements.promptSelect.addEventListener('change', handlePromptSelection);
 
@@ -164,23 +189,23 @@ function setupEventListeners() {
   if (elements.synthesisRule) {
     elements.synthesisRule.addEventListener('change', handleSynthesisRuleChange);
   }
-  
+
   if (elements.commonPrompt) {
     elements.commonPrompt.addEventListener('input', debounce(updatePreview, 300));
   }
-  
+
   if (elements.commonNegative) {
     elements.commonNegative.addEventListener('input', debounce(updatePreview, 300));
   }
-  
+
   if (elements.customTemplate) {
     elements.customTemplate.addEventListener('input', debounce(updatePreview, 300));
   }
-  
+
   if (elements.previewButton) {
     elements.previewButton.addEventListener('click', updatePreview);
   }
-  
+
   if (elements.applySynthesisButton) {
     elements.applySynthesisButton.addEventListener('click', applySynthesisToNovelAI);
   }
@@ -189,25 +214,52 @@ function setupEventListeners() {
   if (elements.formatSelect) {
     elements.formatSelect.addEventListener('change', handleFormatSelectChange);
   }
-  
+
   if (elements.fileUpload) {
     elements.fileUpload.addEventListener('change', handleFileUpload);
   }
-  
+
   if (elements.loadFileButton) {
     elements.loadFileButton.addEventListener('click', loadPromptFile);
   }
-  
+
   if (elements.convertFormatButton) {
     elements.convertFormatButton.addEventListener('click', convertFileFormat);
   }
-  
+
   if (elements.exportFileButton) {
     elements.exportFileButton.addEventListener('click', exportPromptFile);
   }
 
   // Listen for background script messages
   chrome.runtime.onMessage.addListener(handleMessage);
+}
+
+/**
+ * Load selector profiles from config/dom-selectors.json and populate the dropdown
+ */
+async function loadSelectorProfiles() {
+  try {
+    if (!elements.selectorProfile) return;
+    // 既存オプションは維持（HTML既定）しつつ、configから追加入力
+    const url = chrome.runtime?.getURL
+      ? chrome.runtime.getURL('config/dom-selectors.json')
+      : 'config/dom-selectors.json';
+    const res = await fetch(url);
+    const json = await res.json();
+    const profiles = json?.profiles ? Object.keys(json.profiles) : [];
+    const existing = new Set(Array.from(elements.selectorProfile.options).map((o) => o.value));
+    profiles.forEach((key) => {
+      if (!existing.has(key)) {
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = key;
+        elements.selectorProfile.appendChild(opt);
+      }
+    });
+  } catch (error) {
+    console.warn('Failed to load selector profiles:', error);
+  }
 }
 
 /**
@@ -225,6 +277,9 @@ async function startGeneration() {
     // Build composite prompt payload supporting common + multiple characters
     const commonPositive = (elements.commonPrompt?.value || '').trim();
     const commonNegative = (elements.commonNegative?.value || '').trim();
+    // UIで選択された selectorProfile を取得
+    const selectedProfile = (elements.selectorProfile && elements.selectorProfile.value) || '';
+
     // If selected item already contains character schema, pass through; else wrap as single preset
     const payloadPrompt = promptData.characters
       ? {
@@ -237,15 +292,19 @@ async function startGeneration() {
             {
               id: promptData.id || promptData.name || 'preset-1',
               name: promptData.name || 'Preset',
-              selectorProfile: promptData.selectorProfile || 'character-anime',
+              selectorProfile:
+                promptData.selectorProfile ||
+                promptData?.prompt?.selectorProfile ||
+                selectedProfile ||
+                'character-anime',
               positive:
                 (typeof promptData.prompt === 'string'
                   ? promptData.prompt
-                  : (promptData.prompt?.positive || '')) || '',
+                  : promptData.prompt?.positive || '') || '',
               negative:
                 (typeof promptData.prompt === 'object'
-                  ? (promptData.prompt?.negative || '')
-                  : (promptData.negative || '')) || '',
+                  ? promptData.prompt?.negative || ''
+                  : promptData.negative || '') || '',
             },
           ],
         };
@@ -257,13 +316,13 @@ async function startGeneration() {
 
     isGenerating = true;
     updateUI();
-    
+
     // Initialize progress display
     const totalCount = settings.imageCount;
     elements.progressText.textContent = `0 / ${totalCount}`;
     elements.progressFill.style.width = '0%';
     elements.etaText.textContent = '';
-    
+
     addLog(`生成を開始します: ${promptData.name}`);
 
     // Send generation request to background script
@@ -275,6 +334,8 @@ async function startGeneration() {
         count: settings.imageCount,
       },
       settings,
+      // Popup選択のselectorProfileを強制適用（auto/空は未指定）
+      selectorProfile: selectedProfile && selectedProfile !== 'auto' ? selectedProfile : undefined,
     });
 
     if (!response.success) {
@@ -315,7 +376,7 @@ async function cancelGeneration() {
  */
 function handleMessage(message, _sender, _sendResponse) {
   console.log('Popup received message:', message);
-  
+
   switch (message.type) {
     case 'GENERATION_PROGRESS':
       console.log('Updating progress:', message.progress);
@@ -341,13 +402,13 @@ function handleMessage(message, _sender, _sendResponse) {
  */
 function updateProgress(progress) {
   console.log('updateProgress called with:', progress);
-  
+
   const { current, total, eta } = progress;
 
   if (elements.progressFill) {
     elements.progressFill.style.width = `${(current / total) * 100}%`;
   }
-  
+
   if (elements.progressText) {
     elements.progressText.textContent = `${current} / ${total}`;
   }
@@ -355,7 +416,7 @@ function updateProgress(progress) {
   if (eta && elements.etaText) {
     elements.etaText.textContent = `残り時間: ${formatDuration(eta)}`;
   }
-  
+
   console.log('Progress updated:', `${current} / ${total}`);
 }
 
@@ -467,7 +528,7 @@ function formatDuration(seconds) {
 function handleSynthesisRuleChange() {
   const rule = elements.synthesisRule.value;
   const customGroup = elements.customTemplateGroup;
-  
+
   if (rule === 'custom') {
     customGroup.style.display = 'block';
     customGroup.classList.add('show');
@@ -475,7 +536,7 @@ function handleSynthesisRuleChange() {
     customGroup.style.display = 'none';
     customGroup.classList.remove('show');
   }
-  
+
   updatePreview();
 }
 
@@ -491,7 +552,7 @@ async function updatePreview() {
   try {
     const commonPrompts = {
       base: elements.commonPrompt.value || '',
-      negative: elements.commonNegative.value || ''
+      negative: elements.commonNegative.value || '',
     };
 
     const presetData = {
@@ -502,12 +563,12 @@ async function updatePreview() {
         cfgScale: 7,
         sampler: 'k_euler',
         seed: parseInt(elements.seed.value) || -1,
-        count: parseInt(elements.imageCount.value) || 1
-      }
+        count: parseInt(elements.imageCount.value) || 1,
+      },
     };
 
     const ruleId = elements.synthesisRule.value || 'default';
-    
+
     // Update custom template if using custom rule
     if (ruleId === 'custom' && elements.customTemplate.value) {
       // This would require extending the PromptSynthesizer to accept custom templates
@@ -526,7 +587,7 @@ async function updatePreview() {
     // Update warnings
     if (result.warnings && result.warnings.length > 0) {
       elements.synthesisWarnings.innerHTML = result.warnings
-        .map(warning => `<div class="warning-item">⚠️ ${warning}</div>`)
+        .map((warning) => `<div class="warning-item">⚠️ ${warning}</div>`)
         .join('');
     } else {
       elements.synthesisWarnings.innerHTML = '';
@@ -541,7 +602,6 @@ async function updatePreview() {
     } else {
       elements.totalCount.style.color = '#28a745';
     }
-
   } catch (error) {
     console.error('プレビュー更新エラー:', error);
     elements.previewPositive.textContent = 'エラーが発生しました';
@@ -565,7 +625,7 @@ async function applySynthesisToNovelAI() {
 
     const commonPrompts = {
       base: elements.commonPrompt.value || '',
-      negative: elements.commonNegative.value || ''
+      negative: elements.commonNegative.value || '',
     };
 
     const presetData = {
@@ -576,8 +636,8 @@ async function applySynthesisToNovelAI() {
         cfgScale: 7,
         sampler: 'k_euler',
         seed: parseInt(elements.seed.value) || -1,
-        count: parseInt(elements.imageCount.value) || 1
-      }
+        count: parseInt(elements.imageCount.value) || 1,
+      },
     };
 
     const ruleId = elements.synthesisRule.value || 'default';
@@ -593,7 +653,6 @@ async function applySynthesisToNovelAI() {
       updateStatus('適用失敗', 'error');
       addLog(`適用エラー: ${applicationResult.error}`);
     }
-
   } catch (error) {
     console.error('NovelAI適用エラー:', error);
     updateStatus('適用エラー', 'error');
@@ -626,7 +685,7 @@ async function initializeFormatSupport() {
     // Import IntegrationManager dynamically
     const { IntegrationManager } = await import('./integration-manager.js');
     integrationManager = new IntegrationManager();
-    
+
     addLog('新フォーマット対応機能が初期化されました');
   } catch (error) {
     console.error('Format support initialization failed:', error);
@@ -640,7 +699,7 @@ async function initializeFormatSupport() {
 function handleFormatSelectChange() {
   const selectedFormat = elements.formatSelect.value;
   updateFormatStatus(`選択された形式: ${selectedFormat}`, 'info');
-  
+
   // Enable/disable buttons based on format selection
   if (selectedFormat === 'auto') {
     elements.convertFormatButton.disabled = true;
@@ -673,7 +732,7 @@ function handleFileUpload(event) {
       console.error('File parsing error:', error);
     }
   };
-  
+
   reader.readAsText(file);
 }
 
@@ -688,13 +747,13 @@ async function loadPromptFile() {
 
   try {
     updateFormatStatus('ファイルを読み込み中...', 'info');
-    
+
     const selectedFormat = elements.formatSelect.value;
     const options = {
       autoConvert: selectedFormat === 'auto',
       loadMetadata: true,
       enableSynthesis: true,
-      createBackup: false
+      createBackup: false,
     };
 
     let result;
@@ -714,7 +773,6 @@ async function loadPromptFile() {
     } else {
       updateFormatStatus(`読み込みエラー: ${result.error}`, 'error');
     }
-
   } catch (error) {
     console.error('File loading error:', error);
     updateFormatStatus(`読み込みエラー: ${error.message}`, 'error');
@@ -732,13 +790,13 @@ async function convertFileFormat() {
 
   try {
     updateFormatStatus('形式変換中...', 'info');
-    
+
     const selectedFormat = elements.formatSelect.value;
     const options = {
       autoConvert: true,
       loadMetadata: true,
       enableSynthesis: true,
-      createBackup: true
+      createBackup: true,
     };
 
     let result;
@@ -759,7 +817,6 @@ async function convertFileFormat() {
     } else {
       updateFormatStatus(`変換エラー: ${result.error}`, 'error');
     }
-
   } catch (error) {
     console.error('Format conversion error:', error);
     updateFormatStatus(`変換エラー: ${error.message}`, 'error');
@@ -778,17 +835,16 @@ function exportPromptFile() {
   try {
     const dataStr = JSON.stringify(currentFile, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    
+
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
     link.href = url;
     link.download = `prompt-file-${Date.now()}.json`;
     link.click();
-    
+
     URL.revokeObjectURL(url);
     updateFormatStatus('ファイルがエクスポートされました', 'success');
     addLog('プロンプトファイルをエクスポートしました');
-    
   } catch (error) {
     console.error('Export error:', error);
     updateFormatStatus(`エクスポートエラー: ${error.message}`, 'error');
@@ -822,14 +878,18 @@ function displayMetadata(metadata) {
       <span class="metadata-label">更新日:</span>
       <span class="metadata-value">${metadata.modified ? new Date(metadata.modified).toLocaleDateString('ja-JP') : '未設定'}</span>
     </div>
-    ${metadata.tags && metadata.tags.length > 0 ? `
+    ${
+      metadata.tags && metadata.tags.length > 0
+        ? `
     <div class="metadata-item">
       <span class="metadata-label">タグ:</span>
       <div class="metadata-tags">
-        ${metadata.tags.map(tag => `<span class="metadata-tag">${tag}</span>`).join('')}
+        ${metadata.tags.map((tag) => `<span class="metadata-tag">${tag}</span>`).join('')}
       </div>
     </div>
-    ` : ''}
+    `
+        : ''
+    }
   `;
 
   elements.metadataDisplay.innerHTML = metadataHtml;
