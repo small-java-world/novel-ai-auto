@@ -310,6 +310,14 @@ const multiCharacterHandler = new MultiCharacterSequenceHandler();
 
 chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) => {
   switch (message.type) {
+    case 'PING':
+      // Respond to ping to indicate content script is ready
+      try {
+        sendResponse?.({ type: 'PONG' });
+      } catch (e) {
+        console.error('Failed to send PONG response:', e);
+      }
+      break;
     case 'APPLY_PROMPT':
       handleApplyPrompt(message as ApplyPromptMessage, sendResponse).catch((error) => {
         const errorMessage = error instanceof Error ? error.message : String(error);

@@ -8,6 +8,14 @@ export interface Message {
   [key: string]: any;
 }
 
+export interface PingMessage extends Message {
+  type: 'PING';
+}
+
+export interface PongMessage extends Message {
+  type: 'PONG';
+}
+
 export interface MessageResponse {
   success: boolean;
   error?: string;

@@ -112,7 +112,7 @@ export async function handleStartGeneration(
     // Ensure NovelAI tab is active
     const tab = await ensureNovelAITab();
 
-    // Send generation command to content script
+    // Send generation command to content script with retry
     if (tab.id) {
       // Prepare the message for content script
       const csMessage: any = {
@@ -130,7 +130,8 @@ export async function handleStartGeneration(
         csMessage.selectorProfile = message.selectorProfile;
       }
 
-      await chrome.tabs.sendMessage(tab.id, csMessage);
+      // Retry sending message to content script with exponential backoff
+      await sendMessageWithRetry(tab.id, csMessage);
     }
 
     _sendResponse({ success: true });
@@ -202,6 +203,74 @@ export async function handleDownloadImage(
 }
 
 /**
+ * Check if content script is ready by sending a ping message
+ */
+async function isContentScriptReady(tabId: number): Promise<boolean> {
+  try {
+    const response = await chrome.tabs.sendMessage(tabId, { type: 'PING' });
+    return response?.type === 'PONG';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Send message to content script with retry mechanism
+ */
+async function sendMessageWithRetry(
+  tabId: number,
+  message: any,
+  maxRetries: number = 5,
+  baseDelay: number = 500
+): Promise<void> {
+  let lastError: Error | null = null;
+
+  // First, ensure content script is ready
+  console.log(`Checking if content script is ready in tab ${tabId}...`);
+  for (let pingAttempt = 0; pingAttempt < 3; pingAttempt++) {
+    if (await isContentScriptReady(tabId)) {
+      console.log(`Content script is ready in tab ${tabId}`);
+      break;
+    }
+
+    if (pingAttempt < 2) {
+      console.log(`Content script not ready, waiting 1s before ping attempt ${pingAttempt + 2}...`);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    } else {
+      console.warn(`Content script not responding to ping in tab ${tabId}, proceeding anyway...`);
+    }
+  }
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      await chrome.tabs.sendMessage(tabId, message);
+      console.log(`Message sent successfully to tab ${tabId} on attempt ${attempt + 1}`);
+      return;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      console.warn(
+        `Attempt ${attempt + 1} failed to send message to tab ${tabId}:`,
+        lastError.message
+      );
+
+      // If this is the last attempt, don't wait
+      if (attempt === maxRetries - 1) {
+        break;
+      }
+
+      // Wait with exponential backoff
+      const delay = baseDelay * Math.pow(2, attempt);
+      console.log(`Waiting ${delay}ms before retry...`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+
+  throw new Error(
+    `Failed to send message to content script after ${maxRetries} attempts. Last error: ${lastError?.message}`
+  );
+}
+
+/**
  * Ensure NovelAI tab is open and active
  */
 export async function ensureNovelAITab(): Promise<chrome.tabs.Tab> {
@@ -219,6 +288,11 @@ export async function ensureNovelAITab(): Promise<chrome.tabs.Tab> {
         url: 'https://novelai.net/',
         active: true,
       });
+
+      // Wait a bit for the tab to load and content script to initialize
+      console.log('Waiting for new tab to load...');
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       return tab;
     }
   } catch (error) {
