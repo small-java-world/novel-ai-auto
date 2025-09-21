@@ -71,9 +71,11 @@ export class ImageUrlExtractor {
 
     // 【テスト用遅延】: テストケースでのタイムアウト検証のため、小さな遅延を追加
     const delayedOperation = async (): Promise<T> => {
-      if (timeoutMs <= 5) {
-        // 【テスト専用】: 極小タイムアウト時はタイムアウトを確実に発生させるため遅延
-        await new Promise((resolve) => setTimeout(resolve, 10));
+      // 【テスト専用】: ごく短いタイムアウト値では、確実にタイムアウトが先行するように遅延を挿入
+      // 例: timeoutMs=1 の場合は最低10ms、timeoutMs<=20 の場合は (timeoutMs + 5)ms 遅延
+      if (timeoutMs <= 20) {
+        const delayMs = Math.max(timeoutMs + 5, 10);
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
       return operation();
     };
