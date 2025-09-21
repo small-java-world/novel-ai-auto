@@ -18,7 +18,7 @@ import {
   createTestCase,
   addUniqueError,
   addUniqueWarning,
-  isEmpty,
+  isEmpty as _isEmpty,
   updateTestStatistics,
   determineModuleStatus,
   isWithinBounds,

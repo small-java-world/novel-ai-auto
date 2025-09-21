@@ -37,9 +37,9 @@ export class SettingsStorageAdapter {
       }
 
       return null; // 【データなし】: 初回起動時はnullを返却
-    } catch (error) {
+    } catch (_error) {
       // 【エラーログ】: 開発時のデバッグ情報を提供
-      console.warn('設定の読み込みに失敗しました:', error);
+      console.warn('設定の読み込みに失敗しました:', _error);
       return null; // 【安全なフォールバック】: エラー時はnullを返却してデフォルト値使用を促す
     }
   }
@@ -74,13 +74,13 @@ export class SettingsStorageAdapter {
         savedSettings: settings,
         storageStatus: 'success',
       };
-    } catch (error) {
+    } catch (_error) {
       // 【詳細エラー分析】: Chrome Storage固有のエラーパターンを識別
       return {
         validationResult: { isValid: true, errors: {} },
         savedSettings: settings,
         storageStatus: 'error',
-        errorMessage: this.categorizeStorageError(error),
+        errorMessage: this.categorizeStorageError(_error),
       };
     }
   }
@@ -119,8 +119,8 @@ export class SettingsStorageAdapter {
       }
 
       return data as SettingsInput;
-    } catch (error) {
-      console.warn('設定データの検証に失敗しました:', error);
+    } catch (_error) {
+      console.warn('設定データの検証に失敗しました:', _error);
       return null;
     }
   }
@@ -131,7 +131,7 @@ export class SettingsStorageAdapter {
    * 【保守性】: エラーパターンの一元管理
    * 🟢 既存テストケースTC-002-004との完全互換性を保証
    */
-  private static categorizeStorageError(error: any): string {
+  private static categorizeStorageError(_error: any): string {
     // 【テスト互換性確保】: 既存テストケースで期待される汎用メッセージを返却
     // 【理由】: 詳細なエラー分類よりも既存テストとの互換性を優先
     // 【将来拡張】: 必要に応じて詳細なエラー分類機能を追加可能
@@ -144,7 +144,7 @@ export class SettingsStorageAdapter {
    * 【パフォーマンス】: 必要な変更のみを検出する効率的な監視
    * 🔴 将来の機能拡張を想定した推測実装
    */
-  static addChangeListener(callback: (newSettings: SettingsInput | null) => void): void {
+  static addChangeListener(callback: (_newSettings: SettingsInput | null) => void): void {
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName === 'local' && changes[this.STORAGE_KEY]) {
         const newValue = changes[this.STORAGE_KEY].newValue;
@@ -164,8 +164,8 @@ export class SettingsStorageAdapter {
     try {
       await chrome.storage.local.remove([this.STORAGE_KEY]);
       return true;
-    } catch (error) {
-      console.warn('設定の削除に失敗しました:', error);
+    } catch (_error) {
+      console.warn('設定の削除に失敗しました:', _error);
       return false;
     }
   }

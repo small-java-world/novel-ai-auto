@@ -6,7 +6,8 @@
   "permissions": ["storage", "tabs", "downloads"],
   "host_permissions": ["https://novelai.net/*", "https://*.novelai.net/*"],
   "background": {
-    "service_worker": "dist/background.js"
+    "service_worker": "dist/background.js",
+    "type": "module"
   },
   "content_scripts": [
     {

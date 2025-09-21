@@ -10,14 +10,17 @@ import {
   NetworkStateMessage,
   JobPausedMessage,
   JobResumedMessage,
-  NetworkStateDetectionResult,
-  JobPauseCollectiveResult,
-  JobResumeCollectiveResult,
+  NetworkStateDetectionResult as _NetworkStateDetectionResult,
+  JobPauseCollectiveResult as _JobPauseCollectiveResult,
+  JobResumeCollectiveResult as _JobResumeCollectiveResult,
   GenerationJob,
-  PausedJob,
+  PausedJob as _PausedJob,
 } from '../types.js';
-import { ERROR_MESSAGES, PERFORMANCE_CONFIG } from './network-recovery-config.js';
-import { ValidationResult } from './network-recovery-validators.js';
+import {
+  ERROR_MESSAGES as _ERROR_MESSAGES,
+  PERFORMANCE_CONFIG,
+} from './network-recovery-config.js';
+import { ValidationResult as _ValidationResult } from './network-recovery-validators.js';
 
 /**
  * 【Null安全性ヘルパー】: null/undefined処理の統一パターン
@@ -129,9 +132,9 @@ export interface JobProcessingResult<T> {
  */
 export function processJobsWithCondition<T>(
   jobs: GenerationJob[],
-  condition: (job: GenerationJob) => boolean,
-  transformer: (job: GenerationJob) => T,
-  errorHandler?: (job: GenerationJob, error: Error) => string
+  condition: (_job: GenerationJob) => boolean,
+  transformer: (_job: GenerationJob) => T,
+  errorHandler?: (_job: GenerationJob, _error: Error) => string
 ): JobProcessingResult<T> {
   const result: JobProcessingResult<T> = {
     processedJobs: [],

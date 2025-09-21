@@ -29,19 +29,19 @@ import {
 // 【セキュリティ・設定モジュール】: 外部化された設定とセキュリティポリシー
 import {
   NETWORK_RECOVERY_CONFIG,
-  ERROR_MESSAGES,
-  SECURITY_POLICIES,
+  ERROR_MESSAGES as _ERROR_MESSAGES,
+  SECURITY_POLICIES as _SECURITY_POLICIES,
 } from './network-recovery-config.js';
 
 // 【入力検証モジュール】: 包括的なセキュリティ検証機能
 import {
   validateJobId,
   validateTimestamp,
-  validateDuration,
-  validateArray,
-  validateNetworkState,
+  validateDuration as _validateDuration,
+  validateArray as _validateArray,
+  validateNetworkState as _validateNetworkState,
   validateMultiple,
-  ValidationResult,
+  ValidationResult as _ValidationResult,
 } from './network-recovery-validators.js';
 
 // 【ユーティリティモジュール】: 共通処理とヘルパー関数
@@ -49,14 +49,14 @@ import {
   createNullSafetyMarker,
   enhanceResultWithNullSafety,
   createErrorResponse,
-  processJobsWithCondition,
-  createJobPausedMessage,
-  createJobResumedMessage,
+  processJobsWithCondition as _processJobsWithCondition,
+  createJobPausedMessage as _createJobPausedMessage,
+  createJobResumedMessage as _createJobResumedMessage,
   createNetworkStateMessage,
-  createBatches,
-  calculateExponentialDelay,
-  calculateProcessingStatistics,
-  NullSafetyResult,
+  createBatches as _createBatches,
+  calculateExponentialDelay as _calculateExponentialDelay,
+  calculateProcessingStatistics as _calculateProcessingStatistics,
+  NullSafetyResult as _NullSafetyResult,
 } from './network-recovery-utils.js';
 
 // 【設定定数】: null安全時に返却するアクション識別子 🟢
@@ -107,10 +107,7 @@ export function detectNetworkStateChange(
   const combinedValidation = validateMultiple([timestampValidation, jobIdValidation]);
   if (!combinedValidation.isValid) {
     const errorResult = enhanceResultWithNullSafety(
-      createErrorResponse(
-        combinedValidation.errorMessage || 'Invalid input',
-        'VALIDATION_FAILED'
-      ),
+      createErrorResponse(combinedValidation.errorMessage || 'Invalid input', 'VALIDATION_FAILED'),
       createNullSafetyMarker('skip_processing')
     );
     return {
@@ -334,11 +331,11 @@ export function resumeJobsOnOnline(
     updatedAt: new Date(),
     prompt: 'Resumed job',
     parameters: {},
-    settings: { 
-      imageCount: 1, 
-      seed: -1, 
+    settings: {
+      imageCount: 1,
+      seed: -1,
       filenameTemplate: '{date}_{prompt}_{idx}',
-      retrySettings: { maxRetries: 3, baseDelay: 1000, factor: 2.0 }
+      retrySettings: { maxRetries: 3, baseDelay: 1000, factor: 2.0 },
     },
     createdAt: new Date(),
     progress: { current: 0, total: 1, status: 'waiting' as const },

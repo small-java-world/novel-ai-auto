@@ -71,16 +71,6 @@ interface LoadResult {
   warnings: string[];
 }
 
-// 未実装クラス（テスト実行時にエラーとなる）
-declare class NewFormatMetadataManager {
-  loadPromptFile(data: string): Promise<LoadResult>;
-  convertLegacyFormat(legacyData: any): Promise<ConversionResult>;
-  formatMetadataForDisplay(metadata: MetadataV1): MetadataDisplayResult;
-  filterPresetsByTags(presets: PresetV1[], selectedTags: string[]): FilterResult;
-  validateFileSize(data: string): boolean;
-  sanitizeMetadata(metadata: MetadataV1): MetadataV1;
-}
-
 describe('新フォーマット対応・メタデータ管理', () => {
   let metadataManager: NewFormatMetadataManager;
 

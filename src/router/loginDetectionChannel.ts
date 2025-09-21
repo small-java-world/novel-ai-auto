@@ -1,7 +1,7 @@
 declare const chrome:
   | {
       runtime?: {
-        sendMessage?: (message: unknown) => void;
+        sendMessage?: (_message: unknown) => void;
       };
     }
   | undefined;
@@ -93,19 +93,19 @@ function respondError(requestId: string | undefined, code: string, message: stri
 }
 
 export interface LoginDetectionChannel {
-  handle: (msg: unknown) => Promise<boolean>;
+  handle: (_msg: unknown) => Promise<boolean>;
 }
 
 export function createLoginDetectionChannel(
   deps: LoginDetectionChannelDeps = defaultDeps
 ): LoginDetectionChannel {
   return {
-    async handle(msg: unknown): Promise<boolean> {
-      if (!msg || typeof msg !== 'object') {
+    async handle(_msg: unknown): Promise<boolean> {
+      if (!_msg || typeof _msg !== 'object') {
         return false;
       }
 
-      const base = msg as BaseMessage;
+      const base = _msg as BaseMessage;
       const { type } = base;
       if (typeof type !== 'string') {
         return false;

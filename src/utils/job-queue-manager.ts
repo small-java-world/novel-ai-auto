@@ -44,11 +44,11 @@ export interface OperationResult {
 // 【インターフェース定義】: JobQueueManager の機能定義
 // 🟢 信頼性レベル: Red フェーズのテストで要求される全メソッドを定義
 export interface JobQueueManager {
-  startJob(job: GenerationJob): Promise<OperationResult>;
-  cancelJob(jobId: string): Promise<OperationResult>;
+  startJob(_job: GenerationJob): Promise<OperationResult>;
+  cancelJob(_jobId: string): Promise<OperationResult>;
   cancelAll(): void;
-  handleImageReady(jobId: string, url: string, index: number, fileName: string): Promise<void>;
-  getJob(jobId: string): GenerationJob;
+  handleImageReady(_jobId: string, _url: string, _index: number, _fileName: string): Promise<void>;
+  getJob(_jobId: string): GenerationJob;
 }
 
 // 【ヘルパー関数】: 入力値検証の共通化
@@ -119,7 +119,7 @@ class JobQueueManagerImpl implements JobQueueManager {
   // 🟢 信頼性レベル: メモリ効率とセキュリティを考慮した設計
   private readonly jobs = new Map<string, GenerationJob>();
   private readonly chrome: any;
-  private cleanupTimer?: NodeJS.Timeout;
+  private cleanupTimer?: ReturnType<typeof setTimeout>;
 
   constructor() {
     // 【Chrome API 検証】: 必要なAPIの存在確認

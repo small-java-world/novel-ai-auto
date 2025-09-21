@@ -149,11 +149,11 @@ export class SettingsUI {
    * 【用途】: 複数タブ間での設定同期
    * 🔴 将来拡張を想定した推測実装
    */
-  addChangeListener(callback: (newSettings: SettingsInput) => void): void {
-    SettingsStorageAdapter.addChangeListener((newSettings) => {
-      if (newSettings) {
-        this.currentSettings = newSettings;
-        callback(newSettings);
+  addChangeListener(callback: (_newSettings: SettingsInput) => void): void {
+    SettingsStorageAdapter.addChangeListener((_newSettings) => {
+      if (_newSettings) {
+        this.currentSettings = _newSettings;
+        callback(_newSettings);
       }
     });
   }

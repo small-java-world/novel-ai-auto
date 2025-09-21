@@ -20,12 +20,10 @@ function createDeps(overrides: Partial<ChannelDeps> = {}): ChannelDeps {
       completed: false,
       message: { type: 'LOGIN_COMPLETED', detectedAt: Date.now(), availableForResume: false },
     }),
-    pauseCurrentJob: vi
-      .fn()
-      .mockReturnValue({
-        success: true,
-        pausedJob: { id: 'job', status: 'paused', pausedAt: Date.now() },
-      } as JobPauseResult),
+    pauseCurrentJob: vi.fn().mockReturnValue({
+      success: true,
+      pausedJob: { id: 'job', status: 'paused', pausedAt: Date.now() },
+    } as JobPauseResult),
     saveJobState: vi.fn().mockResolvedValue({ storageResult: 'success' } as SaveStateResult),
     resumeSavedJob: vi.fn().mockResolvedValue({ success: true } as JobResumeResult),
     clearDOMCache: vi.fn(),

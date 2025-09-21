@@ -128,8 +128,8 @@ export class FormatConverter {
 
       // パフォーマンス測定と記録
       const endTime = performance.now();
-      const processingTime = endTime - startTime;
-      this.recordConversion('convertLegacyToV1', processingTime);
+      const _processingTime = endTime - startTime;
+      this.recordConversion('convertLegacyToV1', _processingTime);
 
       return {
         success: true,
@@ -139,12 +139,14 @@ export class FormatConverter {
       };
     } catch (error) {
       const endTime = performance.now();
-      const processingTime = endTime - startTime;
-      this.recordConversion('convertLegacyToV1', processingTime, true);
+      const _processingTime = endTime - startTime;
+      this.recordConversion('convertLegacyToV1', _processingTime, true);
 
       return {
         success: false,
-        errors: [`${this.constants.ERRORS.CONVERSION_FAILED}: ${error instanceof Error ? error.message : 'Unknown error'}`],
+        errors: [
+          `${this.constants.ERRORS.CONVERSION_FAILED}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        ],
       };
     }
   }
@@ -225,7 +227,7 @@ export class FormatConverter {
       };
 
       const endTime = performance.now();
-      const processingTime = endTime - startTime;
+      const _processingTime = endTime - startTime;
 
       return {
         success: true,
@@ -275,7 +277,7 @@ export class FormatConverter {
       };
 
       const endTime = performance.now();
-      const processingTime = endTime - startTime;
+      const _processingTime = endTime - startTime;
 
       return {
         success: true,
@@ -388,6 +390,7 @@ export class FormatConverter {
       if (!invalidFile) {
         return {
           success: false,
+          error: 'Invalid file: null or undefined',
           errors: ['Invalid file: null or undefined'],
           data: null,
         };
@@ -397,6 +400,7 @@ export class FormatConverter {
       if (typeof invalidFile !== 'object') {
         return {
           success: false,
+          error: 'Invalid file: not an object',
           errors: ['Invalid file: not an object'],
           data: null,
         };
@@ -410,13 +414,16 @@ export class FormatConverter {
 
       return {
         success: false,
+        error: 'Invalid file: unsupported format',
         errors: ['Invalid file: unsupported format'],
         data: null,
       };
     } catch (error) {
+      const message = `Invalid format handling failed: ${error instanceof Error ? error.message : String(error)}`;
       return {
         success: false,
-        errors: [`Invalid format handling failed: ${error}`],
+        error: message,
+        errors: [message],
         data: null,
       };
     }
@@ -433,9 +440,11 @@ export class FormatConverter {
   async handleConversionError(error: Error): Promise<ConversionResult> {
     // Greenフェーズ: 基本的な変換エラー処理を実装
     try {
+      const message = `Conversion error: ${error.message}`;
       return {
         success: false,
-        errors: [`Conversion error: ${error.message}`],
+        error: message,
+        errors: [message],
         data: null,
       };
     } catch (handlingError) {

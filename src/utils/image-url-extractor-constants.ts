@@ -75,6 +75,7 @@ export const FILENAME_SANITIZATION = {
   DANGEROUS_CHARS_PATTERN: /[<>:"|?*\\/]/g,
 
   /** 【制御文字パターン】: ASCII制御文字の正規表現 */
+  // eslint-disable-next-line no-control-regex
   CONTROL_CHARS_PATTERN: /[\x00-\x1f\x7f]/g,
 
   /** 【置換文字】: 危険文字の安全な置換文字 */

@@ -5,7 +5,7 @@
  * 🟢 信頼性レベル: 元実装のテスト通過実績に基づく
  */
 
-import type { ProgressUpdateMessage } from '../types';
+// import type { ProgressUpdateMessage } from '../types';
 
 export class ProgressStateManager {
   private currentJobId: string = '';

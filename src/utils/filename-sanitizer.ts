@@ -59,7 +59,7 @@ export class FilenameSanitizer {
     if (!fileName || typeof fileName !== 'string') {
       return {
         sanitizedName: 'download' + STORAGE_DOWNLOAD_CONFIG.DEFAULT_EXTENSION,
-        originalName: originalName,
+        originalName,
         wasModified: true,
         issues: ['無効な入力値のためデフォルト名を使用'],
       };
@@ -103,9 +103,9 @@ export class FilenameSanitizer {
 
     return {
       sanitizedName: result,
-      originalName: originalName,
+      originalName,
       wasModified: result !== originalName,
-      issues: issues,
+      issues,
     };
   }
 
@@ -157,6 +157,7 @@ export class FilenameSanitizer {
 
     // 【制御文字除去】: ASCII制御文字の除去
     const beforeControlChars = sanitized;
+    // eslint-disable-next-line no-control-regex
     sanitized = sanitized.replace(/[\x00-\x1f\x7f]/g, '');
     if (sanitized !== beforeControlChars) {
       issues.push('制御文字を除去');

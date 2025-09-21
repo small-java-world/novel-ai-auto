@@ -370,7 +370,7 @@ export class CommonErrorHandler {
    * 【JSON解析エラー処理】: JSON解析失敗時の統一的な処理
    * 【標準化】: TC008で期待される形式のエラー結果を生成
    */
-  static handleJsonParseError(error?: Error): LoadResult {
+  static handleJsonParseError(_error?: Error): LoadResult {
     return LoadResultBuilder.createJsonSyntaxError();
   }
 
@@ -394,7 +394,7 @@ export class CommonErrorHandler {
    * 【一般的なエラー処理】: 予期しないエラーの統一的な処理
    * 【安全性】: システムエラーを安全に処理して情報漏洩を防止
    */
-  static handleGenericError(context: string = 'processing'): LoadResult {
+  static handleGenericError(_context: string = 'processing'): LoadResult {
     return LoadResultBuilder.createFailure([ERROR_MESSAGES.FILE_LOAD_ERROR]);
   }
 

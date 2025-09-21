@@ -517,7 +517,7 @@ describe('PromptSynthesizer - TASK-101 Green Phase Tests', () => {
         ];
 
         let detectionCount = 0;
-        let totalTests = testCases.length;
+        const totalTests = testCases.length;
 
         // 【実際の処理実行】: 各テストケースで文字数制限検出を確認
         testCases.forEach((testCase, index) => {

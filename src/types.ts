@@ -375,4 +375,3 @@ export interface LocalFileLoadResult {
   fileSize?: number;
   fileName?: string;
 }
-

@@ -158,8 +158,8 @@ export class DownloadLogger {
     return {
       id: nextId,
       timestamp: Date.now(),
-      level: level,
-      message: message,
+      level,
+      message,
     };
   }
 
@@ -225,7 +225,7 @@ export class DownloadLogger {
    */
   private static async saveLogsToStorage(logs: LogEntry[]): Promise<void> {
     try {
-      await chrome.storage.local.set({ logs: logs });
+      await chrome.storage.local.set({ logs });
     } catch (error) {
       // 【保存失敗処理】: ストレージ保存失敗時のエラー記録
       console.warn('ログ保存に失敗しました:', error);

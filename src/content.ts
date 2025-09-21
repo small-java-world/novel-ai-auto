@@ -35,12 +35,12 @@ const FALLBACK_SELECTOR_CONFIG: Record<ElementType, SelectorConfig> = {
   'prompt-input': {
     selectors: [
       '#prompt-input',
-      '[data-testid=\"prompt-input\"] textarea',
-      '[data-testid=\"prompt-input\"]',
-      'textarea[aria-label*=\"prompt\" i]',
-      'textarea[placeholder*=\"prompt\" i]',
-      'textarea[name=\"prompt\"]',
-      'textarea[id*=\"prompt\" i]',
+      '[data-testid="prompt-input"] textarea',
+      '[data-testid="prompt-input"]',
+      'textarea[aria-label*="prompt" i]',
+      'textarea[placeholder*="prompt" i]',
+      'textarea[name="prompt"]',
+      'textarea[id*="prompt" i]',
       '.prompt-input textarea',
     ],
     timeout: DEFAULT_SELECTOR_TIMEOUT,
@@ -48,76 +48,76 @@ const FALLBACK_SELECTOR_CONFIG: Record<ElementType, SelectorConfig> = {
   'negative-input': {
     selectors: [
       '#negative-prompt-input',
-      '[data-testid=\"negative-prompt\"] textarea',
-      '[data-testid=\"negative-prompt\"]',
-      'textarea[aria-label*=\"negative\" i]',
-      'textarea[placeholder*=\"negative\" i]',
-      'textarea[name=\"negative\"]',
-      'textarea[id*=\"negative\" i]',
+      '[data-testid="negative-prompt"] textarea',
+      '[data-testid="negative-prompt"]',
+      'textarea[aria-label*="negative" i]',
+      'textarea[placeholder*="negative" i]',
+      'textarea[name="negative"]',
+      'textarea[id*="negative" i]',
       '.prompt-negative textarea',
     ],
     timeout: DEFAULT_SELECTOR_TIMEOUT,
   },
   'generate-button': {
     selectors: [
-      '[data-testid=\"generate-button\"]',
-      'button[aria-label*=\"generate\" i]',
-      'button[aria-label*=\"生成\" i]',
-      'button[type=\"submit\"]',
+      '[data-testid="generate-button"]',
+      'button[aria-label*="generate" i]',
+      'button[aria-label*="生成" i]',
+      'button[type="submit"]',
       '.generate-button',
     ],
     timeout: DEFAULT_SELECTOR_TIMEOUT,
   },
   'seed-input': {
     selectors: [
-      '[data-testid=\"seed-input\"] input',
-      '[data-testid=\"seed-input\"]',
-      'input[name=\"seed\"]',
-      'input[id*=\"seed\" i]',
-      'input[aria-label*=\"seed\" i]',
+      '[data-testid="seed-input"] input',
+      '[data-testid="seed-input"]',
+      'input[name="seed"]',
+      'input[id*="seed" i]',
+      'input[aria-label*="seed" i]',
     ],
     timeout: DEFAULT_SELECTOR_TIMEOUT,
   },
   'steps-input': {
     selectors: [
-      '[data-testid=\"steps-input\"] input',
-      'input[name=\"steps\"]',
-      'input[id*=\"step\" i]',
-      'input[aria-label*=\"steps\" i]',
+      '[data-testid="steps-input"] input',
+      'input[name="steps"]',
+      'input[id*="step" i]',
+      'input[aria-label*="steps" i]',
     ],
     timeout: DEFAULT_SELECTOR_TIMEOUT,
   },
   'sampler-select': {
     selectors: [
-      '[data-testid=\"sampler-select\"] select',
-      '[data-testid=\"sampler-select\"]',
-      'select[name=\"sampler\"]',
-      'select[id*=\"sampler\" i]',
-      'select[aria-label*=\"sampler\" i]',
+      '[data-testid="sampler-select"] select',
+      '[data-testid="sampler-select"]',
+      'select[name="sampler"]',
+      'select[id*="sampler" i]',
+      'select[aria-label*="sampler" i]',
     ],
     timeout: DEFAULT_SELECTOR_TIMEOUT,
   },
   'cfg-scale-input': {
     selectors: [
-      '[data-testid=\"cfg-input\"] input',
-      'input[name=\"cfg\"]',
-      'input[id*=\"cfg\" i]',
-      'input[aria-label*=\"cfg\" i]',
+      '[data-testid="cfg-input"] input',
+      'input[name="cfg"]',
+      'input[id*="cfg" i]',
+      'input[aria-label*="cfg" i]',
     ],
     timeout: DEFAULT_SELECTOR_TIMEOUT,
   },
   'count-input': {
     selectors: [
-      '[data-testid=\"image-count-input\"] input',
-      'input[name=\"imageCount\"]',
-      'input[name=\"count\"]',
-      'input[id*=\"count\" i]',
-      'input[aria-label*=\"count\" i]',
+      '[data-testid="image-count-input"] input',
+      'input[name="imageCount"]',
+      'input[name="count"]',
+      'input[id*="count" i]',
+      'input[aria-label*="count" i]',
     ],
     timeout: DEFAULT_SELECTOR_TIMEOUT,
   },
   'progress-indicator': {
-    selectors: ['[role=\"progressbar\"]', '.progress-bar'],
+    selectors: ['[role="progressbar"]', '.progress-bar'],
     timeout: DEFAULT_SELECTOR_TIMEOUT,
   },
   'image-gallery': {
@@ -309,7 +309,9 @@ chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) =
         console.error('Failed to apply prompt:', errorMessage);
         try {
           sendResponse?.({ success: false, error: errorMessage });
-        } catch {}
+        } catch (e) {
+          console.error('Failed to send response:', e);
+        }
       });
       break;
     case 'GET_PAGE_STATE':
@@ -319,7 +321,9 @@ chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) =
       CANCEL_REQUESTED = true;
       try {
         sendResponse?.({ success: true });
-      } catch {}
+      } catch (e) {
+        console.error('Failed to send response:', e);
+      }
       break;
     }
     default:

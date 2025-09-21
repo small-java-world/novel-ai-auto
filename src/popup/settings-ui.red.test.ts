@@ -1,6 +1,6 @@
 // 【テスト対象モジュール】: Settings UI管理機能（まだ実装されていない）
 // 【TDDフェーズ】: Red Phase - 失敗するテストを作成してTDD開発を開始
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { Mock } from 'vitest';
 
 // 【インポート】: まだ実装されていないSettingsUIクラス（意図的にテスト失敗を引き起こす）

@@ -112,6 +112,8 @@
   },
   {
     "name": "ファンタジー世界の冒険",
+    "prompt": "fantasy world, magical atmosphere, detailed environment, {best quality}, {masterpiece}",
+    "negative": "modern elements, low quality, blurry, bad anatomy, text, watermark",
     "common": {
       "positive": "fantasy world, magical atmosphere, detailed environment, {best quality}, {masterpiece}",
       "negative": "modern elements, low quality, blurry, bad anatomy, text, watermark"
@@ -127,7 +129,7 @@
       {
         "id": "fantasy-knight",
         "name": "ファンタジー騎士",
-        "selectorProfile": "character-fantasy", 
+        "selectorProfile": "character-fantasy",
         "positive": "fantasy knight, medieval armor, sword, heroic pose, castle background, dramatic lighting, {best quality}, {masterpiece}",
         "negative": "modern, realistic, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped, worst quality, low quality"
       },

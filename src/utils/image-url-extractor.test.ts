@@ -318,7 +318,7 @@ describe('Image URL Extraction（画像URL抽出）', () => {
       expect(chrome.runtime.sendMessage).toHaveBeenNthCalledWith(1, {
         type: 'IMAGE_READY',
         payload: {
-          jobId: jobId,
+          jobId,
           url: 'https://novelai.net/test-image-1.png',
           index: 0,
           fileName: expectedFileName1,
@@ -328,7 +328,7 @@ describe('Image URL Extraction（画像URL抽出）', () => {
       expect(chrome.runtime.sendMessage).toHaveBeenNthCalledWith(2, {
         type: 'IMAGE_READY',
         payload: {
-          jobId: jobId,
+          jobId,
           url: 'https://novelai.net/test-image-2.png',
           index: 1,
           fileName: expectedFileName2,
@@ -368,7 +368,7 @@ describe('Image URL Extraction（画像URL抽出）', () => {
       expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({
         type: 'IMAGE_READY',
         payload: {
-          jobId: jobId,
+          jobId,
           url: 'https://novelai.net/special-image.png',
           index: 0,
           fileName: expectedFileName,

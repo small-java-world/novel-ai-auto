@@ -8,7 +8,7 @@ import { createLoginDetectionChannel } from './router/loginDetectionChannel';
 console.log('NovelAI Auto Generator Service Worker loaded');
 
 // Function declarations (hoisted)
-async function initializeDefaultSettings(): Promise<void> {
+export async function initializeDefaultSettings(): Promise<void> {
   try {
     const defaultSettings = {
       imageCount: 1,
@@ -21,10 +21,13 @@ async function initializeDefaultSettings(): Promise<void> {
       },
     };
 
-    await chrome.storage.local.set({ namespace_settings: defaultSettings });
+    await chrome.storage.local.set({ settings: defaultSettings });
     console.log('Default settings initialized');
   } catch (error) {
-    console.error('Failed to initialize default settings:', error);
+    console.error(
+      'Failed to initialize default settings:',
+      error instanceof Error ? error.message : String(error)
+    );
   }
 }
 
@@ -66,17 +69,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             type: 'GENERATION_PROGRESS',
             progress: message.progress,
           });
-        } catch {}
+        } catch (e) {
+          console.error('Failed to forward GENERATION_PROGRESS:', e);
+        }
         break;
       case 'GENERATION_COMPLETE':
         try {
           await chrome.runtime.sendMessage({ type: 'GENERATION_COMPLETE', count: message.count });
-        } catch {}
+        } catch (e) {
+          console.error('Failed to forward GENERATION_COMPLETE:', e);
+        }
         break;
       case 'GENERATION_ERROR':
         try {
           await chrome.runtime.sendMessage({ type: 'GENERATION_ERROR', error: message.error });
-        } catch {}
+        } catch (e) {
+          console.error('Failed to forward GENERATION_ERROR:', e);
+        }
         break;
       default:
         console.warn('Unknown message type:', message?.type);
@@ -88,7 +97,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Return true to keep the message channel open for async response
   return true;
 });
-
 
 /**
  * Handle start generation message

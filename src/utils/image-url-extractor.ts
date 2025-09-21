@@ -15,7 +15,7 @@ import {
   URL_VALIDATION,
   FILENAME_SANITIZATION,
   FILENAME_TEMPLATE,
-  MESSAGING,
+  MESSAGING as _MESSAGING,
 } from './image-url-extractor-constants';
 
 /**
@@ -284,8 +284,7 @@ export class ImageUrlExtractor {
         this.sendImageReadyMessage(jobId, url, index, fileName);
       }
     } catch (error) {
-      // 【エラー処理】: 処理中のエラーは上位に伝播させる
-      // 【Chrome API不在対応】: Chrome API が利用できない場合は sendImageReadyMessage で処理
+      console.error('Failed to extract and notify image URLs:', error);
       throw error;
     }
   }
@@ -380,10 +379,10 @@ export class ImageUrlExtractor {
     const messageData = {
       type: 'IMAGE_READY',
       payload: {
-        jobId: jobId,
-        url: url,
-        index: index,
-        fileName: fileName,
+        jobId,
+        url,
+        index,
+        fileName,
       },
     };
 

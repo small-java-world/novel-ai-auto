@@ -53,14 +53,14 @@ describe('content.ts import and message handling', () => {
     const listener = chromeMock.runtime.onMessage.addListener.mock.calls[0][0];
     const sendResponse = vi.fn();
     const returned = listener(
-      { 
-        type: 'APPLY_PROMPT', 
-        prompt: { 
-          positive: 'Hello', 
+      {
+        type: 'APPLY_PROMPT',
+        prompt: {
+          positive: 'Hello',
           negative: 'lowres, bad anatomy',
-          selectorProfile: 'character-anime'
-        }, 
-        parameters: { seed: 42, count: 1 } 
+          selectorProfile: 'character-anime',
+        },
+        parameters: { seed: 42, count: 1 },
       },
       {},
       sendResponse
@@ -99,14 +99,18 @@ describe('content.ts import and message handling', () => {
 
     const listener = chromeMock.runtime.onMessage.addListener.mock.calls[0][0];
     const sendResponse = vi.fn();
-    const returned = listener({ 
-      type: 'APPLY_PROMPT', 
-      prompt: { 
-        positive: 'Hello', 
-        negative: 'lowres, bad anatomy',
-        selectorProfile: 'character-anime'
-      } 
-    }, {}, sendResponse);
+    const returned = listener(
+      {
+        type: 'APPLY_PROMPT',
+        prompt: {
+          positive: 'Hello',
+          negative: 'lowres, bad anatomy',
+          selectorProfile: 'character-anime',
+        },
+      },
+      {},
+      sendResponse
+    );
     expect(returned).toBe(true);
     await Promise.resolve();
     await Promise.resolve();

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('./storage-download-compatibility-config', () => ({
   STORAGE_DOWNLOAD_CONFIG: {

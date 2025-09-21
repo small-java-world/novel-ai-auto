@@ -290,7 +290,11 @@ export class UIStateManager {
    * @param settings - 生成設定（imageCount/seed/filenameTemplate）
    * @param selectorProfile - セレクタープロファイル（NovelAI UI要素選択用）
    */
-  async startGeneration(promptData: PromptData, settings: GenerationSettings, selectorProfile?: string): Promise<void> {
+  async startGeneration(
+    promptData: PromptData,
+    settings: GenerationSettings,
+    selectorProfile?: string
+  ): Promise<void> {
     if (!promptData || !settings) {
       throw new Error('Invalid parameters: promptData and settings are required');
     }
@@ -495,13 +499,15 @@ export class UIStateManager {
     try {
       return {
         imageCount: this.elements.imageCount
-          ? parseInt((this.elements.imageCount as HTMLInputElement).value) || DEFAULT_SETTINGS.imageCount
+          ? parseInt((this.elements.imageCount as HTMLInputElement).value) ||
+            DEFAULT_SETTINGS.imageCount
           : DEFAULT_SETTINGS.imageCount,
         seed: this.elements.seed
           ? parseInt((this.elements.seed as HTMLInputElement).value) || DEFAULT_SETTINGS.seed
           : DEFAULT_SETTINGS.seed,
         filenameTemplate: this.elements.filenameTemplate
-          ? (this.elements.filenameTemplate as HTMLInputElement).value || DEFAULT_SETTINGS.filenameTemplate
+          ? (this.elements.filenameTemplate as HTMLInputElement).value ||
+            DEFAULT_SETTINGS.filenameTemplate
           : DEFAULT_SETTINGS.filenameTemplate,
       };
     } catch (error) {

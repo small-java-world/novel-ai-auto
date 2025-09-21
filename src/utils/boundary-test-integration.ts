@@ -8,26 +8,30 @@
  */
 
 // 【依存関係の明確化】: 定数、ヘルパー、モジュール関数の分離による責任分離
-import { BOUNDARY_LIMITS, MODULE_NAMES, TEST_STATUS } from './boundary-test-constants';
+import {
+  BOUNDARY_LIMITS as _BOUNDARY_LIMITS,
+  MODULE_NAMES as _MODULE_NAMES,
+  TEST_STATUS,
+} from './boundary-test-constants';
 import {
   TestCase,
   TestStatistics,
-  updateTestStatistics,
-  determineModuleStatus,
+  updateTestStatistics as _updateTestStatistics,
+  determineModuleStatus as _determineModuleStatus,
   createInitialStatistics,
-  isWithinBounds,
-  truncateString,
+  isWithinBounds as _isWithinBounds,
+  truncateString as _truncateString,
 } from './boundary-test-helpers';
 import {
   validateBoundaryTestInput,
   executeAllBoundaryTests,
-  createPromptTestCase,
-  createImageCountTestCase,
-  createRetryTestCase,
-  createSystemIntegrationTestCase,
-  addTestMessagesToArrays,
+  createPromptTestCase as _createPromptTestCase,
+  createImageCountTestCase as _createImageCountTestCase,
+  createRetryTestCase as _createRetryTestCase,
+  createSystemIntegrationTestCase as _createSystemIntegrationTestCase,
+  addTestMessagesToArrays as _addTestMessagesToArrays,
   createErrorBoundaryTestResult,
-  createEmptyBoundaryResult,
+  createEmptyBoundaryResult as _createEmptyBoundaryResult,
 } from './boundary-test-module-functions';
 
 /**

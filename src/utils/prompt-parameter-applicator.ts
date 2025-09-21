@@ -200,7 +200,7 @@ export function applyPresetToDOM(preset: PromptData): ApplicationResult {
 
   // 【ネガティブプロンプト処理】: ネガティブプロンプトの適用（簡略実装） 🟡
   // 【最小実装】: テストで検証される部分のみ実装
-  let appliedNegative = preset.negative || '';
+  const appliedNegative = preset.negative || '';
 
   // 【パラメータ適用】: 生成パラメータがある場合の適用処理 🟢
   let appliedParameters = {

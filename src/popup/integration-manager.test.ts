@@ -372,7 +372,7 @@ describe('IntegrationManager - TASK-102 Integration Tests', () => {
       };
 
       let successCount = 0;
-      let totalCount = testFiles.length;
+      const totalCount = testFiles.length;
 
       // 【信頼性テスト実行】: 複数ファイルでの統合成功率測定
       for (const file of testFiles) {

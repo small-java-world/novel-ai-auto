@@ -128,7 +128,7 @@ export class PermissionManager {
 
       return {
         granted: false,
-        previousState: previousState,
+        previousState,
         userResponse: 'error',
         message: '権限要求中にエラーが発生しました',
       };
@@ -155,7 +155,7 @@ export class PermissionManager {
 
       return {
         granted: true,
-        previousState: previousState,
+        previousState,
         userResponse: 'granted',
         message: 'ダウンロード権限が承諾されました',
       };
@@ -167,7 +167,7 @@ export class PermissionManager {
 
       return {
         granted: false,
-        previousState: previousState,
+        previousState,
         userResponse: 'denied',
         message: 'ダウンロード権限が拒否されました',
       };
@@ -190,7 +190,7 @@ export class PermissionManager {
       // 【権限済み】: 既に権限があるため処理続行可能
       return {
         hasPermission: true,
-        isPending: isPending,
+        isPending,
         nextAction: 'proceed',
         message: 'ダウンロード権限は既に付与されています',
       };

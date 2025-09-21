@@ -39,7 +39,7 @@ import {
   pauseJobsOnOffline,
   resumeJobsOnOnline,
   handleFlappingPrevention,
-  stageResumeMultipleJobs
+  stageResumeMultipleJobs,
 } from './network-recovery-handler';
 
 describe('NetworkRecoveryHandler - TASK-071 オフライン/復帰ハンドリング', () => {
@@ -70,7 +70,7 @@ describe('NetworkRecoveryHandler - TASK-071 オフライン/復帰ハンドリ�
       // 【初期条件設定】: オンライン状態から開始し、実行中ジョブが存在する状況を設定
       const initialState = {
         isOnline: true,
-        currentJobs: ['job-1', 'job-2']
+        currentJobs: ['job-1', 'job-2'],
       };
       const networkEvent = new Event('offline');
       const currentTime = 1699000000000;
@@ -100,7 +100,7 @@ describe('NetworkRecoveryHandler - TASK-071 オフライン/復帰ハンドリ�
         id: 'job-456',
         status: 'running' as const,
         progress: { current: 2, total: 5 },
-        startedAt: 1699000000000
+        startedAt: 1699000000000,
       };
       const networkState = { isOnline: false };
       const pauseTime = 1699000000000;
@@ -132,7 +132,7 @@ describe('NetworkRecoveryHandler - TASK-071 オフライン/復帰ハンドリ�
         status: 'paused' as const,
         reason: 'network_offline',
         pausedAt: 1699000000000,
-        progress: { current: 2, total: 5 }
+        progress: { current: 2, total: 5 },
       };
       const networkState = { isOnline: true };
       const resumeTime = 1699000005000;
@@ -162,7 +162,7 @@ describe('NetworkRecoveryHandler - TASK-071 オフライン/復帰ハンドリ�
       const message = {
         type: 'NETWORK_STATE_CHANGED',
         isOnline: false,
-        timestamp: 1699000000000
+        timestamp: 1699000000000,
       };
       const targetComponents = ['popup', 'content-script'];
 
@@ -194,7 +194,7 @@ describe('NetworkRecoveryHandler - TASK-071 オフライン/復帰ハンドリ�
       const pausedJobs = [
         { id: 'job-1', pausedAt: 1699000000000 },
         { id: 'job-2', pausedAt: 1699000001000 },
-        { id: 'job-3', pausedAt: 1699000002000 }
+        { id: 'job-3', pausedAt: 1699000002000 },
       ];
       const retrySettings = { baseDelay: 500, factor: 2.0 };
 
@@ -308,7 +308,11 @@ describe('NetworkRecoveryHandler - TASK-071 オフライン/復帰ハンドリ�
       // 【実際の処理実行】: NetworkRecoveryHandlerの直接通知機能を呼び出し
       // 【処理内容】: メッセージルータ障害時の代替通信手段による情報伝達
       const handler = new NetworkRecoveryHandler();
-      const result = handler.notifyDirectly(networkStateChange, directNotificationTargets, messagingRouterError);
+      const result = handler.notifyDirectly(
+        networkStateChange,
+        directNotificationTargets,
+        messagingRouterError
+      );
 
       // 【結果検証】: インフラ障害時の代替通信機能を確認
       // 【期待値確認】: ルータ未使用、直接通知成功、代替手段使用、配信確認の検証
@@ -332,10 +336,10 @@ describe('NetworkRecoveryHandler - TASK-071 オフライン/復帰ハンドリ�
       const testCases = [
         { duration: 4900, shouldIgnore: true },
         { duration: 5000, shouldDetect: true },
-        { duration: 5100, shouldDetect: true }
+        { duration: 5100, shouldDetect: true },
       ];
 
-      testCases.forEach(testCase => {
+      testCases.forEach((testCase) => {
         // 【実際の処理実行】: フラッピング防止機能を各境界値で呼び出し
         // 【処理内容】: 状態変化継続時間の監視と閾値判定による検出制御
         const result = handleFlappingPrevention('test-job', testCase.duration);
@@ -363,10 +367,10 @@ describe('NetworkRecoveryHandler - TASK-071 オフライン/復帰ハンドリ�
       const testCases = [
         { interval: 900, expected: 'allowed' },
         { interval: 1000, expected: 'allowed' },
-        { interval: 1100, expected: 'capped_to_1000' }
+        { interval: 1100, expected: 'capped_to_1000' },
       ];
 
-      testCases.forEach(testCase => {
+      testCases.forEach((testCase) => {
         // 【実際の処理実行】: NetworkRecoveryHandlerの監視周期設定機能を呼び出し
         // 【処理内容】: 監視間隔の設定と上限制御による適切な制限
         const handler = new NetworkRecoveryHandler();
@@ -396,14 +400,18 @@ describe('NetworkRecoveryHandler - TASK-071 オフライン/復帰ハンドリ�
       const testCases = [
         { jobCount: 3, maxConcurrent: 5, expected: 'all_immediate' },
         { jobCount: 5, maxConcurrent: 5, expected: 'all_immediate' },
-        { jobCount: 7, maxConcurrent: 5, expected: 'batched_resume' }
+        { jobCount: 7, maxConcurrent: 5, expected: 'batched_resume' },
       ];
 
-      testCases.forEach(testCase => {
+      testCases.forEach((testCase) => {
         // 【実際の処理実行】: 同時復旧制御機能をジョブ数パターンで呼び出し
         // 【処理内容】: 同時処理数制限と超過時のバッチ処理制御
-        const pausedJobs = Array.from({ length: testCase.jobCount }, (_, i) => ({ id: `job-${i}` }));
-        const result = stageResumeMultipleJobs(pausedJobs, { maxConcurrent: testCase.maxConcurrent });
+        const pausedJobs = Array.from({ length: testCase.jobCount }, (_, i) => ({
+          id: `job-${i}`,
+        }));
+        const result = stageResumeMultipleJobs(pausedJobs, {
+          maxConcurrent: testCase.maxConcurrent,
+        });
 
         // 【結果検証】: 負荷制御機能の動作を確認
         // 【期待値確認】: 制限数での制御、超過時のバッチ処理、システム安定性の検証
@@ -431,10 +439,10 @@ describe('NetworkRecoveryHandler - TASK-071 オフライン/復帰ハンドリ�
         { jobId: null, expectedBehavior: 'skip_processing' },
         { jobId: undefined, expectedBehavior: 'skip_processing' },
         { networkState: null, expectedBehavior: 'assume_online' },
-        { timestamp: undefined, expectedBehavior: 'use_current_time' }
+        { timestamp: undefined, expectedBehavior: 'use_current_time' },
       ];
 
-      testCases.forEach(testCase => {
+      testCases.forEach((testCase) => {
         // 【実際の処理実行】: NetworkRecoveryHandlerの各機能をnull/undefined入力で呼び出し
         // 【処理内容】: null安全性処理とデフォルト値による継続動作
         let result;
@@ -461,6 +469,9 @@ describe('NetworkRecoveryHandler - TASK-071 オフライン/復帰ハンドリ�
         }
       });
     });
+  });
+});
+
 describe('Network Recovery Handler null安全処理 (Red)', () => {
   beforeEach(() => {
     // 【テスト前準備】: null安全シナリオを再現するためにnavigatorのオンライン状態を調整
@@ -490,7 +501,11 @@ describe('Network Recovery Handler null安全処理 (Red)', () => {
 
     // 【実際の処理実行】: detectNetworkStateChangeを呼び出してnull安全分岐の挙動を確認
     // 【処理内容】: Redフェーズのため未実装を前提にしつつ、期待仕様との差分を測定
-    const result = detectNetworkStateChange(input.event, input.timestamp, input.jobId as string | undefined);
+    const result = detectNetworkStateChange(
+      input.event,
+      input.timestamp,
+      input.jobId as string | undefined
+    );
 
     // 【結果検証】: handledとfallback/actionが仕様通りかを検証
     // 【期待値確認】: handled=true, action=skip_processing, fallback=Date.now() で返ることを確認

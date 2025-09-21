@@ -14,7 +14,7 @@ export interface RetryEngine {
    * @param {number} attempts - 試行回数（0起点）
    * @returns {number} - 遅延時間(ms)
    */
-  calculateDelay(attempts: number): number;
+  calculateDelay(_attempts: number): number;
 
   /**
    * 【機能概要】: 再試行すべきかを判定
@@ -22,7 +22,7 @@ export interface RetryEngine {
    * 【テスト対応】: 上限停止/キャンセル/境界値の各ケース
    * 🟢🟡🔴 信頼性レベル: 🟢 テストに明示
    */
-  shouldRetry(attempts: number): boolean;
+  shouldRetry(_attempts: number): boolean;
 
   /**
    * 【機能概要】: 指定遅延後にコールバックを実行
@@ -30,7 +30,7 @@ export interface RetryEngine {
    * 【テスト対応】: 実遅延の検証、キャンセル時未実行
    * 🟢🟡🔴 信頼性レベル: 🟢 テストに明示
    */
-  executeWithDelay(delay: number, callback: () => void): void;
+  executeWithDelay(_delay: number, _callback: () => void): void;
 
   /**
    * 【機能概要】: 失敗を記録（内部カウンタを加算）
@@ -71,8 +71,8 @@ export interface RetryEngine {
    * 🟢🟡🔴 信頼性レベル: 🟢 テストに明示
    */
   executeWithRetry<T>(
-    operation: (signal?: AbortSignal) => Promise<T>,
-    options?: { signal?: AbortSignal }
+    _operation: (_signal?: AbortSignal) => Promise<T>,
+    _options?: { signal?: AbortSignal }
   ): Promise<T>;
 
   /**
@@ -80,8 +80,8 @@ export interface RetryEngine {
    * 【実装方針】: 内部 AbortController で中断し、operation と待機に伝播
    */
   runWithRetry<T>(
-    operation: (signal?: AbortSignal) => Promise<T>,
-    options?: { signal?: AbortSignal }
+    _operation: (_signal?: AbortSignal) => Promise<T>,
+    _options?: { signal?: AbortSignal }
   ): ExecutionHandle<T>;
 
   /**
@@ -92,7 +92,7 @@ export interface RetryEngine {
    * @param {number} [remaining] - 返す件数の上限（省略時は残り最大回数）
    * @returns {number[]} - 予定バックオフ遅延(ms)の配列
    */
-  previewDelays?(remaining?: number): number[];
+  previewDelays?(_remaining?: number): number[];
 }
 
 export interface ExecutionHandle<T> {
@@ -137,7 +137,7 @@ export function createRetryEngine(config: RetryConfig): RetryEngine {
   // 【変数初期化】: キャンセル状態フラグ 🟢
   let isCancelled = false;
   // 【変数初期化】: アクティブなタイマーIDを保持（キャンセル/リセットでクリア）🟢
-  const activeTimeouts = new Set<NodeJS.Timeout>();
+  const activeTimeouts = new Set<ReturnType<typeof setTimeout>>();
 
   return {
     /**
@@ -235,8 +235,8 @@ export function createRetryEngine(config: RetryConfig): RetryEngine {
      * 🟢🟡🔴 信頼性レベル: 🟢
      */
     async executeWithRetry<T>(
-      operation: (signal?: AbortSignal) => Promise<T>,
-      options?: { signal?: AbortSignal }
+      _operation: (_signal?: AbortSignal) => Promise<T>,
+      _options?: { signal?: AbortSignal }
     ): Promise<T> {
       // 【小関数】: AbortError生成
       const abortError = (): Error => {
@@ -271,7 +271,7 @@ export function createRetryEngine(config: RetryConfig): RetryEngine {
         if (signal?.aborted) throw abortError();
         try {
           // await による同期的なエラーハンドラ接続
-          return await operation(signal);
+          return await _operation(signal);
         } catch (e) {
           // Error へ正規化
           throw e instanceof Error ? e : new Error(String(e));
@@ -279,7 +279,7 @@ export function createRetryEngine(config: RetryConfig): RetryEngine {
       };
 
       let lastError: Error | undefined;
-      const externalSignal = options?.signal;
+      const externalSignal = _options?.signal;
       if (externalSignal?.aborted) throw abortError();
 
       for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
@@ -316,13 +316,13 @@ export function createRetryEngine(config: RetryConfig): RetryEngine {
     },
 
     runWithRetry<T>(
-      operation: (signal?: AbortSignal) => Promise<T>,
-      options?: { signal?: AbortSignal }
+      _operation: (_signal?: AbortSignal) => Promise<T>,
+      _options?: { signal?: AbortSignal }
     ): ExecutionHandle<T> {
       const internal = new AbortController();
 
       // 外部シグナルが渡された場合は内部へワンウェイ伝播
-      const external = options?.signal;
+      const external = _options?.signal;
       let removeExternalListener: (() => void) | undefined;
       if (external) {
         const onAbort = () => internal.abort();
@@ -333,7 +333,7 @@ export function createRetryEngine(config: RetryConfig): RetryEngine {
 
       // 実行開始はマイクロタスクにディファーし、即時 cancel を確実に先行させる
       const promise = Promise.resolve()
-        .then(() => this.executeWithRetry(operation, { signal: internal.signal }))
+        .then(() => this.executeWithRetry(_operation, { signal: internal.signal }))
         .finally(() => {
           if (removeExternalListener) removeExternalListener();
         });

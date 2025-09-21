@@ -3,12 +3,12 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { 
-  PromptSegments, 
-  StartGenerationMessage, 
+import type {
+  PromptSegments,
+  StartGenerationMessage,
   ApplyPromptMessage,
   GenerationParameters,
-  GenerationSettings
+  GenerationSettings,
 } from './types';
 
 describe('Types', () => {
@@ -17,7 +17,7 @@ describe('Types', () => {
       const prompt: PromptSegments = {
         positive: '1girl, solo, beautiful',
         negative: 'lowres, bad anatomy, bad hands',
-        selectorProfile: 'character-anime'
+        selectorProfile: 'character-anime',
       };
 
       expect(prompt.positive).toBe('1girl, solo, beautiful');
@@ -27,7 +27,7 @@ describe('Types', () => {
 
     it('should accept PromptSegments with only positive field', () => {
       const prompt: PromptSegments = {
-        positive: '1girl, solo, beautiful'
+        positive: '1girl, solo, beautiful',
       };
 
       expect(prompt.positive).toBe('1girl, solo, beautiful');
@@ -38,7 +38,7 @@ describe('Types', () => {
     it('should accept PromptSegments with positive and negative fields', () => {
       const prompt: PromptSegments = {
         positive: '1girl, solo, beautiful',
-        negative: 'lowres, bad anatomy'
+        negative: 'lowres, bad anatomy',
       };
 
       expect(prompt.positive).toBe('1girl, solo, beautiful');
@@ -54,17 +54,17 @@ describe('Types', () => {
         prompt: {
           positive: '1girl, solo, beautiful',
           negative: 'lowres, bad anatomy',
-          selectorProfile: 'character-anime'
+          selectorProfile: 'character-anime',
         },
         parameters: {
           seed: 42,
-          count: 5
+          count: 5,
         },
         settings: {
           imageCount: 5,
           seed: 42,
-          filenameTemplate: '{date}_{prompt}_{seed}_{idx}'
-        }
+          filenameTemplate: '{date}_{prompt}_{seed}_{idx}',
+        },
       };
 
       expect(message.type).toBe('START_GENERATION');
@@ -84,12 +84,12 @@ describe('Types', () => {
         prompt: {
           positive: '1girl, solo, beautiful',
           negative: 'lowres, bad anatomy',
-          selectorProfile: 'character-anime'
+          selectorProfile: 'character-anime',
         },
         parameters: {
           seed: 42,
-          count: 1
-        }
+          count: 1,
+        },
       };
 
       expect(message.type).toBe('APPLY_PROMPT');
@@ -105,7 +105,7 @@ describe('Types', () => {
     it('should accept valid GenerationParameters', () => {
       const params: GenerationParameters = {
         seed: 42,
-        count: 5
+        count: 5,
       };
 
       expect(params.seed).toBe(42);
@@ -118,7 +118,7 @@ describe('Types', () => {
       const settings: GenerationSettings = {
         imageCount: 5,
         seed: 42,
-        filenameTemplate: '{date}_{prompt}_{seed}_{idx}'
+        filenameTemplate: '{date}_{prompt}_{seed}_{idx}',
       };
 
       expect(settings.imageCount).toBe(5);

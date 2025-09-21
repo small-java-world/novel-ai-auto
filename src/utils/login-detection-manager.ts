@@ -185,7 +185,7 @@ export function detectLoginRequired(currentJobId?: string | null): LoginDetectio
 
     return {
       detected: true,
-      message: message,
+      message,
     };
   } else {
     // 【フォールバック処理強化】: 設定されたメッセージとより詳細な情報 🟡
@@ -228,7 +228,7 @@ export function pauseCurrentJob(runningJob: GenerationJob): JobPauseResult {
   // 【結果オブジェクト最適化】: 明確な型定義で安全性向上 🟢
   return {
     success: true,
-    pausedJob: pausedJob,
+    pausedJob,
   };
 }
 
@@ -363,7 +363,7 @@ export function detectLoginCompleted(
 
   return {
     completed: isCompleted,
-    message: message,
+    message,
   };
 }
 
@@ -432,9 +432,9 @@ export async function resumeSavedJob(): Promise<JobResumeResult> {
       success: true,
       resumedJob: {
         id: savedJob.id,
-        resumePoint: resumePoint,
+        resumePoint,
       },
-      message: resumeMessage.type,
+      message: resumeMessage,
     };
   } catch (error) {
     // 【エラー分類強化】: Chrome API エラーの詳細な分類と対応 🟡
@@ -462,7 +462,10 @@ export class LoginDetectionManager {
    * 【保守性】: メッセージの外部化とユーザビリティ向上
    * 🟡 信頼性レベル: TASK-030のタブ管理機能とChrome API制限から推測
    */
-  static handleTabActivationFailure(targetTabId: number, requiredAction: string): TabFailureResult {
+  static handleTabActivationFailure(
+    targetTabId: number,
+    _requiredAction: string
+  ): TabFailureResult {
     // 【入力値検証】: 不正な入力への対応 🟡
     if (typeof targetTabId !== 'number' || targetTabId <= 0) {
       throw new Error('不正なタブIDが指定されました');
@@ -516,7 +519,7 @@ export class LoginDetectionManager {
    * 【保守性】: 制限値の設定ファイル管理
    * 🟢 信頼性レベル: 要件定義の無限ループ防止仕様（10分間で5回上限）に基づく
    */
-  static checkRateLimit(attempts: number, timeWindow: number): RateLimitResult {
+  static checkRateLimit(attempts: number, _timeWindow: number): RateLimitResult {
     // 【入力値検証】: 不正な値への対応 🟡
     if (typeof attempts !== 'number' || attempts < 0) {
       throw new Error('不正な試行回数が指定されました');
@@ -558,7 +561,7 @@ export class LoginDetectionManager {
 
     return {
       completed: true,
-      withinSLA: withinSLA,
+      withinSLA,
       warning: hasWarning,
     };
   }

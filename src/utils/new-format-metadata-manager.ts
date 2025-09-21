@@ -22,24 +22,24 @@ import {
   ConversionResult,
   MetadataDisplayResult,
   FilterResult,
-  LegacyPromptFile,
+  LegacyPromptFile as _LegacyPromptFile,
 } from '../types/metadata';
 
 // 【モジュール分離】: 関心の分離により保守性とテスト可能性を向上
 import {
-  FILE_SIZE_LIMITS,
+  FILE_SIZE_LIMITS as _FILE_SIZE_LIMITS,
   SUPPORTED_VERSIONS,
   DEFAULT_VALUES,
   ERROR_MESSAGES,
   WARNING_MESSAGES,
-  createVersionUnsupportedMessage,
+  createVersionUnsupportedMessage as _createVersionUnsupportedMessage,
 } from './metadata-manager-config';
 
 import {
   escapeHtmlComprehensive,
   parseJsonSafely,
   validateObjectSafety,
-  validateMetadataFieldLengths,
+  validateMetadataFieldLengths as _validateMetadataFieldLengths,
   normalizeUnicodeString,
 } from './metadata-security-utils';
 

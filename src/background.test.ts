@@ -127,10 +127,10 @@ describe('background.ts handlers', () => {
       prompt: {
         positive: 'A cozy cabin',
         negative: 'lowres, bad anatomy',
-        selectorProfile: 'character-anime'
+        selectorProfile: 'character-anime',
       },
       parameters: { seed: 42, count: 1 },
-      settings: { imageCount: 1 }
+      settings: { imageCount: 1 },
     };
     const sendResponse = vi.fn();
     const tab = { id: 3 };
@@ -150,19 +150,19 @@ describe('background.ts handlers', () => {
       prompt: {
         positive: 'A cozy cabin',
         negative: 'lowres, bad anatomy',
-        selectorProfile: 'character-anime'
+        selectorProfile: 'character-anime',
       },
-      parameters: { seed: 42, count: 1 }
+      parameters: { seed: 42, count: 1 },
     });
     expect(sendResponse).toHaveBeenCalledWith({ success: true });
   });
 
   it('handles errors during START_GENERATION', async () => {
     const background = await loadBackgroundModule();
-    const message = { 
-      type: 'START_GENERATION', 
-      prompt: { positive: 'error', negative: '', selectorProfile: 'character-anime' }, 
-      parameters: {} 
+    const message = {
+      type: 'START_GENERATION',
+      prompt: { positive: 'error', negative: '', selectorProfile: 'character-anime' },
+      parameters: {},
     };
     const sendResponse = vi.fn();
     const error = new Error('no tab');
@@ -221,9 +221,9 @@ describe('background.ts handlers', () => {
 
   it('handles GENERATION_PROGRESS message broadcasting', async () => {
     const background = await loadBackgroundModule();
-    const message = { 
-      type: 'GENERATION_PROGRESS', 
-      progress: { current: 2, total: 5, eta: 30 } 
+    const message = {
+      type: 'GENERATION_PROGRESS',
+      progress: { current: 2, total: 5, eta: 30 },
     };
     const sendResponse = vi.fn();
 
@@ -232,24 +232,24 @@ describe('background.ts handlers', () => {
 
     // Get the actual message listener
     const messageListener = chromeMock.runtime.onMessage.addListener.mock.calls[0][0];
-    
+
     // Call the message listener directly
     await messageListener(message, {} as chrome.runtime.MessageSender, sendResponse);
 
     // Wait for async operations to complete
-    await new Promise(resolve => setTimeout(resolve, 10));
+    await new Promise((resolve) => setTimeout(resolve, 10));
 
     expect(chromeMock.runtime.sendMessage).toHaveBeenCalledWith({
       type: 'GENERATION_PROGRESS',
-      progress: { current: 2, total: 5, eta: 30 }
+      progress: { current: 2, total: 5, eta: 30 },
     });
   });
 
   it('handles GENERATION_COMPLETE message broadcasting', async () => {
     const background = await loadBackgroundModule();
-    const message = { 
-      type: 'GENERATION_COMPLETE', 
-      count: 5 
+    const message = {
+      type: 'GENERATION_COMPLETE',
+      count: 5,
     };
     const sendResponse = vi.fn();
 
@@ -258,24 +258,24 @@ describe('background.ts handlers', () => {
 
     // Get the actual message listener
     const messageListener = chromeMock.runtime.onMessage.addListener.mock.calls[0][0];
-    
+
     // Call the message listener directly
     await messageListener(message, {} as chrome.runtime.MessageSender, sendResponse);
 
     // Wait for async operations to complete
-    await new Promise(resolve => setTimeout(resolve, 10));
+    await new Promise((resolve) => setTimeout(resolve, 10));
 
     expect(chromeMock.runtime.sendMessage).toHaveBeenCalledWith({
       type: 'GENERATION_COMPLETE',
-      count: 5
+      count: 5,
     });
   });
 
   it('handles GENERATION_ERROR message broadcasting', async () => {
     const background = await loadBackgroundModule();
-    const message = { 
-      type: 'GENERATION_ERROR', 
-      error: 'Generation failed' 
+    const message = {
+      type: 'GENERATION_ERROR',
+      error: 'Generation failed',
     };
     const sendResponse = vi.fn();
 
@@ -284,16 +284,16 @@ describe('background.ts handlers', () => {
 
     // Get the actual message listener
     const messageListener = chromeMock.runtime.onMessage.addListener.mock.calls[0][0];
-    
+
     // Call the message listener directly
     await messageListener(message, {} as chrome.runtime.MessageSender, sendResponse);
 
     // Wait for async operations to complete
-    await new Promise(resolve => setTimeout(resolve, 10));
+    await new Promise((resolve) => setTimeout(resolve, 10));
 
     expect(chromeMock.runtime.sendMessage).toHaveBeenCalledWith({
       type: 'GENERATION_ERROR',
-      error: 'Generation failed'
+      error: 'Generation failed',
     });
   });
 

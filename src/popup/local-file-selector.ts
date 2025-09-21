@@ -153,7 +153,7 @@ function createErrorResult(errorMessage: string, file: File): LocalFileLoadResul
  * @param file - 対象ファイル
  * @returns LocalFileLoadResult - 成功結果
  */
-function createSuccessResult(data: PromptData[], file: File): LocalFileLoadResult {
+function _createSuccessResult(data: PromptData[], file: File): LocalFileLoadResult {
   return {
     success: true,
     data,
@@ -170,7 +170,11 @@ function createSuccessResult(data: PromptData[], file: File): LocalFileLoadResul
  * @param selectorProfile - 自動選択されたセレクタープロファイル
  * @returns LocalFileLoadResultWithSelector - selectorProfile付き成功結果
  */
-function createSuccessResultWithSelector(data: PromptData[], file: File, selectorProfile?: string): LocalFileLoadResultWithSelector {
+function createSuccessResultWithSelector(
+  data: PromptData[],
+  file: File,
+  selectorProfile?: string
+): LocalFileLoadResultWithSelector {
   return {
     success: true,
     data,
@@ -254,7 +258,9 @@ export async function loadLocalPromptFile(file: File): Promise<LocalFileLoadResu
  * @param file - 読み込み対象のFileオブジェクト
  * @returns Promise<LocalFileLoadResultWithSelector> - selectorProfile付き読み込み結果
  */
-export async function loadLocalPromptFileWithSelector(file: File): Promise<LocalFileLoadResultWithSelector> {
+export async function loadLocalPromptFileWithSelector(
+  file: File
+): Promise<LocalFileLoadResultWithSelector> {
   // 【段階1: ファイル基本検証】: サイズと基本属性をチェック 🟢
   const basicValidation = validateFileBasics(file);
   if (!basicValidation.isValid) {
@@ -284,7 +290,11 @@ export async function loadLocalPromptFileWithSelector(file: File): Promise<Local
     }
 
     // 【段階6: 成功結果返却】: 正常にパースされたデータとselectorProfileを返す 🟢
-    return createSuccessResultWithSelector(normalizationResult.data, file, normalizationResult.selectorProfile);
+    return createSuccessResultWithSelector(
+      normalizationResult.data,
+      file,
+      normalizationResult.selectorProfile
+    );
   } catch (error) {
     // 【例外処理】: 予期しないエラーに対する安全な処理 🟡
     return createErrorResult(ERROR_MESSAGES.READ_FAILED, file);
@@ -292,7 +302,7 @@ export async function loadLocalPromptFileWithSelector(file: File): Promise<Local
 }
 
 // Normalize various character-based schemas into PromptData[] with selectorProfile
-function normalizeToPromptDataArray(input: unknown): PromptData[] | null {
+function _normalizeToPromptDataArray(input: unknown): PromptData[] | null {
   const result = normalizeToPromptDataArrayWithSelector(input);
   return result.data;
 }
@@ -303,19 +313,28 @@ function normalizeToPromptDataArray(input: unknown): PromptData[] | null {
  * @param input - 正規化対象のデータ
  * @returns data: PromptData[], selectorProfile?: string
  */
-function normalizeToPromptDataArrayWithSelector(input: unknown): { data: PromptData[] | null; selectorProfile?: string } {
+function normalizeToPromptDataArrayWithSelector(input: unknown): {
+  data: PromptData[] | null;
+  selectorProfile?: string;
+} {
   // Case A: Already PromptData[]
   if (Array.isArray(input)) {
     // 【selectorProfile検出】: 配列内の共通selectorProfileを検出
     const selectorProfiles = new Set<string>();
     for (const item of input) {
-      if (item && typeof item === 'object' && 'selectorProfile' in item && typeof item.selectorProfile === 'string') {
+      if (
+        item &&
+        typeof item === 'object' &&
+        'selectorProfile' in item &&
+        typeof item.selectorProfile === 'string'
+      ) {
         selectorProfiles.add(item.selectorProfile);
       }
     }
 
     // 共通のselectorProfileがある場合は自動選択
-    const commonSelectorProfile = selectorProfiles.size === 1 ? Array.from(selectorProfiles)[0] : undefined;
+    const commonSelectorProfile =
+      selectorProfiles.size === 1 ? Array.from(selectorProfiles)[0] : undefined;
 
     return {
       data: input as PromptData[],
@@ -363,7 +382,8 @@ function normalizeToPromptDataArrayWithSelector(input: unknown): { data: PromptD
     }
 
     // 共通のselectorProfileがある場合は自動選択
-    const commonSelectorProfile = selectorProfiles.size === 1 ? Array.from(selectorProfiles)[0] : undefined;
+    const commonSelectorProfile =
+      selectorProfiles.size === 1 ? Array.from(selectorProfiles)[0] : undefined;
 
     return {
       data: out,

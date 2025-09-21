@@ -102,7 +102,7 @@ export async function ensureDownloadPermissionAndDownload(
     // 【成功結果返却】: テストケース期待値準拠の戻り値
     return {
       success: true,
-      downloadId: downloadId,
+      downloadId,
     };
   } catch (error) {
     // 【統一エラーハンドリング】: DownloadErrorHandlerによる一元的なエラー処理
@@ -178,8 +178,8 @@ function validateDownloadRequest(request: DownloadRequest): ValidationResult {
 async function executeDownload(url: string, filename: string): Promise<number> {
   try {
     return await chrome.downloads.download({
-      url: url,
-      filename: filename,
+      url,
+      filename,
       conflictAction: 'uniquify',
     });
   } catch (error) {
