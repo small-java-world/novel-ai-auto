@@ -434,7 +434,7 @@ export async function resumeSavedJob(): Promise<JobResumeResult> {
         id: savedJob.id,
         resumePoint,
       },
-      message: resumeMessage,
+      message: resumeMessage.message,
     };
   } catch (error) {
     // 【エラー分類強化】: Chrome API エラーの詳細な分類と対応 🟡

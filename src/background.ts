@@ -1,4 +1,4 @@
-import { createLoginDetectionChannel } from './router/loginDetectionChannel';
+import { createLoginDetectionChannel } from './router/loginDetectionChannel.js';
 
 /**
  * Service Worker for NovelAI Auto Generator
@@ -53,6 +53,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     switch (message?.type) {
+    case 'GENERATION_DIAGNOSTICS':
+      try {
+        console.log('DIAG:', (message as any).step, (message as any).data);
+      } catch {}
+      break;
       case 'START_GENERATION':
         await handleStartGeneration(message, sender, sendResponse);
         break;
@@ -112,13 +117,79 @@ export async function handleStartGeneration(
     // Ensure NovelAI tab is active
     const tab = await ensureNovelAITab();
 
+    // Best-effort: inject content script and wait briefly for readiness
+    if (tab.id) {
+      try {
+        // @ts-ignore
+        const scripting: any = (chrome as any)?.scripting;
+        if (scripting?.executeScript) {
+          await scripting.executeScript({ target: { tabId: tab.id }, files: ['dist/content.bundle.js'] });
+        }
+      } catch (_) {}
+      // Small readiness wait via ping
+      for (let i = 0; i < 3; i++) {
+        if (await isContentScriptReady(tab.id)) break;
+        await new Promise((r) => setTimeout(r, 500));
+      }
+      // Optional page state check to surface clearer errors
+      try {
+        const stateResp: any = await chrome.tabs.sendMessage(tab.id, { type: 'GET_PAGE_STATE' });
+        const state = stateResp?.state;
+        if (state && state.isNovelAIPage === false) {
+          throw new Error('NovelAI ページではありません。https://novelai.net/ を開いてください。');
+        }
+        if (state && state.isLoggedIn === false) {
+          throw new Error('ログインが必要です。NovelAI にサインインしてください。');
+        }
+        if (state && state.hasPromptInput === false) {
+          console.warn('プロンプト入力欄が見つかりませんでした。セレクタープロファイルを変更して再試行してください。');
+        }
+      } catch (_) {
+        // ignore; CS が未準備でも後続の sendMessageWithRetry で再試行します
+      }
+    }
+
     // Send generation command to content script with retry
     if (tab.id) {
+      // Normalize prompt to the shape expected by content script
+      // - If popup sent a composite { common, characters }, flatten to { positive, negative }
+      // - Otherwise pass through
+      const composite = message?.prompt;
+      let normalizedPrompt: any = composite;
+      try {
+        if (
+          composite &&
+          typeof composite === 'object' &&
+          Array.isArray(composite.characters)
+        ) {
+          const commonPos = (composite.common?.positive ?? '').toString();
+          const commonNeg = (composite.common?.negative ?? '').toString();
+          const firstChar = composite.characters[0] ?? {};
+          const charPos = (firstChar.positive ?? '').toString();
+          const charNeg = (firstChar.negative ?? '').toString();
+          normalizedPrompt = {
+            positive: [commonPos, charPos].filter((s) => s && s.trim().length > 0).join(', '),
+            negative: [commonNeg, charNeg].filter((s) => s && s.trim().length > 0).join(', '),
+          };
+        }
+      } catch {
+        normalizedPrompt = composite;
+      }
+
+      // Merge settings.imageCount into parameters.count if not provided
+      const params = { ...(message.parameters || {}) } as any;
+      if (
+        (params.count === undefined || params.count === null) &&
+        typeof message?.settings?.imageCount === 'number'
+      ) {
+        params.count = message.settings.imageCount;
+      }
+
       // Prepare the message for content script
       const csMessage: any = {
         type: 'APPLY_PROMPT',
-        prompt: message.prompt,
-        parameters: message.parameters,
+        prompt: normalizedPrompt,
+        parameters: params,
       };
 
       // Only forward selectorProfile if it's a valid, non-auto profile
@@ -184,17 +255,36 @@ export async function handleDownloadImage(
 ): Promise<void> {
   try {
     const { url, filename } = message;
-    console.log('Downloading image:', filename);
+    console.log('DIAG: download-start', { url: url.substring(0, 100), filename });
+
+    // Check if downloads permission is available
+    const hasPermission = await chrome.permissions.contains({
+      permissions: ['downloads']
+    });
+
+    if (!hasPermission) {
+      console.error('DIAG: download-permission-denied', 'Downloads permission not granted');
+      _sendResponse({
+        success: false,
+        error: 'Downloads permission not granted. Please enable downloads permission for this extension.',
+      });
+      return;
+    }
+
+    console.log('DIAG: download-permission-ok', 'Downloads permission confirmed');
 
     const downloadId = await chrome.downloads.download({
       url,
       filename,
       conflictAction: 'uniquify',
+      saveAs: false, // Force automatic download without dialog
     });
+
+    console.log('DIAG: download-success', { downloadId, filename });
 
     _sendResponse({ success: true, downloadId });
   } catch (error) {
-    console.error('Failed to download image:', error);
+    console.error('DIAG: download-error', error);
     _sendResponse({
       success: false,
       error: error instanceof Error ? error.message : String(error),
@@ -225,7 +315,18 @@ async function sendMessageWithRetry(
 ): Promise<void> {
   let lastError: Error | null = null;
 
-  // First, ensure content script is ready
+  // Try programmatic injection once (best-effort)
+  try {
+    // @ts-ignore
+    const scripting: any = (chrome as any)?.scripting;
+    if (scripting?.executeScript) {
+      await scripting.executeScript({ target: { tabId }, files: ['dist/content.js'] });
+    }
+  } catch (e) {
+    // ignore injection failure
+  }
+
+  // Ensure content script is ready
   console.log(`Checking if content script is ready in tab ${tabId}...`);
   for (let pingAttempt = 0; pingAttempt < 3; pingAttempt++) {
     if (await isContentScriptReady(tabId)) {

@@ -4,7 +4,7 @@
   "description": "Chrome extension for automating NovelAI image generation with prompt synthesis and metadata management",
   "type": "module",
   "scripts": {
-    "build": "tsc --project tsconfig.build.json",
+    "build": "tsc --project tsconfig.build.json && node scripts/fix-dist-imports.cjs && node scripts/bundle-content.cjs",
     "build:prod": "tsc --sourceMap false",
     "dev": "tsc --watch",
     "test": "vitest run",
@@ -49,6 +49,7 @@
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
     "@vitest/coverage-v8": "^1.6.0",
+    "esbuild": "^0.25.10",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.1.0",

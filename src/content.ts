@@ -41,6 +41,9 @@ const FALLBACK_SELECTOR_CONFIG: Record<ElementType, SelectorConfig> = {
       '#prompt-input',
       '[data-testid="prompt-input"] textarea',
       '[data-testid="prompt-input"]',
+      'div[data-slate-editor] [contenteditable="true"]',
+      'div[contenteditable="true"]:not([data-negative])',
+      '[role="textbox"][contenteditable="true"]',
       'textarea[aria-label*="prompt" i]',
       'textarea[placeholder*="prompt" i]',
       'textarea[name="prompt"]',
@@ -52,8 +55,12 @@ const FALLBACK_SELECTOR_CONFIG: Record<ElementType, SelectorConfig> = {
   'negative-input': {
     selectors: [
       '#negative-prompt-input',
+      'div[data-slate-editor] [contenteditable="true"][data-negative="true"]',
+      '[data-testid="negative-prompt"] [contenteditable="true"]',
       '[data-testid="negative-prompt"] textarea',
       '[data-testid="negative-prompt"]',
+      '[role="textbox"][contenteditable="true"][data-negative="true"]',
+      'div[contenteditable="true"][data-field="negative"]',
       'textarea[aria-label*="negative" i]',
       'textarea[placeholder*="negative" i]',
       'textarea[name="negative"]',
@@ -65,10 +72,12 @@ const FALLBACK_SELECTOR_CONFIG: Record<ElementType, SelectorConfig> = {
   'generate-button': {
     selectors: [
       '[data-testid="generate-button"]',
+      '[role="button"][aria-label*="generate" i]',
       'button[aria-label*="generate" i]',
       'button[aria-label*="生成" i]',
       'button[type="submit"]',
       '.generate-button',
+      '[data-action="generate"]',
     ],
     timeout: DEFAULT_SELECTOR_TIMEOUT,
   },
@@ -369,6 +378,7 @@ async function handleApplyPrompt(
 ): Promise<void> {
   try {
     if (!checkLoginStatus()) {
+      try { chrome.runtime.sendMessage({ type: 'GENERATION_DIAGNOSTICS', step: 'login-check', data: { loggedIn: false } }); } catch {}
       _sendResponse({ success: false, error: 'User not logged in', requiresLogin: true });
       return;
     }
@@ -383,6 +393,7 @@ async function handleApplyPrompt(
     CANCEL_REQUESTED = false;
 
     const promptInput = await resolvePromptInput();
+    try { chrome.runtime.sendMessage({ type: 'GENERATION_DIAGNOSTICS', step: 'prompt-input-found', data: { tag: promptInput.tagName, editable: (promptInput as any).isContentEditable === true } }); } catch {}
     console.log(
       'Resolved prompt matches first textarea:',
       promptInput === document.querySelector('textarea')
@@ -398,15 +409,24 @@ async function handleApplyPrompt(
         : undefined;
 
     setInputValue(promptInput, positivePrompt);
+    try { chrome.runtime.sendMessage({ type: 'GENERATION_DIAGNOSTICS', step: 'positive-set', data: { length: positivePrompt?.length ?? 0 } }); } catch {}
     await applyNegativePrompt(negativePrompt);
+    try { chrome.runtime.sendMessage({ type: 'GENERATION_DIAGNOSTICS', step: 'negative-set', data: { length: negativePrompt?.length ?? 0 } }); } catch {}
 
-    console.log('Prompt value right after initial setInputValue:', promptInput.value);
+    const currentValue =
+      (promptInput as any).value ??
+      (promptInput as HTMLElement).textContent ??
+      '';
+    console.log('Prompt value right after initial setInputValue:', currentValue);
 
     if (message.parameters) {
       await applyParameters(message.parameters);
+      try { chrome.runtime.sendMessage({ type: 'GENERATION_DIAGNOSTICS', step: 'params-applied', data: { params: message.parameters } }); } catch {}
     }
 
+    try { chrome.runtime.sendMessage({ type: 'GENERATION_DIAGNOSTICS', step: 'before-generate-click' }); } catch {}
     await startGeneration();
+    try { chrome.runtime.sendMessage({ type: 'GENERATION_DIAGNOSTICS', step: 'after-generate-click' }); } catch {}
     // 最小生成ループは非同期に実行し、呼び出しへは即時応答
     const count =
       typeof message.parameters?.count === 'number' && Number.isFinite(message.parameters.count)
@@ -431,10 +451,16 @@ async function handleApplyPrompt(
         await waitForGenerationCompletion(5000);
 
         // 画像URL抽出→DOWNLOAD_IMAGE送信
+        console.log('DIAG: extracting-image-urls', { attempt: i + 1 });
         const urls = await extractor.extractImageUrls(1);
+        console.log('DIAG: extracted-urls', { count: urls.length, urls: urls.map(u => u.substring(0, 100)) });
+        
         if (urls.length > 0) {
-          const fileName = `image_${Date.now()}_${i + 1}.png`;
+          const fileName = `NovelAI_${Date.now()}_${i + 1}.png`;
+          console.log('DIAG: sending-download-request', { fileName, url: urls[0].substring(0, 100) });
           chrome.runtime.sendMessage({ type: 'DOWNLOAD_IMAGE', url: urls[0], filename: fileName });
+        } else {
+          console.warn('DIAG: no-images-found', { attempt: i + 1 });
         }
 
         chrome.runtime.sendMessage({
@@ -456,7 +482,7 @@ async function handleApplyPrompt(
         : error instanceof Error
           ? error.message
           : String(error);
-
+    try { chrome.runtime.sendMessage({ type: 'GENERATION_DIAGNOSTICS', step: 'error', data: { error: errorMessage } }); } catch {}
     _sendResponse({ success: false, error: errorMessage });
   }
 }
@@ -482,40 +508,92 @@ function handleGetPageState(_sendResponse: (_response: unknown) => void): void {
   }
 }
 
-async function resolvePromptInput(): Promise<HTMLTextAreaElement | HTMLInputElement> {
+async function resolvePromptInput(): Promise<HTMLElement> {
   const element = await resolveElement('prompt-input');
-  if (element instanceof HTMLTextAreaElement || element instanceof HTMLInputElement) {
+  if (element) {
     return element;
   }
-  throw new Error('Prompt input field is not an input or textarea element');
+  throw new Error('Prompt input field is not available');
 }
 
-async function resolveNegativePromptInput(): Promise<
-  HTMLTextAreaElement | HTMLInputElement | null
-> {
+async function resolveNegativePromptInput(): Promise<HTMLElement | null> {
   const element = await resolveElement('negative-input', { required: false });
   if (!element) {
     return null;
   }
 
-  if (element instanceof HTMLTextAreaElement || element instanceof HTMLInputElement) {
-    return element;
-  }
-
-  console.warn('Negative prompt element is not an input or textarea element; skipping update.');
-  return null;
+  return element;
 }
 
 async function applyNegativePrompt(value: string | undefined): Promise<void> {
-  const target = await resolveNegativePromptInput();
-  if (!target) {
-    if (value && value.trim().length > 0) {
-      console.warn('Negative prompt input was not found; unable to apply provided value.');
+  const text = (value ?? '').toString();
+  console.log('DIAG: negative-prompt-apply', { textLength: text.length, text: text.substring(0, 100) });
+
+  // Try multiple strategies to find and set negative prompt
+  const strategies = [
+    // Strategy 1: Use configured selector
+    async () => {
+      const target = await resolveNegativePromptInput();
+      if (target) {
+        console.log('DIAG: negative-strategy-1', { tag: target.tagName, contentEditable: (target as any).isContentEditable });
+        setInputValue(target as HTMLElement, text);
+        return true;
+      }
+      return false;
+    },
+    
+    // Strategy 2: Search for any contenteditable with negative indicators
+    async () => {
+      const candidates = document.querySelectorAll(
+        'div[contenteditable="true"][data-negative="true"], [data-testid*="negative" i] [contenteditable="true"], [role="textbox"][contenteditable="true"][data-negative="true"], textarea[placeholder*="negative" i], textarea[aria-label*="negative" i]'
+      ) as NodeListOf<HTMLElement>;
+      
+      for (let i = 0; i < candidates.length; i++) {
+        const candidate = candidates[i];
+        console.log('DIAG: negative-strategy-2-candidate', { tag: candidate.tagName, dataNegative: candidate.getAttribute('data-negative'), testId: candidate.getAttribute('data-testid') });
+        setInputValue(candidate, text);
+        return true;
+      }
+      return false;
+    },
+    
+    // Strategy 3: Search for textarea with negative-related attributes
+    async () => {
+      const textareas = document.querySelectorAll('textarea') as NodeListOf<HTMLTextAreaElement>;
+      for (let i = 0; i < textareas.length; i++) {
+        const textarea = textareas[i];
+        const placeholder = (textarea.placeholder || '').toLowerCase();
+        const ariaLabel = (textarea.getAttribute('aria-label') || '').toLowerCase();
+        const name = (textarea.name || '').toLowerCase();
+        const id = (textarea.id || '').toLowerCase();
+        
+        if (placeholder.includes('negative') || ariaLabel.includes('negative') || name.includes('negative') || id.includes('negative')) {
+          console.log('DIAG: negative-strategy-3-textarea', { placeholder, ariaLabel, name, id });
+          setInputValue(textarea, text);
+          return true;
+        }
+      }
+      return false;
     }
-    return;
+  ];
+
+  let success = false;
+  for (let i = 0; i < strategies.length; i++) {
+    try {
+      success = await strategies[i]();
+      if (success) {
+        console.log(`DIAG: negative-strategy-${i + 1}-success`);
+        break;
+      }
+    } catch (error) {
+      console.log(`DIAG: negative-strategy-${i + 1}-error`, error);
+    }
   }
 
-  setInputValue(target, value ?? '');
+  if (!success && text.trim().length > 0) {
+    console.warn('DIAG: negative-prompt-failed', 'All strategies failed to set negative prompt');
+    try { chrome.runtime.sendMessage({ type: 'GENERATION_DIAGNOSTICS', step: 'negative-failed', data: { textLength: text.length } }); } catch {}
+  }
 }
 
 async function resolveElement(
@@ -611,21 +689,76 @@ function checkLoginStatus(): boolean {
   return !loginForm;
 }
 
-function setInputValue(element: HTMLInputElement | HTMLTextAreaElement, value: string): void {
+function setInputValue(element: HTMLElement, value: string): void {
   const normalised = typeof value === 'string' ? value : String(value ?? '');
 
   element.focus();
-  element.value = normalised;
 
-  if (element instanceof HTMLTextAreaElement) {
-    element.textContent = normalised;
+  // Standard inputs/textareas
+  if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+    element.value = normalised;
+    if (element instanceof HTMLTextAreaElement) {
+      element.textContent = normalised;
+    }
+    element.defaultValue = normalised;
+    element.setAttribute('value', normalised);
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+    element.dispatchEvent(new Event('change', { bubbles: true }));
+    return;
   }
 
-  element.defaultValue = normalised;
-  element.setAttribute('value', normalised);
+  // contenteditable elements
+  const isEditable = (element as any).isContentEditable === true || element.getAttribute('contenteditable') === 'true';
+  if (isEditable) {
+    try {
+      // Try execCommand path to inform editors like Slate/ProseMirror
+      const selection = window.getSelection();
+      if (selection) {
+        selection.removeAllRanges();
+        const range = document.createRange();
+        range.selectNodeContents(element);
+        selection.addRange(range);
+      }
+      // Select all then insert text
+      // eslint-disable-next-line deprecation/deprecation
+      document.execCommand('selectAll', false);
+      // eslint-disable-next-line deprecation/deprecation
+      const inserted = document.execCommand('insertText', false, normalised);
+      if (!inserted) {
+        element.textContent = normalised;
+      }
+    } catch {
+      element.textContent = normalised;
+    }
+    // Fire input-like events to trigger frameworks' listeners
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+    element.dispatchEvent(new Event('change', { bubbles: true }));
+    // Commit edits in some editors that listen to blur/focusout
+    element.dispatchEvent(new Event('blur'));
+    element.dispatchEvent(new Event('focusout', { bubbles: true } as any));
+    return;
+  }
+}
 
-  element.dispatchEvent(new Event('input', { bubbles: true }));
-  element.dispatchEvent(new Event('change', { bubbles: true }));
+function sendKey(el: HTMLElement, key: string, opts: { ctrl?: boolean } = {}): void {
+  const options: any = {
+    key,
+    bubbles: true,
+    cancelable: true,
+    ctrlKey: !!opts.ctrl,
+  };
+  el.dispatchEvent(new KeyboardEvent('keydown', options));
+  el.dispatchEvent(new KeyboardEvent('keypress', options));
+  el.dispatchEvent(new KeyboardEvent('keyup', options));
+}
+
+function toHalfWidth(input: string): string {
+  return input.replace(/[！-～]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xfee0)).replace(/　/g, ' ');
+}
+
+function normalizeText(input: string | null | undefined): string {
+  const txt = (input || '').toLowerCase();
+  return toHalfWidth(txt).replace(/\s+/g, ' ').trim();
 }
 
 function setNumericInputValue(element: HTMLInputElement, value: number): void {
@@ -732,17 +865,101 @@ async function setImageCount(count: number): Promise<void> {
 }
 
 async function startGeneration(): Promise<void> {
-  const element = await resolveElement('generate-button');
-  if (!(element instanceof HTMLButtonElement)) {
-    throw new Error('Generate button element is not a button');
+  let element: HTMLElement | null = null;
+  try {
+    element = await resolveElement('generate-button', { required: false, interactable: true });
+  } catch {
+    element = null;
+  }
+  if (!element) {
+    element = fallbackFindGenerateControl();
+  }
+  if (!element) {
+    try { chrome.runtime.sendMessage({ type: 'GENERATION_DIAGNOSTICS', step: 'generate-target', data: { found: false } }); } catch {}
+    throw new Error('Generate control not found');
   }
 
-  if (element.disabled) {
-    throw new Error('Generate button is disabled');
+  try {
+    const data = {
+      tag: (element as HTMLElement).tagName,
+      classes: (element as HTMLElement).className,
+      text: ((element as HTMLElement).textContent || '').slice(0, 64),
+      ariaDisabled: element.getAttribute('aria-disabled') || null,
+      disabled: (element as any).disabled === true,
+    };
+    chrome.runtime.sendMessage({ type: 'GENERATION_DIAGNOSTICS', step: 'generate-target', data });
+  } catch {}
+
+  // Wait up to ~3s for clickable state
+  const deadline = Date.now() + 3000;
+  while (Date.now() < deadline) {
+    const ariaDisabled = element.getAttribute('aria-disabled');
+    const isDisabled = (element as any).disabled === true || ariaDisabled === 'true';
+    const rect = (element as HTMLElement).getBoundingClientRect();
+    const visible = rect.width > 0 && rect.height > 0;
+    const pe = getComputedStyle(element as HTMLElement).pointerEvents !== 'none';
+    if (!isDisabled && visible && pe) break;
+    await new Promise((r) => setTimeout(r, 150));
   }
 
-  const clickEvent = new MouseEvent('click', { bubbles: true, cancelable: true });
-  element.dispatchEvent(clickEvent);
+  // Ensure element is visible in viewport to avoid blocked events
+  try {
+    (element as HTMLElement).scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' as any });
+  } catch {}
+
+  // Prefer native click if available
+  if (typeof (element as any).click === 'function') {
+    // Send a full click sequence for frameworks that expect it
+    const el = element as HTMLElement;
+    el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+    el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+    (element as any).click();
+  } else {
+    const clickEvent = new MouseEvent('click', { bubbles: true, cancelable: true });
+    element.dispatchEvent(clickEvent);
+  }
+
+  // Fallback: also try Enter / Ctrl+Enter on prompt editor
+  try {
+    const maybePrompt = await resolveElement('prompt-input', { required: false, interactable: true });
+    if (maybePrompt) {
+      sendKey(maybePrompt as HTMLElement, 'Enter');
+      sendKey(maybePrompt as HTMLElement, 'Enter', { ctrl: true });
+    }
+  } catch {
+    // ignore
+  }
+}
+
+function fallbackFindGenerateControl(): HTMLElement | null {
+  const selector = [
+    '[data-testid*="generate" i]',
+    '[data-action*="generate" i]',
+    'button',
+    '[role="button"]',
+    '.sc-4f026a5f-2.sc-883533e0-3',
+  ].join(', ');
+  const all = Array.from(document.querySelectorAll(selector)) as HTMLElement[];
+  const wanted = ['generate', 'start', 'run', '生成', '枚', '一枚', '1枚', 'anlas'];
+  let best: { el: HTMLElement; score: number } | null = null;
+
+  for (const raw of all) {
+    // Prefer the nearest clickable ancestor if this is a span/div
+    const el = (raw.closest('button,[role="button"]') as HTMLElement) || raw;
+    const text = normalizeText(el.textContent);
+    let score = 0;
+    for (const w of wanted) if (text.includes(w)) score += 3;
+    if (text.includes('1枚のみ生成') || text.includes('1枚') || text.includes('一枚')) score += 4;
+    if (text.includes('anlas')) score += 2;
+    const rect = el.getBoundingClientRect();
+    if (rect.width > 160) score += 1;
+    if (el.getAttribute('data-testid')?.toLowerCase().includes('generate')) score += 2;
+    if (!best || score > best.score) best = { el, score };
+  }
+
+  return best?.el || null;
 }
 
 // ===== 最小完了待機 =====

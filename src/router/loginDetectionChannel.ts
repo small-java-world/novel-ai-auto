@@ -13,7 +13,7 @@ import {
   detectLoginCompleted,
   resumeSavedJob,
   LoginDetectionManager,
-} from '../utils/login-detection-manager';
+} from '../utils/login-detection-manager.js';
 
 const runtime = typeof chrome !== 'undefined' ? chrome.runtime : undefined;
 

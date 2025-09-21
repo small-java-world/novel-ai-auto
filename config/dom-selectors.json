@@ -4,6 +4,8 @@
       "detect": ["meta[property=\"og:site_name\"][content=\"NovelAI\"]", "#__next"],
       "selectors": {
         "prompt-input": [
+          "div[data-slate-editor] [contenteditable=\"true\"]",
+          "div[contenteditable=\"true\"]:not([data-negative])",
           "[role=\"textbox\"][contenteditable=\"true\"]",
           "div[contenteditable=\"true\"][role=\"textbox\"]",
           "#__next textarea",
@@ -16,6 +18,8 @@
           ".prompt-input textarea"
         ],
         "negative-input": [
+          "div[data-slate-editor] [contenteditable=\"true\"][data-negative=\"true\"]",
+          "[data-testid=\"negative-prompt\"] [contenteditable=\"true\"]",
           "#__next textarea[placeholder*=\"negative\" i]",
           "[role=\"textbox\"][contenteditable=\"true\"][data-negative=\"true\"]",
           "div[contenteditable=\"true\"][data-field=\"negative\"]",

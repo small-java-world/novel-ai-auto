@@ -12,7 +12,7 @@
   "content_scripts": [
     {
       "matches": ["https://novelai.net/*", "https://*.novelai.net/*"],
-      "js": ["dist/content.js"],
+      "js": ["dist/content.bundle.js"],
       "run_at": "document_end",
       "all_frames": false
     }
@@ -39,7 +39,7 @@
         "config/prompts.json",
         "config/samplers.json",
         "config/dom-selectors.json",
-        "dist/config/*"
+        "config/*"
       ],
       "matches": ["https://novelai.net/*", "https://*.novelai.net/*"]
     }
