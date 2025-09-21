@@ -390,7 +390,6 @@ export class FormatConverter {
       if (!invalidFile) {
         return {
           success: false,
-          error: 'Invalid file: null or undefined',
           errors: ['Invalid file: null or undefined'],
           data: null,
         };
@@ -400,7 +399,6 @@ export class FormatConverter {
       if (typeof invalidFile !== 'object') {
         return {
           success: false,
-          error: 'Invalid file: not an object',
           errors: ['Invalid file: not an object'],
           data: null,
         };
@@ -414,7 +412,6 @@ export class FormatConverter {
 
       return {
         success: false,
-        error: 'Invalid file: unsupported format',
         errors: ['Invalid file: unsupported format'],
         data: null,
       };
@@ -422,7 +419,6 @@ export class FormatConverter {
       const message = `Invalid format handling failed: ${error instanceof Error ? error.message : String(error)}`;
       return {
         success: false,
-        error: message,
         errors: [message],
         data: null,
       };
@@ -443,7 +439,6 @@ export class FormatConverter {
       const message = `Conversion error: ${error.message}`;
       return {
         success: false,
-        error: message,
         errors: [message],
         data: null,
       };

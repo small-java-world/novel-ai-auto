@@ -185,7 +185,8 @@ describe('FormatConverter - TASK-102 Green/Refactor Coverage', () => {
 
       const errorHandlingResult = await formatConverter.handleInvalidFormat(invalidFile);
       expect(errorHandlingResult.success).toBe(false);
-      expect(errorHandlingResult.error).toBeDefined();
+      expect(errorHandlingResult.errors).toBeDefined();
+      expect(errorHandlingResult.errors.length).toBeGreaterThan(0);
     });
   });
 
@@ -199,7 +200,8 @@ describe('FormatConverter - TASK-102 Green/Refactor Coverage', () => {
         new Error('Test error')
       );
       expect(errorHandlingResult.success).toBe(false);
-      expect(errorHandlingResult.error).toContain('Conversion error');
+      expect(errorHandlingResult.errors).toBeDefined();
+      expect(errorHandlingResult.errors[0]).toContain('Conversion error');
     });
   });
 
