@@ -31,10 +31,28 @@
         issues.push({ path: `${base}.name`, message: 'name は一意である必要があります' });
       if (name) seen.add(name);
 
-      const prompt = String(p.prompt ?? '').trim();
-      if (prompt.length < 5) issues.push({ path: `${base}.prompt`, message: 'prompt は5文字以上' });
-      if (prompt.length > 2000)
-        issues.push({ path: `${base}.prompt`, message: 'prompt は2000文字以下' });
+      // Accept either single prompt or multi-character schema
+      const hasCharacters = Array.isArray(p.characters) && p.characters.length > 0;
+      const prompt = p.prompt;
+      if (!hasCharacters) {
+        const promptStr = String(prompt ?? '').trim();
+        if (promptStr.length < 5)
+          issues.push({ path: `${base}.prompt`, message: 'prompt は5文字以上' });
+        if (promptStr.length > 2000)
+          issues.push({ path: `${base}.prompt`, message: 'prompt は2000文字以下' });
+      } else {
+        p.characters.forEach((ch, ci) => {
+          const cbase = `${base}.characters[${ci}]`;
+          if (!ch || typeof ch !== 'object') {
+            issues.push({ path: cbase, message: 'キャラクターはオブジェクトである必要があります' });
+            return;
+          }
+          const pos = String(ch.positive ?? '').trim();
+          if (pos.length < 1) issues.push({ path: `${cbase}.positive`, message: 'positive は必須です' });
+          const neg = String(ch.negative ?? '').trim();
+          if (neg.length > 2000) issues.push({ path: `${cbase}.negative`, message: 'negative は2000文字以下' });
+        });
+      }
 
       const negative = String(p.negative ?? '').trim();
       if (negative.length > 2000)
@@ -95,6 +113,10 @@
         return;
       }
 
+      // Read last selection from storage
+      const last = await chrome.storage.local.get(['last_selected_preset']);
+      const lastValue = last?.last_selected_preset || '';
+
       // Populate select
       const presets = result.value;
       const promptSelect = document.getElementById('promptSelect');
@@ -105,11 +127,21 @@
         option.value = JSON.stringify({
           name: preset.name,
           prompt: preset.prompt,
+          characters: preset.characters,
+          selectorProfile: preset.selectorProfile,
           parameters: preset.parameters,
         });
         option.textContent = preset.name;
         promptSelect.appendChild(option);
       });
+
+      // Restore previous selection if exists
+      if (lastValue) {
+        const exists = Array.from(promptSelect.options).some((opt) => opt.value === lastValue);
+        if (exists) {
+          promptSelect.value = lastValue;
+        }
+      }
       // addLog function not available in this context
       const generateButton = document.getElementById('generateButton');
       if (generateButton) generateButton.disabled = false;
@@ -127,5 +159,17 @@
   document.addEventListener('DOMContentLoaded', () => {
     // Run after popup.js initialized; replace placeholder options with validated presets
     loadPresetsIntoPopup();
+
+    // Persist selection changes
+    const promptSelect = document.getElementById('promptSelect');
+    if (promptSelect) {
+      promptSelect.addEventListener('change', async () => {
+        try {
+          await chrome.storage.local.set({ last_selected_preset: promptSelect.value });
+        } catch (err) {
+          console.warn('Failed to persist selection', err);
+        }
+      });
+    }
   });
 })();

@@ -115,7 +115,7 @@ export class FormatConverter {
         positive: preset.positive,
         negative: preset.negative || '',
         parameters: preset.parameters || {},
-        tags: [],
+        tags: [] as string[],
         created: new Date().toISOString(),
         modified: new Date().toISOString(),
       }));
@@ -134,12 +134,8 @@ export class FormatConverter {
       return {
         success: true,
         data: convertedFile,
-        statistics: {
-          presetsConverted: convertedPresets.length,
-          metadataAdded: true,
-          tagsNormalized: 0,
-          processingTime,
-        },
+        warnings: [],
+        errors: [],
       };
     } catch (error) {
       const endTime = performance.now();
@@ -148,7 +144,7 @@ export class FormatConverter {
 
       return {
         success: false,
-        error: `${this.constants.ERRORS.CONVERSION_FAILED}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        errors: [`${this.constants.ERRORS.CONVERSION_FAILED}: ${error instanceof Error ? error.message : 'Unknown error'}`],
       };
     }
   }
@@ -234,17 +230,13 @@ export class FormatConverter {
       return {
         success: true,
         data: legacyFile as any,
-        statistics: {
-          presetsConverted: legacyPresets.length,
-          metadataAdded: false,
-          tagsNormalized: 0,
-          processingTime,
-        },
+        warnings: [],
+        errors: [],
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        errors: [error instanceof Error ? error.message : 'Unknown error'],
       };
     }
   }
@@ -288,17 +280,13 @@ export class FormatConverter {
       return {
         success: true,
         data: convertedFile,
-        statistics: {
-          presetsConverted: file.presets.length,
-          metadataAdded: false,
-          tagsNormalized: 0,
-          processingTime,
-        },
+        warnings: [],
+        errors: [],
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        errors: [error instanceof Error ? error.message : 'Unknown error'],
       };
     }
   }
@@ -400,9 +388,8 @@ export class FormatConverter {
       if (!invalidFile) {
         return {
           success: false,
-          error: 'Invalid file: null or undefined',
+          errors: ['Invalid file: null or undefined'],
           data: null,
-          processingTime: 0,
         };
       }
 
@@ -410,9 +397,8 @@ export class FormatConverter {
       if (typeof invalidFile !== 'object') {
         return {
           success: false,
-          error: 'Invalid file: not an object',
+          errors: ['Invalid file: not an object'],
           data: null,
-          processingTime: 0,
         };
       }
 
@@ -424,16 +410,14 @@ export class FormatConverter {
 
       return {
         success: false,
-        error: 'Invalid file: unsupported format',
+        errors: ['Invalid file: unsupported format'],
         data: null,
-        processingTime: 0,
       };
     } catch (error) {
       return {
         success: false,
-        error: `Invalid format handling failed: ${error}`,
+        errors: [`Invalid format handling failed: ${error}`],
         data: null,
-        processingTime: 0,
       };
     }
   }
@@ -451,16 +435,14 @@ export class FormatConverter {
     try {
       return {
         success: false,
-        error: `Conversion error: ${error.message}`,
+        errors: [`Conversion error: ${error.message}`],
         data: null,
-        processingTime: 0,
       };
     } catch (handlingError) {
       return {
         success: false,
-        error: `Error handling failed: ${handlingError}`,
+        errors: [`Error handling failed: ${handlingError}`],
         data: null,
-        processingTime: 0,
       };
     }
   }
@@ -547,9 +529,6 @@ export class FormatConverter {
         if (!file.metadata.name) {
           errors.push('Missing metadata name');
         }
-        if (!file.metadata.version) {
-          errors.push('Missing metadata version');
-        }
       }
 
       // プリセットのチェック
@@ -599,23 +578,22 @@ export class FormatConverter {
       if (!file) {
         return {
           success: false,
-          error: 'File is null or undefined',
+          errors: ['File is null or undefined'],
           data: null,
-          processingTime: 0,
         };
       }
 
       // オプションの適用
-      if (options.preserveMetadata !== undefined) {
-        console.log(`Preserve metadata: ${options.preserveMetadata}`);
+      if (options.useDefaultMetadata !== undefined) {
+        console.log(`Use default metadata: ${options.useDefaultMetadata}`);
       }
 
-      if (options.includeTags !== undefined) {
-        console.log(`Include tags: ${options.includeTags}`);
+      if (options.normalizeTags !== undefined) {
+        console.log(`Normalize tags: ${options.normalizeTags}`);
       }
 
-      if (options.normalizeUnicode !== undefined) {
-        console.log(`Normalize unicode: ${options.normalizeUnicode}`);
+      if (options.validate !== undefined) {
+        console.log(`Validate: ${options.validate}`);
       }
 
       // 変換を実行
@@ -624,9 +602,8 @@ export class FormatConverter {
     } catch (error) {
       return {
         success: false,
-        error: `Failed to apply conversion options: ${error}`,
+        errors: [`Failed to apply conversion options: ${error}`],
         data: null,
-        processingTime: 0,
       };
     }
   }
@@ -659,7 +636,7 @@ export class FormatConverter {
       return stats;
     } catch (error) {
       return {
-        error: `Statistics generation failed: ${error}`,
+        errors: [`Statistics generation failed: ${error}`],
         success: false,
       };
     }

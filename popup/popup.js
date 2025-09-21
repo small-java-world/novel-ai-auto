@@ -78,8 +78,45 @@ async function initializePromptSynthesis() {
  * Load settings from storage
  */
 async function loadSettings() {
-  // disabled: dummy presets removed. Real presets loaded via presets-validation.js
-  return;
+  try {
+    const result = await chrome.storage.local.get(['settings']);
+    const settings = result.settings || {};
+    
+    // Apply saved settings to UI elements
+    if (settings.imageCount !== undefined) {
+      elements.imageCount.value = settings.imageCount;
+    }
+    if (settings.seed !== undefined) {
+      elements.seed.value = settings.seed;
+    }
+    if (settings.filenameTemplate !== undefined) {
+      elements.filenameTemplate.value = settings.filenameTemplate;
+    }
+    
+    console.log('Settings loaded:', settings);
+  } catch (error) {
+    console.error('Failed to load settings:', error);
+  }
+}
+
+/**
+ * Handle prompt selection change
+ */
+function handlePromptSelection() {
+  try {
+    const selectedValue = elements.promptSelect.value;
+    if (!selectedValue) return;
+    
+    const promptData = JSON.parse(selectedValue);
+    
+    // Check if this prompt has a specific imageCount setting
+    if (promptData.imageCount && typeof promptData.imageCount === 'number') {
+      elements.imageCount.value = promptData.imageCount;
+      addLog(`「${promptData.name}」の生成枚数を${promptData.imageCount}に設定しました`, 'info');
+    }
+  } catch (error) {
+    console.error('Failed to handle prompt selection:', error);
+  }
 }
 
 /**
@@ -119,6 +156,9 @@ function setupEventListeners() {
   elements.imageCount.addEventListener('change', saveSettings);
   elements.seed.addEventListener('change', saveSettings);
   elements.filenameTemplate.addEventListener('change', saveSettings);
+  
+  // Prompt selection handler
+  elements.promptSelect.addEventListener('change', handlePromptSelection);
 
   // Prompt Synthesis event listeners
   if (elements.synthesisRule) {
@@ -182,6 +222,33 @@ async function startGeneration() {
     }
 
     const promptData = JSON.parse(selectedPrompt);
+    // Build composite prompt payload supporting common + multiple characters
+    const commonPositive = (elements.commonPrompt?.value || '').trim();
+    const commonNegative = (elements.commonNegative?.value || '').trim();
+    // If selected item already contains character schema, pass through; else wrap as single preset
+    const payloadPrompt = promptData.characters
+      ? {
+          common: { positive: commonPositive, negative: commonNegative },
+          characters: promptData.characters,
+        }
+      : {
+          common: { positive: commonPositive, negative: commonNegative },
+          characters: [
+            {
+              id: promptData.id || promptData.name || 'preset-1',
+              name: promptData.name || 'Preset',
+              selectorProfile: promptData.selectorProfile || 'character-anime',
+              positive:
+                (typeof promptData.prompt === 'string'
+                  ? promptData.prompt
+                  : (promptData.prompt?.positive || '')) || '',
+              negative:
+                (typeof promptData.prompt === 'object'
+                  ? (promptData.prompt?.negative || '')
+                  : (promptData.negative || '')) || '',
+            },
+          ],
+        };
     const settings = {
       imageCount: parseInt(elements.imageCount.value) || 1,
       seed: parseInt(elements.seed.value) || -1,
@@ -202,11 +269,7 @@ async function startGeneration() {
     // Send generation request to background script
     const response = await chrome.runtime.sendMessage({
       type: 'START_GENERATION',
-      prompt: {
-        positive: promptData.prompt.positive || promptData.prompt,
-        negative: promptData.prompt.negative || '',
-        selectorProfile: promptData.selectorProfile || 'character-anime'
-      },
+      prompt: payloadPrompt, // { common, characters[] }
       parameters: {
         seed: settings.seed,
         count: settings.imageCount,
@@ -265,7 +328,11 @@ function handleMessage(message, _sender, _sendResponse) {
       handleGenerationError(message);
       break;
     default:
-      console.log('Unknown message type:', message.type);
+      // Ignore messages without type (like START_GENERATION responses)
+      // Also ignore APPLY_PROMPT messages (these are for content script)
+      if (message.type && message.type !== 'APPLY_PROMPT') {
+        console.log('Unknown message type:', message.type);
+      }
   }
 }
 

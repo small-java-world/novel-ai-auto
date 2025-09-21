@@ -106,13 +106,17 @@ export function detectNetworkStateChange(
   // 【セキュリティリスク検出】: 悪意のある入力の早期検出
   const combinedValidation = validateMultiple([timestampValidation, jobIdValidation]);
   if (!combinedValidation.isValid) {
-    return enhanceResultWithNullSafety(
+    const errorResult = enhanceResultWithNullSafety(
       createErrorResponse(
-        combinedValidation.errorMessage || ERROR_MESSAGES.INVALID_INPUT,
+        combinedValidation.errorMessage || 'Invalid input',
         'VALIDATION_FAILED'
       ),
       createNullSafetyMarker('skip_processing')
     );
+    return {
+      ...errorResult,
+      detected: false,
+    };
   }
 
   // 【null安全性処理】: TC-071-204テストのためのnull安全性対応 🟢
@@ -216,9 +220,6 @@ export function pauseJobsOnOffline(
       pausedJobs: [],
       messages: [],
       pauseResult: 'success',
-      handled: true, // 【テスト対応】: null安全性処理の確認用
-      safe: true, // 【テスト対応】: null安全性処理の確認用
-      fallback: 'online', // 【テスト対応】: assume_online の期待値
       userNotification: 'Network state assumed online',
     };
   }
@@ -331,6 +332,16 @@ export function resumeJobsOnOnline(
     ...job,
     status: 'running' as const,
     updatedAt: new Date(),
+    prompt: 'Resumed job',
+    parameters: {},
+    settings: { 
+      imageCount: 1, 
+      seed: -1, 
+      filenameTemplate: '{date}_{prompt}_{idx}',
+      retrySettings: { maxRetries: 3, baseDelay: 1000, factor: 2.0 }
+    },
+    createdAt: new Date(),
+    progress: { current: 0, total: 1, status: 'waiting' as const },
   }));
 
   // 【メッセージ生成】: 各再開ジョブのメッセージ作成 🟢

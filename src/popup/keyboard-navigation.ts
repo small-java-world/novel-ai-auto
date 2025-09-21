@@ -190,7 +190,7 @@ export class KeyboardNavigationManager {
    */
   focusElement(elementId: string): void {
     const element = document.getElementById(elementId) as HTMLElement;
-    if (element && !element.disabled) {
+    if (element && !(element as HTMLInputElement).disabled) {
       element.focus();
       const index = this.focusableElements.indexOf(element);
       if (index !== -1) {

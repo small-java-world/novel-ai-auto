@@ -138,7 +138,7 @@ export interface GenerationJob {
   prompt: string;
   parameters: GenerationParameters;
   settings: GenerationSettings;
-  status: 'pending' | 'running' | 'completed' | 'cancelled' | 'error';
+  status: 'pending' | 'running' | 'completed' | 'cancelled' | 'error' | 'paused';
   createdAt: Date;
   updatedAt: Date;
   progress: GenerationProgress;
@@ -211,7 +211,7 @@ export interface JobResumeResult {
     id: string;
     resumePoint: string;
   };
-  message?: JobResumeMessage;
+  message?: string;
   validationResult?: string;
   action?: string;
   cleanupResult?: string;

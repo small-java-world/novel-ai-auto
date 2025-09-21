@@ -181,13 +181,12 @@ export class IntegrationManager {
     try {
       // 既存形式から新形式への変換
       const conversionResult = await this.formatConverter.convertLegacyToV1(legacyFile, {
-        preserveMetadata: true,
-        addDefaultMetadata: true,
-        validateOutput: true,
+        useDefaultMetadata: true,
+        validate: true,
       });
 
       if (!conversionResult.success || !conversionResult.data) {
-        throw new Error(conversionResult.error || 'Conversion failed');
+        throw new Error(conversionResult.errors?.[0] || 'Conversion failed');
       }
 
       // 変換されたファイルの統合

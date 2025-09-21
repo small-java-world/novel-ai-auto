@@ -41,7 +41,7 @@ export class DownloadErrorHandler {
     // 【基本エラー構造】: 全エラータイプ共通の基本構造
     const baseResult: DownloadResult = {
       success: false,
-      errorCode: errorType,
+      errorCode: errorType as 'DOWNLOAD_FAILED' | 'PERMISSION_DENIED' | 'PERMISSION_API_ERROR' | 'PERMISSION_PENDING',
       errorMessage: this.getErrorMessage(errorType),
     };
 

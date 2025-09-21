@@ -7,13 +7,34 @@ import { createLoginDetectionChannel } from './router/loginDetectionChannel';
 
 console.log('NovelAI Auto Generator Service Worker loaded');
 
+// Function declarations (hoisted)
+async function initializeDefaultSettings(): Promise<void> {
+  try {
+    const defaultSettings = {
+      imageCount: 1,
+      seed: -1, // Random seed
+      filenameTemplate: '{date}_{prompt}_{seed}_{idx}',
+      retrySettings: {
+        maxRetries: 5,
+        baseDelay: 500,
+        factor: 2.0,
+      },
+    };
+
+    await chrome.storage.local.set({ namespace_settings: defaultSettings });
+    console.log('Default settings initialized');
+  } catch (error) {
+    console.error('Failed to initialize default settings:', error);
+  }
+}
+
 // Service Worker event listeners
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('Extension installed:', details.reason);
 
   if (details.reason === 'install') {
     // Initialize default settings on first install
-    initializeDefaultSettings();
+    initializeDefaultSettings().catch(console.error);
   }
 });
 
@@ -68,31 +89,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
-/**
- * Initialize default settings
- */
-export async function initializeDefaultSettings(): Promise<void> {
-  try {
-    const defaultSettings = {
-      imageCount: 1,
-      seed: -1, // Random seed
-      filenameTemplate: '{date}_{prompt}_{seed}_{idx}',
-      retrySettings: {
-        maxRetries: 5,
-        baseDelay: 500,
-        factor: 2.0,
-      },
-    };
-
-    await chrome.storage.local.set({ settings: defaultSettings });
-    console.log('Default settings initialized');
-  } catch (error) {
-    console.error(
-      'Failed to initialize default settings:',
-      error instanceof Error ? error.message : String(error)
-    );
-  }
-}
 
 /**
  * Handle start generation message

@@ -74,7 +74,7 @@ function validateObjectSafetyRecursive(obj: any, depth: number): boolean {
   // 【危険パターン検出】: プロトタイプ汚染に使われる危険なキーをチェック
   for (const key of Object.keys(obj)) {
     // 【プロトタイプ汚染防止】: 危険なプロパティ名の検出
-    if (SECURITY_CONFIG.DANGEROUS_PATTERNS.includes(key)) {
+    if ((SECURITY_CONFIG.DANGEROUS_PATTERNS as readonly string[]).includes(key)) {
       return false;
     }
 

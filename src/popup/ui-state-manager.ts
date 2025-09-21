@@ -474,13 +474,13 @@ export class UIStateManager {
   private updateElementsFromSettings(settings: any): void {
     try {
       if (this.elements.imageCount && settings.imageCount !== undefined) {
-        this.elements.imageCount.value = String(settings.imageCount);
+        (this.elements.imageCount as HTMLInputElement).value = String(settings.imageCount);
       }
       if (this.elements.seed && settings.seed !== undefined) {
-        this.elements.seed.value = String(settings.seed);
+        (this.elements.seed as HTMLInputElement).value = String(settings.seed);
       }
       if (this.elements.filenameTemplate && settings.filenameTemplate !== undefined) {
-        this.elements.filenameTemplate.value = settings.filenameTemplate;
+        (this.elements.filenameTemplate as HTMLInputElement).value = settings.filenameTemplate;
       }
     } catch (error) {
       console.error('Element update failed:', error);
@@ -495,13 +495,13 @@ export class UIStateManager {
     try {
       return {
         imageCount: this.elements.imageCount
-          ? parseInt(this.elements.imageCount.value) || DEFAULT_SETTINGS.imageCount
+          ? parseInt((this.elements.imageCount as HTMLInputElement).value) || DEFAULT_SETTINGS.imageCount
           : DEFAULT_SETTINGS.imageCount,
         seed: this.elements.seed
-          ? parseInt(this.elements.seed.value) || DEFAULT_SETTINGS.seed
+          ? parseInt((this.elements.seed as HTMLInputElement).value) || DEFAULT_SETTINGS.seed
           : DEFAULT_SETTINGS.seed,
         filenameTemplate: this.elements.filenameTemplate
-          ? this.elements.filenameTemplate.value || DEFAULT_SETTINGS.filenameTemplate
+          ? (this.elements.filenameTemplate as HTMLInputElement).value || DEFAULT_SETTINGS.filenameTemplate
           : DEFAULT_SETTINGS.filenameTemplate,
       };
     } catch (error) {
@@ -565,8 +565,8 @@ export class UIStateManager {
     try {
       const controls = ['imageCount', 'seed', 'filenameTemplate'];
       controls.forEach((key) => {
-        if (this.elements[key] && this.elements[key].disabled !== undefined) {
-          this.elements[key].disabled = state.isGenerating;
+        if (this.elements[key] && (this.elements[key] as HTMLInputElement).disabled !== undefined) {
+          (this.elements[key] as HTMLInputElement).disabled = state.isGenerating;
         }
       });
     } catch (error) {

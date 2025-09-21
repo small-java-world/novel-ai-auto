@@ -33,6 +33,7 @@ type RuleOrder = 'common-first' | 'preset-first' | 'custom';
 interface AppliedRuleMetadata {
   order: RuleOrder;
   customTemplate?: string;
+  [key: string]: unknown;
 }
 
 export class PromptSynthesizer {

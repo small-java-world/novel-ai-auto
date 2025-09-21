@@ -48,5 +48,101 @@
       "cfgScale": 6.5,
       "sampler": "dpm_2m"
     }
+  },
+  {
+    "name": "アニメ少女",
+    "prompt": "1girl, anime style, beautiful face, long hair, school uniform, {best quality}, {masterpiece}, detailed face, beautiful eyes",
+    "negative": "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped, worst quality, low quality, deformed",
+    "parameters": {
+      "steps": 28,
+      "cfgScale": 7,
+      "sampler": "euler_a"
+    }
+  },
+  {
+    "name": "リアル系ポートレート",
+    "prompt": "portrait, realistic, professional photography, detailed face, natural lighting, {best quality}, {masterpiece}",
+    "negative": "anime, cartoon, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped, worst quality, low quality",
+    "parameters": {
+      "steps": 30,
+      "cfgScale": 6,
+      "sampler": "euler_a"
+    }
+  },
+  {
+    "name": "ファンタジー騎士",
+    "prompt": "fantasy knight, medieval armor, sword, castle background, dramatic lighting, {best quality}, {masterpiece}",
+    "negative": "modern, realistic, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped, worst quality, low quality",
+    "parameters": {
+      "steps": 28,
+      "cfgScale": 7,
+      "sampler": "euler_a"
+    }
+  },
+  {
+    "name": "サイバーパンク・サイボーグ",
+    "prompt": "cyborg, cyberpunk, futuristic, neon lights, mechanical parts, {best quality}, {masterpiece}",
+    "negative": "medieval, fantasy, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped, worst quality, low quality",
+    "parameters": {
+      "steps": 30,
+      "cfgScale": 6,
+      "sampler": "euler_a"
+    }
+  },
+  {
+    "name": "ホラー・モンスター",
+    "prompt": "horror monster, dark atmosphere, scary, detailed, {best quality}, {masterpiece}",
+    "negative": "cute, beautiful, bright, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped, worst quality, low quality",
+    "parameters": {
+      "steps": 28,
+      "cfgScale": 7,
+      "sampler": "euler_a"
+    }
+  },
+  {
+    "name": "設定１",
+    "prompt": "masterpiece, best quality, highres, detailed, cinematic lighting",
+    "negative": "lowres, bad anatomy, blurry, extra digits, watermark, signature",
+    "parameters": {
+      "steps": 28,
+      "cfgScale": 7,
+      "sampler": "euler_a"
+    },
+    "imageCount": 5
+  },
+  {
+    "name": "ファンタジー世界の冒険",
+    "common": {
+      "positive": "fantasy world, magical atmosphere, detailed environment, {best quality}, {masterpiece}",
+      "negative": "modern elements, low quality, blurry, bad anatomy, text, watermark"
+    },
+    "characters": [
+      {
+        "id": "anime-heroine",
+        "name": "アニメヒロイン",
+        "selectorProfile": "character-anime",
+        "positive": "1girl, anime style, beautiful face, long flowing hair, fantasy outfit, determined expression, {best quality}, {masterpiece}",
+        "negative": "realistic, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped, worst quality, low quality"
+      },
+      {
+        "id": "fantasy-knight",
+        "name": "ファンタジー騎士",
+        "selectorProfile": "character-fantasy", 
+        "positive": "fantasy knight, medieval armor, sword, heroic pose, castle background, dramatic lighting, {best quality}, {masterpiece}",
+        "negative": "modern, realistic, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped, worst quality, low quality"
+      },
+      {
+        "id": "magic-wizard",
+        "name": "魔法使い",
+        "selectorProfile": "character-fantasy",
+        "positive": "wizard, magic staff, flowing robes, mystical aura, spell effects, ancient knowledge, {best quality}, {masterpiece}",
+        "negative": "modern, realistic, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped, worst quality, low quality"
+      }
+    ],
+    "parameters": {
+      "steps": 28,
+      "cfgScale": 7,
+      "sampler": "euler_a"
+    }
   }
 ]

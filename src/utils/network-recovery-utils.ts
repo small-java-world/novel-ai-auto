@@ -94,9 +94,10 @@ export function createErrorResponse(
   additionalProperties: object = {}
 ): StandardErrorResponse & typeof additionalProperties {
   // 【メッセージ長制限】: セキュリティポリシーに基づくメッセージ長制御
+  const MAX_ERROR_MESSAGE_LENGTH = 500;
   const truncatedMessage =
-    message.length > ERROR_MESSAGES.MAX_ERROR_MESSAGE_LENGTH
-      ? message.substring(0, ERROR_MESSAGES.MAX_ERROR_MESSAGE_LENGTH) + '...'
+    message.length > MAX_ERROR_MESSAGE_LENGTH
+      ? message.substring(0, MAX_ERROR_MESSAGE_LENGTH) + '...'
       : message;
 
   return {
