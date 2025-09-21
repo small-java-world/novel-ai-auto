@@ -36,7 +36,12 @@
       "Bash(npx playwright install:*)",
       "Bash(npx playwright test:*)",
       "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/popup/local-file-selector.red.test.ts)",
-      "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/utils/new-format-metadata-manager.red.test.ts)"
+      "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/utils/new-format-metadata-manager.red.test.ts)",
+      "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/utils/selector-profile-bridge.test.ts)",
+      "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/utils/multi-character-sequence.red.test.ts)",
+      "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/utils/multi-character-sequence.red.test.ts --reporter=verbose)",
+      "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/utils/multi-character-sequence.green.test.ts --reporter=verbose)",
+      "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/utils/multi-character-sequence.green.test.ts)"
     ],
     "deny": [],
     "ask": []

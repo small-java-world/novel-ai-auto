@@ -233,6 +233,149 @@
         "progress-indicator": ["#__next [role=progressbar]", "[role=progressbar]"],
         "image-gallery": ["#__next .image-gallery", ".novelai-gallery"]
       }
+    },
+    "novelai-mobile": {
+      "detect": [".mobile-ui", "[data-view=\"mobile\"]", "@media (max-width: 768px)"],
+      "selectors": {
+        "prompt-input": [
+          ".mobile-prompt textarea",
+          "[data-mobile=\"prompt\"] textarea",
+          ".mobile-ui textarea[aria-label*=\"prompt\" i]"
+        ],
+        "negative-input": [
+          ".mobile-negative textarea",
+          "[data-mobile=\"negative\"] textarea",
+          ".mobile-ui textarea[aria-label*=\"negative\" i]"
+        ],
+        "generate-button": [
+          ".mobile-generate-btn",
+          "[data-mobile=\"generate\"]",
+          ".mobile-ui button[type=\"submit\"]"
+        ],
+        "progress-indicator": [".mobile-progress", "[data-mobile=\"progress\"]"],
+        "image-gallery": [".mobile-gallery", "[data-mobile=\"gallery\"]"]
+      }
+    },
+    "novelai-v3-ui": {
+      "detect": [".novelai-v3", "[data-version=\"3\"]", ".v3-interface"],
+      "selectors": {
+        "prompt-input": [
+          ".v3-prompt-area textarea",
+          "[data-v3=\"prompt-input\"]",
+          ".prompt-v3 [contenteditable=true]",
+          "div[data-slate-editor] [contenteditable=true]"
+        ],
+        "negative-input": [
+          ".v3-negative-area textarea",
+          "[data-v3=\"negative-input\"]",
+          ".negative-v3 [contenteditable=true]"
+        ],
+        "generate-button": [
+          ".v3-generate-button",
+          "[data-v3=\"generate\"]",
+          "button[aria-label*=\"Generate\" i]"
+        ],
+        "seed-input": [".v3-seed input", "[data-v3=\"seed\"]", "input[placeholder*=\"seed\" i]"],
+        "width-input": [".v3-width input", "[data-v3=\"width\"]", "input[aria-label*=\"width\" i]"],
+        "height-input": [
+          ".v3-height input",
+          "[data-v3=\"height\"]",
+          "input[aria-label*=\"height\" i]"
+        ],
+        "model-select": [
+          ".v3-model select",
+          "[data-v3=\"model\"]",
+          "select[aria-label*=\"model\" i]"
+        ],
+        "progress-indicator": [
+          ".v3-progress",
+          "[data-v3=\"progress\"]",
+          ".progress-v3 [role=\"progressbar\"]"
+        ],
+        "image-gallery": [".v3-gallery", "[data-v3=\"gallery\"]", ".gallery-v3 .image-grid"]
+      }
+    },
+    "novelai-nai-diffusion": {
+      "detect": [".nai-diffusion", "[data-model=\"nai-diffusion\"]"],
+      "selectors": {
+        "prompt-input": [
+          ".nai-prompt textarea",
+          "[data-nai=\"prompt\"]",
+          ".diffusion-prompt [contenteditable=true]"
+        ],
+        "negative-input": [
+          ".nai-negative textarea",
+          "[data-nai=\"negative\"]",
+          ".diffusion-negative [contenteditable=true]"
+        ],
+        "generate-button": [
+          ".nai-generate",
+          "[data-nai=\"generate\"]",
+          "button[title*=\"diffusion\" i]"
+        ],
+        "enhance-checkbox": [
+          ".nai-enhance input[type=checkbox]",
+          "[data-nai=\"enhance\"]",
+          "input[aria-label*=\"enhance\" i]"
+        ],
+        "quality-select": [
+          ".nai-quality select",
+          "[data-nai=\"quality\"]",
+          "select[aria-label*=\"quality\" i]"
+        ],
+        "progress-indicator": [".nai-progress", "[data-nai=\"progress\"]"],
+        "image-gallery": [".nai-gallery", "[data-nai=\"gallery\"]"]
+      }
+    },
+    "novelai-image-2-image": {
+      "detect": [".img2img-ui", "[data-mode=\"img2img\"]"],
+      "selectors": {
+        "prompt-input": [".img2img-prompt textarea", "[data-img2img=\"prompt\"]"],
+        "negative-input": [".img2img-negative textarea", "[data-img2img=\"negative\"]"],
+        "source-image-upload": [
+          ".img2img-upload input[type=file]",
+          "[data-img2img=\"upload\"]",
+          "input[accept*=\"image\" i]"
+        ],
+        "strength-input": [
+          ".img2img-strength input[type=range]",
+          "[data-img2img=\"strength\"]",
+          "input[aria-label*=\"strength\" i]"
+        ],
+        "noise-input": [
+          ".img2img-noise input[type=range]",
+          "[data-img2img=\"noise\"]",
+          "input[aria-label*=\"noise\" i]"
+        ],
+        "generate-button": [".img2img-generate", "[data-img2img=\"generate\"]"],
+        "progress-indicator": [".img2img-progress", "[data-img2img=\"progress\"]"],
+        "image-gallery": [".img2img-gallery", "[data-img2img=\"gallery\"]"]
+      }
+    },
+    "novelai-inpainting": {
+      "detect": [".inpaint-ui", "[data-mode=\"inpaint\"]"],
+      "selectors": {
+        "prompt-input": [".inpaint-prompt textarea", "[data-inpaint=\"prompt\"]"],
+        "negative-input": [".inpaint-negative textarea", "[data-inpaint=\"negative\"]"],
+        "canvas-container": [
+          ".inpaint-canvas",
+          "[data-inpaint=\"canvas\"]",
+          "canvas[data-mode=\"inpaint\"]"
+        ],
+        "brush-size-input": [
+          ".inpaint-brush input[type=range]",
+          "[data-inpaint=\"brush-size\"]",
+          "input[aria-label*=\"brush\" i]"
+        ],
+        "mask-opacity-input": [
+          ".inpaint-opacity input[type=range]",
+          "[data-inpaint=\"opacity\"]",
+          "input[aria-label*=\"opacity\" i]"
+        ],
+        "generate-button": [".inpaint-generate", "[data-inpaint=\"generate\"]"],
+        "progress-indicator": [".inpaint-progress", "[data-inpaint=\"progress\"]"],
+        "image-gallery": [".inpaint-gallery", "[data-inpaint=\"gallery\"]"]
+      }
     }
   }
 }

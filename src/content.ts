@@ -14,6 +14,10 @@ import {
   validateElementInteractable,
   waitForElementWithTimeout,
 } from './utils/dom-selector-strategy';
+import {
+  MultiCharacterSequenceHandler,
+  type MultiCharacterMessage,
+} from './utils/multi-character-sequence';
 
 console.log('NovelAI Auto Generator Content Script loaded');
 
@@ -301,6 +305,9 @@ function isElementType(value: string): value is ElementType {
 // Simple cancellation flag for in-flight generation
 let CANCEL_REQUESTED = false;
 
+// Multi-character sequence handler
+const multiCharacterHandler = new MultiCharacterSequenceHandler();
+
 chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) => {
   switch (message.type) {
     case 'APPLY_PROMPT':
@@ -314,11 +321,25 @@ chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) =
         }
       });
       break;
+    case 'APPLY_MULTI_CHARACTER_PROMPT':
+      multiCharacterHandler
+        .handleMultiCharacterSequence(message as MultiCharacterMessage, sendResponse)
+        .catch((error) => {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.error('Failed to handle multi-character sequence:', errorMessage);
+          try {
+            sendResponse?.({ success: false, error: errorMessage });
+          } catch (e) {
+            console.error('Failed to send response:', e);
+          }
+        });
+      break;
     case 'GET_PAGE_STATE':
       handleGetPageState(sendResponse);
       break;
     case 'CANCEL_JOB': {
       CANCEL_REQUESTED = true;
+      multiCharacterHandler.cancel(); // Also cancel multi-character sequences
       try {
         sendResponse?.({ success: true });
       } catch (e) {

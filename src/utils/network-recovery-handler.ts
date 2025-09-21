@@ -555,7 +555,7 @@ export class NetworkRecoveryHandler {
    */
   setMonitoringInterval(interval: number): IntervalSettingResult {
     // 【入力値検証】: 間隔値の妥当性チェック 🟢
-    if (typeof interval !== 'number' || interval <= 0) {
+    if (typeof interval !== 'number' || Number.isNaN(interval) || interval <= 0) {
       return {
         applied: 1000, // 【デフォルト値】: 無効な値の場合は1秒をデフォルトとする
         acceptable: false,

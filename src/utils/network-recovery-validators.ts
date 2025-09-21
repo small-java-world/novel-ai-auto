@@ -10,7 +10,8 @@ import {
   NETWORK_RECOVERY_CONFIG,
   SECURITY_POLICIES,
   ERROR_MESSAGES,
-} from './network-recovery-config.js';
+  PERFORMANCE_CONFIG,
+} from './network-recovery-config';
 
 /**
  * 【ValidationResult型】: 検証結果の統一形式
@@ -374,5 +375,4 @@ export function validateConfigValue(key: string, value: any): ValidationResult {
   };
 }
 
-// 【パフォーマンス設定】: バリデーター内で使用する設定値のインポート
-const { PERFORMANCE_CONFIG } = require('./network-recovery-config.js');
+// 【パフォーマンス設定】: 上記のESMインポートから利用

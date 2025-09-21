@@ -114,13 +114,23 @@ export async function handleStartGeneration(
 
     // Send generation command to content script
     if (tab.id) {
-      await chrome.tabs.sendMessage(tab.id, {
+      // Prepare the message for content script
+      const csMessage: any = {
         type: 'APPLY_PROMPT',
         prompt: message.prompt,
         parameters: message.parameters,
-        // Forward optional selectorProfile to force a profile on CS side
-        selectorProfile: message.selectorProfile,
-      });
+      };
+
+      // Only forward selectorProfile if it's a valid, non-auto profile
+      if (
+        typeof message.selectorProfile === 'string' &&
+        message.selectorProfile.trim().length > 0 &&
+        message.selectorProfile !== 'auto'
+      ) {
+        csMessage.selectorProfile = message.selectorProfile;
+      }
+
+      await chrome.tabs.sendMessage(tab.id, csMessage);
     }
 
     _sendResponse({ success: true });
