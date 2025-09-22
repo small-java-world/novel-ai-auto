@@ -127,8 +127,31 @@ export class ImageUrlExtractor {
    * @returns Element | null - 見つかったギャラリーコンテナまたはnull
    */
   private findGalleryContainer(): Element | null {
-    // 【ギャラリー検索】: 定数化されたセレクタでコンテナを検索 🟢
-    return document.querySelector(DOM_SELECTORS.GALLERY_CONTAINER);
+    // 【ギャラリー検索】: 複数セレクタでギャラリーコンテナを検索 🟢
+    const selectors = DOM_SELECTORS.GALLERY_CONTAINER.split(', ');
+    
+    for (const selector of selectors) {
+      try {
+        const element = document.querySelector(selector);
+        if (element) {
+          console.log('DIAG: gallery-container-found', { selector, tagName: element.tagName });
+          return element;
+        }
+      } catch (error) {
+        console.warn('DIAG: gallery-selector-error', { selector, error: error.message });
+        continue;
+      }
+    }
+    
+    // フォールバック: 画像要素を直接検索
+    const fallbackImages = document.querySelectorAll('img[src*="https"]');
+    if (fallbackImages.length > 0) {
+      console.log('DIAG: gallery-fallback-found', { count: fallbackImages.length });
+      return document.body; // 全体をコンテナとして扱う
+    }
+    
+    console.warn('DIAG: gallery-container-not-found');
+    return null;
   }
 
   /**
@@ -142,16 +165,39 @@ export class ImageUrlExtractor {
    * @returns string[] - 抽出された全URLの配列（未検証）
    */
   private extractUrlsFromGallery(galleryContainer: Element): string[] {
-    // 【効率的DOM検索】: 結合セレクタで一度に画像要素を取得 🟢
-    const imageElements = galleryContainer.querySelectorAll(DOM_SELECTORS.IMAGE_ELEMENTS);
-
-    // 【URL抽出】: 各画像要素からsrc属性を抽出して配列で収集
+    // 【効率的DOM検索】: 複数セレクタで画像要素を取得 🟢
+    const selectors = DOM_SELECTORS.IMAGE_ELEMENTS.split(', ');
     const urls: string[] = [];
-    for (const img of Array.from(imageElements)) {
-      const src = img.getAttribute('src');
-      if (src) {
-        // 【nullチェック】: src属性が存在する場合のみ追加
-        urls.push(src);
+    
+    for (const selector of selectors) {
+      try {
+        const imageElements = galleryContainer.querySelectorAll(selector);
+        console.log('DIAG: image-selector-result', { selector, count: imageElements.length });
+        
+        for (const img of Array.from(imageElements)) {
+          const src = img.getAttribute('src');
+          if (src && src.startsWith('https://')) {
+            console.log('DIAG: image-url-found', { src: src.substring(0, 100) });
+            urls.push(src);
+          }
+        }
+      } catch (error) {
+        console.warn('DIAG: image-selector-error', { selector, error: error.message });
+        continue;
+      }
+    }
+
+    // フォールバック: 全てのimg要素を検索
+    if (urls.length === 0) {
+      const allImages = galleryContainer.querySelectorAll('img');
+      console.log('DIAG: fallback-image-search', { count: allImages.length });
+      
+      for (const img of Array.from(allImages)) {
+        const src = img.getAttribute('src');
+        if (src && src.startsWith('https://')) {
+          console.log('DIAG: fallback-image-url-found', { src: src.substring(0, 100) });
+          urls.push(src);
+        }
       }
     }
 

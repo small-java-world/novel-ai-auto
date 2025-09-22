@@ -43,23 +43,164 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 const loginDetectionChannel = createLoginDetectionChannel();
 
+// ===== In-memory log buffer with persistence =====
+const MAX_LOG_ENTRIES = 2000;
+let diagLogBuffer: any[] = [];
+
+async function initLogBuffer(): Promise<void> {
+  try {
+    const stored = await chrome.storage.local.get(['diagLogs']);
+    const logs = Array.isArray(stored?.diagLogs) ? stored.diagLogs : [];
+    diagLogBuffer = logs.slice(-MAX_LOG_ENTRIES);
+  } catch {
+    diagLogBuffer = [];
+  }
+}
+
+async function persistLogs(): Promise<void> {
+  try {
+    await chrome.storage.local.set({ diagLogs: diagLogBuffer.slice(-MAX_LOG_ENTRIES) });
+  } catch {}
+}
+
+function addLog(kind: string, data: any): void {
+  const entry = {
+    ts: Date.now(),
+    kind,
+    data,
+  };
+  diagLogBuffer.push(entry);
+  if (diagLogBuffer.length > MAX_LOG_ENTRIES) {
+    diagLogBuffer.splice(0, diagLogBuffer.length - MAX_LOG_ENTRIES);
+  }
+  // fire-and-forget persistence
+  void persistLogs();
+}
+
+void initLogBuffer();
+
+// Passive network tap: observe requests to NovelAI domains even if page hooks fail
+try {
+  const URL_FILTERS: chrome.webRequest.RequestFilter = { urls: ['https://novelai.net/*', 'https://*.novelai.net/*'] } as any;
+
+  if (chrome.webRequest?.onBeforeRequest?.addListener) {
+    chrome.webRequest.onBeforeRequest.addListener(
+      (details) => {
+        try {
+          console.log('WR: before', { method: (details as any).method, type: details.type, url: details.url });
+          addLog('WR_BEFORE', { method: (details as any).method, type: details.type, url: details.url });
+        } catch {}
+      },
+      URL_FILTERS
+    );
+  }
+
+  if (chrome.webRequest?.onCompleted?.addListener) {
+    chrome.webRequest.onCompleted.addListener(
+      (details) => {
+        try {
+          console.log('WR: completed', {
+            method: (details as any).method,
+            type: details.type,
+            url: details.url,
+            statusCode: (details as any).statusCode,
+          });
+          addLog('WR_COMPLETED', {
+            method: (details as any).method,
+            type: details.type,
+            url: details.url,
+            statusCode: (details as any).statusCode,
+          });
+        } catch {}
+      },
+      URL_FILTERS
+    );
+  }
+
+  if (chrome.webRequest?.onErrorOccurred?.addListener) {
+    chrome.webRequest.onErrorOccurred.addListener(
+      (details) => {
+        try {
+          console.log('WR: error', { method: (details as any).method, type: details.type, url: details.url, error: details.error });
+          addLog('WR_ERROR', { method: (details as any).method, type: details.type, url: details.url, error: details.error });
+        } catch {}
+      },
+      URL_FILTERS
+    );
+  }
+} catch {}
+
+// Observe downloads created by the site and forward to the originating tab
+try {
+  chrome.downloads.onCreated.addListener((item) => {
+    try {
+      const info = {
+        id: item.id,
+        url: (item as any)?.url ? String((item as any).url).slice(0, 200) : undefined,
+        filename: item.filename,
+        tabId: (item as any)?.tabId,
+      };
+      console.log('DIAG: dl-created', info);
+      // 記録: 完了時に対象タブへ通知するためのマッピング
+      try {
+        if (typeof (item as any)?.tabId === 'number') {
+          (globalThis as any).__dlTabMap = (globalThis as any).__dlTabMap || new Map<number, number>();
+          (globalThis as any).__dlTabMap.set(item.id, (item as any).tabId);
+        }
+      } catch {}
+      const tabId = (item as any)?.tabId;
+      if (typeof tabId === 'number') {
+        try {
+          chrome.tabs.sendMessage(tabId, { type: 'DOWNLOAD_DETECTED', item: info });
+        } catch {}
+      }
+      addLog('DL_CREATED', info);
+    } catch {}
+  });
+} catch {}
+
+// Site-initiated download completion/error notification to tab
+try {
+  chrome.downloads.onChanged.addListener((delta) => {
+    try {
+      if (!delta || typeof delta.id !== 'number' || !delta.state) return;
+      const dlMap: Map<number, number> | undefined = (globalThis as any).__dlTabMap;
+      const tabId = dlMap?.get(delta.id);
+      if (typeof tabId !== 'number') return;
+      const state = delta.state.current;
+      if (state === 'complete') {
+        try { chrome.tabs.sendMessage(tabId, { type: 'SITE_DOWNLOAD_COMPLETE', downloadId: delta.id }); } catch {}
+        addLog('DL_COMPLETE', { id: delta.id, tabId });
+      } else if (state === 'interrupted') {
+        try { chrome.tabs.sendMessage(tabId, { type: 'SITE_DOWNLOAD_ERROR', downloadId: delta.id, error: (delta as any)?.error }); } catch {}
+        addLog('DL_INTERRUPTED', { id: delta.id, tabId, error: (delta as any)?.error });
+      }
+    } catch {}
+  });
+} catch {}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Background received message:', message);
+  try { addLog('MSG', { from: sender?.tab?.id ?? null, type: (message as any)?.type }); } catch {}
 
-  (async () => {
+  const handleMessageAsync = async (): Promise<void> => {
     const handled = await loginDetectionChannel.handle(message);
     if (handled) {
       return;
     }
 
     switch (message?.type) {
-    case 'GENERATION_DIAGNOSTICS':
+      case 'GENERATION_DIAGNOSTICS':
       try {
         console.log('DIAG:', (message as any).step, (message as any).data);
-      } catch {}
-      break;
+        addLog('DIAG', { step: (message as any).step, data: (message as any).data });
+      } catch {
+        // Ignore diagnostic logging errors
+      }
+        break;
       case 'START_GENERATION':
         await handleStartGeneration(message, sender, sendResponse);
+        addLog('START', { from: sender?.tab?.id ?? null });
         break;
       case 'CANCEL_JOB':
         await handleCancelJob(message, sender, sendResponse);
@@ -78,9 +219,118 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           console.error('Failed to forward GENERATION_PROGRESS:', e);
         }
         break;
+      case 'PROGRESS_UPDATE':
+        // Handle progress updates from content script
+        try {
+          console.log('DIAG: progress-update', message.payload);
+          addLog('PROGRESS', message.payload);
+          // Try to forward to popup, but don't fail if popup is closed
+          try {
+            await chrome.runtime.sendMessage({
+              type: 'GENERATION_PROGRESS',
+              progress: message.payload,
+            });
+          } catch (popupError) {
+            // Popup is likely closed, this is normal
+            console.log('DIAG: popup-closed', 'Progress update not forwarded (popup closed)');
+          }
+        } catch (e) {
+          console.error('Failed to process PROGRESS_UPDATE:', e);
+        }
+        break;
+      case 'EXPORT_LOGS': {
+        try {
+          const { format, fileName, max } = (message as any) || {};
+          const fmt = (typeof format === 'string' ? format : 'ndjson').toLowerCase();
+          const now = new Date();
+          const yyyy = String(now.getFullYear());
+          const mm = String(now.getMonth() + 1).padStart(2, '0');
+          const dd = String(now.getDate()).padStart(2, '0');
+          const hh = String(now.getHours()).padStart(2, '0');
+          const mi = String(now.getMinutes()).padStart(2, '0');
+          const ss = String(now.getSeconds()).padStart(2, '0');
+          const defaultName = `logs-${yyyy}${mm}${dd}-${hh}${mi}${ss}.${fmt === 'json' ? 'json' : 'ndjson'}`;
+          const name = typeof fileName === 'string' && fileName.trim().length > 0 ? fileName.trim() : defaultName;
+
+          // Read from storage to ensure latest persisted logs
+          const stored = await chrome.storage.local.get(['diagLogs']);
+          let logs: any[] = Array.isArray(stored?.diagLogs) ? stored.diagLogs : [];
+          if (typeof max === 'number' && max > 0) {
+            logs = logs.slice(-max);
+          }
+
+          const content = fmt === 'json'
+            ? JSON.stringify(logs, null, 2)
+            : logs.map((e) => JSON.stringify({ ts: e?.ts, iso: new Date(e?.ts || Date.now()).toISOString(), kind: e?.kind, data: e?.data })).join('\n');
+
+          const blob = new Blob([content], { type: 'application/json' });
+          let url: string | undefined;
+          try {
+            url = URL.createObjectURL(blob);
+          } catch {
+            // Fallback to data URL if object URL fails
+            url = `data:application/json;charset=utf-8,${encodeURIComponent(content)}`;
+          }
+
+          await new Promise<void>((resolve, reject) => {
+            chrome.downloads.download(
+              {
+                url: url!,
+                filename: name,
+                saveAs: true,
+              },
+              (downloadId) => {
+                const lastError = chrome.runtime.lastError;
+                if (lastError || typeof downloadId !== 'number') {
+                  reject(new Error(lastError?.message || 'download failed'));
+                } else {
+                  resolve();
+                }
+              }
+            );
+          });
+
+          try { addLog('EXPORT_DONE', { count: logs.length, format: fmt, fileName: name }); } catch {}
+          sendResponse?.({ success: true, count: logs.length, fileName: name });
+        } catch (e) {
+          console.error('Failed to export logs:', e);
+          try { addLog('EXPORT_ERROR', { error: String(e) }); } catch {}
+          sendResponse?.({ success: false, error: e instanceof Error ? e.message : String(e) });
+        }
+        // async response handled via sendResponse above
+        break;
+      }
+      case 'DOWNLOAD_CLICKED':
+        try {
+          console.log('DIAG: download-clicked', (message as any)?.info || null);
+          addLog('DL_CLICKED', (message as any)?.info || null);
+        } catch {}
+        break;
+      case 'NETWORK_ACTIVITY':
+        try {
+          const { method, url, phase, status, error } = message as any;
+          console.log('DIAG: network', { phase, method, status, url, error });
+          addLog('NETWORK', { phase, method, status, url, error });
+        } catch (e) {
+          // ignore
+        }
+        break;
+      case 'ERROR':
+        // Handle errors from content script
+        try {
+          console.error('DIAG: content-error', JSON.stringify(message.payload, null, 2));
+          await chrome.runtime.sendMessage({
+            type: 'GENERATION_ERROR',
+            error: message.payload,
+          });
+        } catch (e) {
+          console.error('Failed to forward ERROR:', e);
+        }
+        break;
       case 'GENERATION_COMPLETE':
         try {
           await chrome.runtime.sendMessage({ type: 'GENERATION_COMPLETE', count: message.count });
+          addLog('COMPLETE', { count: message.count });
         } catch (e) {
           console.error('Failed to forward GENERATION_COMPLETE:', e);
         }
@@ -88,6 +338,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       case 'GENERATION_ERROR':
         try {
           await chrome.runtime.sendMessage({ type: 'GENERATION_ERROR', error: message.error });
+          addLog('ERROR', { error: message.error });
         } catch (e) {
           console.error('Failed to forward GENERATION_ERROR:', e);
         }
@@ -95,8 +346,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       default:
         console.warn('Unknown message type:', message?.type);
     }
-  })().catch((error) => {
+  };
+
+  handleMessageAsync().catch((error) => {
     console.error('Failed to handle background message:', error);
+    try { addLog('BG_MSG_ERROR', { messageType: (message as any)?.type, error: String(error) }); } catch {}
   });
 
   // Return true to keep the message channel open for async response
@@ -123,9 +377,14 @@ export async function handleStartGeneration(
         // @ts-ignore
         const scripting: any = (chrome as any)?.scripting;
         if (scripting?.executeScript) {
-          await scripting.executeScript({ target: { tabId: tab.id }, files: ['dist/content.bundle.js'] });
+          await scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ['dist/content.enhanced.js'],
+          });
         }
-      } catch (_) {}
+      } catch (_) {
+        // Ignore script injection errors
+      }
       // Small readiness wait via ping
       for (let i = 0; i < 3; i++) {
         if (await isContentScriptReady(tab.id)) break;
@@ -142,7 +401,9 @@ export async function handleStartGeneration(
           throw new Error('ログインが必要です。NovelAI にサインインしてください。');
         }
         if (state && state.hasPromptInput === false) {
-          console.warn('プロンプト入力欄が見つかりませんでした。セレクタープロファイルを変更して再試行してください。');
+          console.warn(
+            'プロンプト入力欄が見つかりませんでした。セレクタープロファイルを変更して再試行してください。'
+          );
         }
       } catch (_) {
         // ignore; CS が未準備でも後続の sendMessageWithRetry で再試行します
@@ -157,11 +418,7 @@ export async function handleStartGeneration(
       const composite = message?.prompt;
       let normalizedPrompt: any = composite;
       try {
-        if (
-          composite &&
-          typeof composite === 'object' &&
-          Array.isArray(composite.characters)
-        ) {
+        if (composite && typeof composite === 'object' && Array.isArray(composite.characters)) {
           const commonPos = (composite.common?.positive ?? '').toString();
           const commonNeg = (composite.common?.negative ?? '').toString();
           const firstChar = composite.characters[0] ?? {};
@@ -254,42 +511,144 @@ export async function handleDownloadImage(
   _sendResponse: (_response: any) => void
 ): Promise<void> {
   try {
-    const { url, filename } = message;
-    console.log('DIAG: download-start', { url: url.substring(0, 100), filename });
+    const { url, filename } = message as { url: string; filename?: string };
+    const safeName = typeof filename === 'string' && filename.trim().length > 0 ? filename.trim() : `NovelAI_${Date.now()}.png`;
+    const startInfo = { url: url?.substring(0, 200), filename: safeName };
+    console.log('DIAG: download-start', startInfo);
+    addLog('DL_START', startInfo);
 
-    // Check if downloads permission is available
-    const hasPermission = await chrome.permissions.contains({
-      permissions: ['downloads']
-    });
-
+    // Check permission
+    const hasPermission = await chrome.permissions.contains({ permissions: ['downloads'] });
     if (!hasPermission) {
       console.error('DIAG: download-permission-denied', 'Downloads permission not granted');
-      _sendResponse({
-        success: false,
-        error: 'Downloads permission not granted. Please enable downloads permission for this extension.',
-      });
+      _sendResponse({ success: false, error: 'Downloads permission not granted.' });
       return;
     }
 
-    console.log('DIAG: download-permission-ok', 'Downloads permission confirmed');
+    // Decide strategy
+    const isHttp = typeof url === 'string' && /^https?:\/\//i.test(url);
+    const isData = typeof url === 'string' && /^data:/i.test(url);
+    const isBlob = typeof url === 'string' && /^blob:/i.test(url);
 
-    const downloadId = await chrome.downloads.download({
-      url,
-      filename,
-      conflictAction: 'uniquify',
-      saveAs: false, // Force automatic download without dialog
-    });
+    let downloadSourceUrl = url;
+    let finalFileName = safeName;
 
-    console.log('DIAG: download-success', { downloadId, filename });
+    if (isBlob) {
+      // blob: は SW では直接解決できないので、失敗を返す（content 側で抽出URLにフォールバック）
+      const info = { url: url.substring(0, 200) };
+      console.error('DIAG: download-unsupported-blob-url', info);
+      addLog('DL_UNSUPPORTED_BLOB', info);
+      _sendResponse({ success: false, error: 'blob-url not supported in background' });
+      return;
+    }
 
-    _sendResponse({ success: true, downloadId });
+    if (!isHttp && !isData) {
+      // 不明なスキームは試さない
+      const info2 = { url: url.substring(0, 200) };
+      console.error('DIAG: download-unsupported-scheme', info2);
+      addLog('DL_UNSUPPORTED_SCHEME', info2);
+      _sendResponse({ success: false, error: 'unsupported url scheme' });
+      return;
+    }
+
+    if (isHttp) {
+      // そのままURLで保存（Chromeが最も安定）
+      const downloadId = await chrome.downloads.download({
+        url: downloadSourceUrl,
+        filename: finalFileName,
+        conflictAction: 'uniquify',
+        saveAs: false,
+      });
+      const state = await waitForDownloadCompletion(downloadId, 120000, downloadSourceUrl, finalFileName);
+      if (state === 'complete') {
+        const info3 = { downloadId, filename: finalFileName, url: downloadSourceUrl.substring(0, 200) };
+        console.log('DIAG: download-complete', info3);
+        addLog('DL_BG_COMPLETE', info3);
+        _sendResponse({ success: true, downloadId, filename: finalFileName });
+        return;
+      } else {
+        const info4 = { downloadId, filename: finalFileName, url: downloadSourceUrl.substring(0, 200) };
+        console.error('DIAG: download-interrupted', info4);
+        addLog('DL_BG_INTERRUPTED', info4);
+        _sendResponse({ success: false, error: 'download interrupted' });
+        return;
+      }
+    }
+
+    // data: URL（または必要に応じて変換して data: にする）
+    if (isData) {
+      const downloadId = await chrome.downloads.download({
+        url: downloadSourceUrl,
+        filename: finalFileName,
+        conflictAction: 'uniquify',
+        saveAs: false,
+      });
+      const state = await waitForDownloadCompletion(downloadId, 120000, downloadSourceUrl, finalFileName);
+      if (state === 'complete') {
+        const info5 = { downloadId, filename: finalFileName, url: downloadSourceUrl.substring(0, 200) };
+        console.log('DIAG: download-complete', info5);
+        addLog('DL_BG_COMPLETE', info5);
+        _sendResponse({ success: true, downloadId, filename: finalFileName });
+        return;
+      } else {
+        const info6 = { downloadId, filename: finalFileName, url: downloadSourceUrl.substring(0, 200) };
+        console.error('DIAG: download-interrupted', info6);
+        addLog('DL_BG_INTERRUPTED', info6);
+        _sendResponse({ success: false, error: 'download interrupted' });
+        return;
+      }
+    }
   } catch (error) {
     console.error('DIAG: download-error', error);
+    try { addLog('DL_ERROR', { error: error instanceof Error ? error.message : String(error) }); } catch {}
     _sendResponse({
       success: false,
       error: error instanceof Error ? error.message : String(error),
     });
   }
+}
+
+async function waitForDownloadCompletion(
+  downloadId: number,
+  timeoutMs: number,
+  url?: string,
+  filename?: string
+): Promise<'complete' | 'interrupted' | 'timeout'> {
+  return new Promise((resolve) => {
+    let resolved = false;
+    const timer = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        try { chrome.downloads.onChanged.removeListener(listener); } catch {}
+        console.error('DIAG: download-timeout', { downloadId, url: (url || '').substring(0, 200), filename });
+        resolve('timeout');
+      }
+    }, timeoutMs);
+
+    function done(state: 'complete' | 'interrupted') {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(timer);
+      try { chrome.downloads.onChanged.removeListener(listener); } catch {}
+      resolve(state);
+    }
+
+    function listener(delta: chrome.downloads.DownloadDelta) {
+      if (delta?.id !== downloadId) return;
+      const state = delta.state?.current;
+      if (state === 'complete') {
+        console.log('DIAG: download-onChanged-complete', { downloadId, url: (url || '').substring(0, 200), filename });
+        done('complete');
+      } else if (state === 'interrupted') {
+        console.error('DIAG: download-onChanged-interrupted', { downloadId, url: (url || '').substring(0, 200), filename, error: (delta as any)?.error });
+        done('interrupted');
+      }
+    }
+
+    try { chrome.downloads.onChanged.addListener(listener); } catch {
+      // 監視に失敗した場合はタイムアウトで終了
+    }
+  });
 }
 
 /**
@@ -320,7 +679,7 @@ async function sendMessageWithRetry(
     // @ts-ignore
     const scripting: any = (chrome as any)?.scripting;
     if (scripting?.executeScript) {
-      await scripting.executeScript({ target: { tabId }, files: ['dist/content.js'] });
+      await scripting.executeScript({ target: { tabId }, files: ['dist/content.enhanced.js'] });
     }
   } catch (e) {
     // ignore injection failure

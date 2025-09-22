@@ -7,11 +7,11 @@ const path = require('path');
     bundle: true,
     format: 'iife', // classic script (no ESM)
     target: ['chrome100'],
-    outfile: path.join(__dirname, '..', 'dist', 'content.bundle.js'),
+    outfile: path.join(__dirname, '..', 'dist', 'content.enhanced.js'),
     sourcemap: false,
     logLevel: 'info',
   });
-  console.log('Content script bundled to dist/content.bundle.js');
+  console.log('Content script bundled to dist/content.enhanced.js');
 })();
 
 

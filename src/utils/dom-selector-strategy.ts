@@ -15,7 +15,9 @@ export type ElementType =
   | 'cfg-scale-input' // CFGスケール入力欄
   | 'count-input' // 生成枚数入力欄
   | 'progress-indicator' // 進捗表示要素
-  | 'image-gallery'; // 生成画像ギャラリー
+  | 'image-gallery' // 生成画像ギャラリー
+  | 'download-anchor' // 内蔵ダウンロードのアンカー
+  | 'download-button'; // 内蔵ダウンロードのボタン
 
 /**
  * セレクタ設定オブジェクト

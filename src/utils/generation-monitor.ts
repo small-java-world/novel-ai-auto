@@ -34,6 +34,12 @@ const MONITORING_CONFIG = {
  * 🟡 信頼性レベル: NovelAI実環境調査に基づくが一部推測を含む
  */
 const NOVELAI_SELECTORS = {
+  // 【生成ボタン】: 生成処理を開始するボタン（noveldata.md準拠）
+  generateButton: [
+    // noveldata.mdの推奨方法: テキストベース検索
+    // CSSセレクタではなく、JavaScript側でテキスト検索を実装
+  ],
+
   // 【完了検知要素】: 生成完了を示すDOM要素
   completion: [
     '.generation-complete', // 【テスト用】: テストで使用される要素
@@ -89,6 +95,8 @@ export class GenerationMonitor {
   private startTime: number | null = null;
   private elementCache = new Map<string, ElementCache>();
   private lastProgressInfo: ProgressInfo | null = null;
+  private lastButtonDisabledState: boolean | null = null;
+  private generateButtonRef: HTMLButtonElement | null = null;
 
   /**
    * 【機能概要】: 生成監視を開始する
@@ -117,7 +125,21 @@ export class GenerationMonitor {
     this.monitoring = true;
     this.startTime = Date.now();
     this.lastProgressInfo = null;
+    this.lastButtonDisabledState = null;
     this.elementCache.clear(); // 【キャッシュクリア】: 古いキャッシュの削除
+
+    // 【生成ボタン参照取得】: 監視開始時に1回だけボタンを見つけて参照を保持
+    this.generateButtonRef = this.findGenerateButtonFallback();
+    if (this.generateButtonRef) {
+      console.log('DIAG: generate-button-found-at-start', {
+        tagName: this.generateButtonRef.tagName,
+        className: this.generateButtonRef.className,
+        text: this.generateButtonRef.textContent?.trim(),
+        disabled: this.generateButtonRef.disabled
+      });
+    } else {
+      console.log('DIAG: generate-button-not-found-at-start');
+    }
 
     // 【進捗監視開始】: 改善された監視処理開始
     this.startProgressMonitoring();
@@ -203,6 +225,9 @@ export class GenerationMonitor {
           this.stopMonitoring();
           return;
         }
+
+        // 【生成ボタン状態監視】: ボタンの非活性→活性で完了判定
+        this.checkGenerateButtonState();
 
         // 【進捗更新送信】: 改善された進捗情報をService Workerに送信
         this.sendProgressUpdate();
@@ -329,6 +354,8 @@ export class GenerationMonitor {
     this.jobId = null;
     this.startTime = null;
     this.lastProgressInfo = null;
+    this.lastButtonDisabledState = null;
+    this.generateButtonRef = null;
 
     // 【タイマークリーンアップ】: 全てのタイマーを安全に停止
     if (this.progressInterval) {
@@ -536,7 +563,35 @@ export class GenerationMonitor {
    * 【新機能】: 要素が実際にエラーを示しているか確認
    */
   private isActualError(element: Element): boolean {
-    return (element as HTMLElement).offsetParent !== null || element === document.body;
+    // より厳密なエラー要素の判定
+    if ((element as HTMLElement).offsetParent === null && element !== document.body) {
+      return false;
+    }
+    
+    // エラー要素のテキスト内容をチェック
+    const textContent = element.textContent?.trim().toLowerCase() || '';
+    const hasErrorKeywords = textContent.includes('error') || 
+                            textContent.includes('エラー') || 
+                            textContent.includes('failed') || 
+                            textContent.includes('失敗');
+    
+    // エラー要素のクラス名をチェック
+    const classList = Array.from(element.classList);
+    const hasErrorClass = classList.some(cls => 
+      cls.toLowerCase().includes('error') || 
+      cls.toLowerCase().includes('danger') || 
+      cls.toLowerCase().includes('alert')
+    );
+    
+    console.log('DIAG: error-element-check', { 
+      tagName: element.tagName,
+      hasErrorKeywords,
+      hasErrorClass,
+      textContent: textContent.substring(0, 50),
+      classList: classList.slice(0, 3)
+    });
+    
+    return hasErrorKeywords || hasErrorClass;
   }
 
   /**
@@ -600,6 +655,11 @@ export class GenerationMonitor {
       const errorElement = this.getCachedElement('error', NOVELAI_SELECTORS.error);
       if (errorElement && this.isActualError(errorElement)) {
         const errorMessage = this.extractErrorMessage(errorElement);
+        console.log('DIAG: error-element-detected', { 
+          tagName: errorElement.tagName, 
+          textContent: errorMessage.substring(0, 100),
+          jobId: this.jobId 
+        });
         this.handleError(errorMessage);
       }
     } catch (error) {
@@ -660,6 +720,113 @@ export class GenerationMonitor {
     } catch (error) {
       console.error('【メッセージ送信エラー】:', error);
     }
+  }
+
+  /**
+   * 【機能概要】: 生成ボタンの状態変化による完了検知
+   * 【実装方針】: disabled(true→false)の変化で生成完了を判定
+   * 【設計方針】: ボタン状態の確実な監視とログ出力
+   * 【保守性】: 状態変化の詳細ログで問題解析を支援
+   * 🟢 信頼性レベル: 一般的なUIパターンに基づく実装
+   */
+  private checkGenerateButtonState(): void {
+    if (!this.monitoring || !this.jobId) {
+      return;
+    }
+
+    try {
+      // 監視開始時に取得した参照を使用（生成中でもボタンは存在する）
+      if (!this.generateButtonRef) {
+        // 初回のみログ出力
+        if (this.lastButtonDisabledState === null) {
+          console.log('DIAG: generate-button-ref-missing', {
+            timestamp: Date.now(),
+            message: '生成ボタンの参照が取得されていません'
+          });
+        }
+        return;
+      }
+
+      const isDisabled = this.generateButtonRef.disabled ||
+                        this.generateButtonRef.getAttribute('aria-disabled') === 'true';
+
+      // 初回の状態記録
+      if (this.lastButtonDisabledState === null) {
+        this.lastButtonDisabledState = isDisabled;
+        console.log('DIAG: generate-button-initial-state', {
+          disabled: isDisabled,
+          tagName: this.generateButtonRef.tagName,
+          className: this.generateButtonRef.className
+        });
+        return;
+      }
+
+      // 状態変化の検知（disabled: true → false）
+      if (this.lastButtonDisabledState === true && isDisabled === false) {
+        console.log('DIAG: generate-button-enabled', {
+          previousState: this.lastButtonDisabledState,
+          currentState: isDisabled,
+          timestamp: Date.now()
+        });
+        console.log('🎉 生成完了をボタン状態変化で検知！');
+        this.handleCompletion();
+      }
+
+      // 状態の更新
+      this.lastButtonDisabledState = isDisabled;
+    } catch (error) {
+      console.error('【ボタン状態監視エラー】:', error);
+    }
+  }
+
+  /**
+   * 【機能概要】: content.tsのfallbackFindGenerateControl()と同じロジック
+   * 【実装方針】: 実際に機能しているボタン検出ロジックを流用
+   * 【設計方針】: 確実にNovelAIの生成ボタンを検出
+   * 🟢 信頼性レベル: content.tsで実証済みのロジック
+   */
+  private findGenerateButtonFallback(): HTMLButtonElement | null {
+    const selector = [
+      '[data-testid*="generate" i]',
+      '[data-action*="generate" i]',
+      'button',
+      '[role="button"]',
+      '.sc-4f026a5f-2.sc-883533e0-3',
+    ].join(', ');
+
+    const all = Array.from(document.querySelectorAll(selector)) as HTMLElement[];
+    const wanted = ['generate', 'start', 'run', '生成', '枚', '一枚', '1枚', 'anlas'];
+    let best: { el: HTMLElement; score: number } | null = null;
+
+    for (const raw of all) {
+      // Prefer the nearest clickable ancestor if this is a span/div
+      const el = (raw.closest('button,[role="button"]') as HTMLElement) || raw;
+      const text = this.normalizeText(el.textContent);
+      let score = 0;
+
+      for (const w of wanted) {
+        if (text.includes(w)) score += 3;
+      }
+      if (text.includes('1枚のみ生成') || text.includes('1枚') || text.includes('一枚')) score += 4;
+      if (text.includes('anlas')) score += 2;
+
+      const rect = el.getBoundingClientRect();
+      if (rect.width > 10 && rect.height > 10) score += 1;
+
+      if (!best || score > best.score) {
+        best = { el, score };
+      }
+    }
+
+    return best?.el as HTMLButtonElement || null;
+  }
+
+  /**
+   * 【ヘルパー関数】: テキスト正規化
+   * content.tsのnormalizeTextと同じ実装
+   */
+  private normalizeText(text: string | null): string {
+    return (text || '').toLowerCase().replace(/\s+/g, '');
   }
 
   /**

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "NovelAI Auto Generator",
   "description": "Automate NovelAI image generation with predefined prompts.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "permissions": ["storage", "downloads", "tabs", "scripting"],
   "host_permissions": ["https://novelai.net/*"],
   "background": {

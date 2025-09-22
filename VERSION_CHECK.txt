@@ -1,0 +1,17 @@
+NovelAI Auto Generator ENHANCED - Version 1.0.0
+Build Time: 2025-09-21 23:40:00
+Features: Multi-Layer Download Defense, Enhanced Logging, Cache Busted
+
+🚀 ENHANCED VERSION 🚀
+このファイルが存在することで、v1.0.0 Enhancedが正しく読み込まれていることを確認できます。
+
+更新内容:
+- 生成完了ログの追加
+- 多層防御ダウンロードシステム
+- 強化されたバージョン確認
+- キャッシュクリア対応
+
+拡張機能が正しく更新されていない場合:
+1. Chrome完全再起動
+2. 拡張機能の完全削除・再追加
+3. デベロッパーツールのキャッシュクリア

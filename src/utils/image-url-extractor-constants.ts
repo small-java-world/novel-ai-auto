@@ -15,13 +15,13 @@
  */
 export const DOM_SELECTORS = {
   /** 【ギャラリーコンテナ】: NovelAI画像ギャラリーの親要素セレクタ */
-  GALLERY_CONTAINER: '.novelai-gallery',
+  GALLERY_CONTAINER: '.novelai-gallery, [data-testid*="gallery"], [data-testid*="image"], .image-container, .generated-image, .result-image, [class*="gallery"], [class*="image"]',
 
   /** 【画像要素】: ギャラリー内の画像要素セレクタ */
-  IMAGE_ELEMENTS: 'img',
+  IMAGE_ELEMENTS: 'img[src*="novelai"], img[src*="cdn"], img[src*="https"], img',
 
   /** 【統合セレクタ】: パフォーマンス最適化のための結合セレクタ */
-  GALLERY_IMAGES: '.novelai-gallery img',
+  GALLERY_IMAGES: '.novelai-gallery img, [data-testid*="gallery"] img, [data-testid*="image"] img, .image-container img, .generated-image img, .result-image img, [class*="gallery"] img, [class*="image"] img',
 } as const;
 
 /**

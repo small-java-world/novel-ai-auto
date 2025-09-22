@@ -11,7 +11,11 @@
     <div class="container">
         <header class="header">
             <h1 class="title">NovelAI Auto Generator</h1>
-            <div class="version">v0.1.0</div>
+			<div class="version" id="versionText"></div>
+			<div class="window-controls">
+				<button id="detachButton" class="button button-secondary" title="別ウィンドウで開く">⧉</button>
+				<button id="closeButton" class="button button-secondary" title="閉じる">✕</button>
+			</div>
         </header>
 
         <main class="main" id="main-content">
@@ -223,6 +227,12 @@
                     キャンセル
                 </button>
                 <div id="cancel-help" class="sr-only">現在の画像生成処理を中止します</div>
+
+              <button id="exportLogsButton" class="button button-secondary" type="button"
+                      aria-describedby="export-logs-help">
+                  ログ保存
+              </button>
+              <div id="export-logs-help" class="sr-only">診断ログをファイルに保存します</div>
             </section>
 
             <!-- Logs -->

@@ -16,7 +16,11 @@ const elements = {
   etaText: document.getElementById('etaText'),
   generateButton: document.getElementById('generateButton'),
   cancelButton: document.getElementById('cancelButton'),
+  exportLogsButton: document.getElementById('exportLogsButton'),
   logsContainer: document.getElementById('logsContainer'),
+  versionText: document.getElementById('versionText'),
+  detachButton: document.getElementById('detachButton'),
+  closeButton: document.getElementById('closeButton'),
   // Prompt Synthesis elements
   commonPrompt: document.getElementById('commonPrompt'),
   commonNegative: document.getElementById('commonNegative'),
@@ -57,9 +61,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   await initializeFormatSupport();
   await loadSelectorProfiles();
   setupEventListeners();
+  renderVersion();
   updateUI();
   addLog('ポップアップが初期化されました');
 });
+
+function renderVersion() {
+  try {
+    const v = chrome.runtime?.getManifest?.().version || '';
+    if (elements.versionText) {
+      elements.versionText.textContent = v ? `v${v}` : '';
+    }
+  } catch (_) {
+    if (elements.versionText) elements.versionText.textContent = '';
+  }
+}
 
 /**
  * Initialize prompt synthesis functionality
@@ -231,8 +247,52 @@ function setupEventListeners() {
     elements.exportFileButton.addEventListener('click', exportPromptFile);
   }
 
+  // Export logs button
+  if (elements.exportLogsButton) {
+    elements.exportLogsButton.addEventListener('click', exportLogsFromBackground);
+  }
+
+  // Detach/Close window controls
+  if (elements.detachButton) {
+    elements.detachButton.addEventListener('click', openDetachedWindow);
+  }
+  if (elements.closeButton) {
+    elements.closeButton.addEventListener('click', () => {
+      try { window.close(); } catch (_) {}
+    });
+  }
+
   // Listen for background script messages
   chrome.runtime.onMessage.addListener(handleMessage);
+}
+
+// Open popup UI in a detached regular window
+async function openDetachedWindow() {
+  try {
+    const url = chrome.runtime.getURL('popup/popup.html');
+    await chrome.windows.create({ url, type: 'popup', width: 480, height: 720, focused: true });
+  } catch (e) {
+    console.error('Failed to open detached window:', e);
+    addLog(`別ウィンドウを開けませんでした: ${e.message || String(e)}`, 'error');
+  }
+}
+/**
+ * Export diagnostic logs via background service worker
+ */
+async function exportLogsFromBackground() {
+  try {
+    const res = await chrome.runtime.sendMessage({
+      type: 'EXPORT_LOGS',
+      format: 'ndjson',
+      fileName: '',
+      max: 2000,
+    });
+    if (!res?.success) throw new Error(res?.error || 'unknown');
+    addLog(`ログを保存しました (${res.count}件)`);
+  } catch (e) {
+    console.error('Export logs failed:', e);
+    addLog(`ログ保存に失敗: ${e.message || String(e)}`, 'error');
+  }
 }
 
 /**

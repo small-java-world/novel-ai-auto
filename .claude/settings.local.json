@@ -41,7 +41,13 @@
       "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/utils/multi-character-sequence.red.test.ts)",
       "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/utils/multi-character-sequence.red.test.ts --reporter=verbose)",
       "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/utils/multi-character-sequence.green.test.ts --reporter=verbose)",
-      "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/utils/multi-character-sequence.green.test.ts)"
+      "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/utils/multi-character-sequence.green.test.ts)",
+      "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/utils/prompt-parameter-applicator.*test.ts --reporter=verbose)",
+      "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/utils/dom-selector-strategy.test.ts --reporter=verbose)",
+      "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/utils/download-button-finder.test.ts --reporter=verbose)",
+      "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/utils/download-button-finder.test.ts)",
+      "WebSearch",
+      "WebFetch(domain:greasyfork.org)"
     ],
     "deny": [],
     "ask": []

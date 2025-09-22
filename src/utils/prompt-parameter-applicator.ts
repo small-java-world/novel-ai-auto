@@ -1,6 +1,46 @@
 import { GenerationParameters, PromptData } from '../types';
 
 /**
+ * ProseMirrorエディタにテキストを設定する関数
+ * noveldata.mdの情報に基づく実装
+ */
+function setProseMirrorText(editor: Element, text: string): boolean {
+  if (!editor) return false;
+
+  try {
+    // ProseMirrorエディタにフォーカスを当てる
+    if (editor instanceof HTMLElement) {
+      editor.focus();
+    }
+
+    // 全選択→入力に近い操作
+    const sel = window.getSelection();
+    if (sel) {
+      const range = document.createRange();
+      range.selectNodeContents(editor);
+      sel.removeAllRanges();
+      sel.addRange(range);
+
+      // execCommandを使ってテキストを挿入
+      document.execCommand('insertText', false, text);
+
+      // inputイベントを発火
+      editor.dispatchEvent(new InputEvent('input', { bubbles: true }));
+    }
+
+    // フォーカスを外す
+    if (editor instanceof HTMLElement) {
+      editor.blur();
+    }
+
+    return true;
+  } catch (error) {
+    console.error('ProseMirror text setting failed:', error);
+    return false;
+  }
+}
+
+/**
  * 【機能概要】: プロンプト/パラメータ適用処理の結果を表すインターフェース
  * 【実装方針】: テストケースで期待される戻り値の構造を定義
  * 【テスト対応】: 全7つのテストケースで使用される共通の戻り値型
@@ -38,8 +78,21 @@ export function applyPromptToDOM(prompt: string): ApplicationResult {
   }
 
   // 【DOM要素検索】: プロンプト入力欄の検索を試行 🟡
-  // 【最小実装】: テスト環境でのDOM要素の存在確認
-  const promptInput = document.querySelector('textarea#prompt-input') as HTMLTextAreaElement;
+  // 【最小実装】: ProseMirrorエディタを優先して検索
+  let promptInput: HTMLElement | null = null;
+
+  // 新しいセレクター（ProseMirror対応）を順番に試行
+  const promptSelectors = [
+    '.prompt-input-box-prompt .ProseMirror',
+    '.prompt-input-box-base-prompt .ProseMirror',
+    '.prompt-input-box-prompt',
+    'textarea#prompt-input'
+  ];
+
+  for (const selector of promptSelectors) {
+    promptInput = document.querySelector(selector) as HTMLElement;
+    if (promptInput) break;
+  }
 
   // 【要素未検出エラー】: DOM要素が見つからない場合のエラー処理 🟢
   if (!promptInput) {
@@ -51,12 +104,14 @@ export function applyPromptToDOM(prompt: string): ApplicationResult {
   }
 
   // 【読み取り専用チェック】: readonly属性の確認 🟡
-  if (promptInput.readOnly) {
-    return {
-      success: false,
-      warnings: [],
-      error: '入力欄が読み取り専用です',
-    };
+  if (promptInput instanceof HTMLInputElement || promptInput instanceof HTMLTextAreaElement) {
+    if (promptInput.readOnly) {
+      return {
+        success: false,
+        warnings: [],
+        error: '入力欄が読み取り専用です',
+      };
+    }
   }
 
   // 【文字数上限チェック】: EDGE-101要件の文字数制限対応 🟡
@@ -72,13 +127,143 @@ export function applyPromptToDOM(prompt: string): ApplicationResult {
   }
 
   // 【DOM要素更新】: プロンプト入力欄への値設定 🟡
-  // 【最小実装】: 直接的な値の設定のみ行う
-  promptInput.value = appliedPrompt;
+  // 【ProseMirror対応】: エディタタイプに応じた値設定
+  let setSuccess = false;
+
+  if (promptInput.classList.contains('ProseMirror')) {
+    // ProseMirrorエディタの場合
+    setSuccess = setProseMirrorText(promptInput, appliedPrompt);
+  } else if (promptInput instanceof HTMLTextAreaElement || promptInput instanceof HTMLInputElement) {
+    // 通常のtextarea/inputの場合
+    promptInput.value = appliedPrompt;
+    setSuccess = true;
+  }
+
+  if (!setSuccess) {
+    return {
+      success: false,
+      warnings,
+      error: 'プロンプトの設定に失敗しました',
+    };
+  }
 
   // 【成功結果返却】: テストで期待される成功時の戻り値 🟢
   return {
     success: true,
     appliedPrompt,
+    warnings,
+  };
+}
+
+/**
+ * 【機能概要】: ネガティブプロンプトをDOM要素に適用する
+ * 【実装方針】: ProseMirrorエディタとtextareaの両方に対応
+ * @param negativePrompt - 適用するネガティブプロンプト文字列
+ * @returns ApplicationResult - 適用結果と状態
+ */
+export function applyNegativePromptToDOM(negativePrompt: string): ApplicationResult {
+  if (typeof negativePrompt !== 'string') {
+    return {
+      success: false,
+      warnings: [],
+      error: 'ネガティブプロンプトは文字列である必要があります',
+    };
+  }
+
+  // ネガティブプロンプト入力欄の検索
+  let negativeInput: HTMLElement | null = null;
+  const negativeSelectors = [
+    '.prompt-input-box-undesired-content .ProseMirror',
+    '.prompt-input-box-negative-prompt .ProseMirror',
+    '.prompt-input-box-undesired-content',
+    '.prompt-input-box-negative-prompt'
+  ];
+
+  for (const selector of negativeSelectors) {
+    negativeInput = document.querySelector(selector) as HTMLElement;
+    if (negativeInput) break;
+  }
+
+  if (!negativeInput) {
+    return {
+      success: false,
+      warnings: [],
+      error: 'ネガティブプロンプト入力欄が見つかりません',
+    };
+  }
+
+  // 値設定
+  let setSuccess = false;
+  if (negativeInput.classList.contains('ProseMirror')) {
+    setSuccess = setProseMirrorText(negativeInput, negativePrompt);
+  } else if (negativeInput instanceof HTMLTextAreaElement || negativeInput instanceof HTMLInputElement) {
+    negativeInput.value = negativePrompt;
+    setSuccess = true;
+  }
+
+  if (!setSuccess) {
+    return {
+      success: false,
+      warnings: [],
+      error: 'ネガティブプロンプトの設定に失敗しました',
+    };
+  }
+
+  return {
+    success: true,
+    warnings: [],
+  };
+}
+
+/**
+ * 【機能概要】: キャラクタープロンプトをDOM要素に適用する
+ * 【実装方針】: 複数のキャラクタープロンプト欄に対応
+ * @param characterPrompts - 適用するキャラクタープロンプト配列
+ * @returns ApplicationResult - 適用結果と状態
+ */
+export function applyCharacterPromptsToDOM(characterPrompts: string[]): ApplicationResult {
+  if (!Array.isArray(characterPrompts)) {
+    return {
+      success: false,
+      warnings: [],
+      error: 'キャラクタープロンプトは配列である必要があります',
+    };
+  }
+
+  // キャラクタープロンプト入力欄の検索
+  const characterEditors = Array.from(document.querySelectorAll('[class*="character-prompt-input"] .ProseMirror')) as HTMLElement[];
+
+  if (characterEditors.length === 0) {
+    return {
+      success: false,
+      warnings: [],
+      error: 'キャラクタープロンプト入力欄が見つかりません',
+    };
+  }
+
+  const warnings: string[] = [];
+  let successCount = 0;
+
+  for (let i = 0; i < Math.min(characterPrompts.length, characterEditors.length); i++) {
+    const prompt = characterPrompts[i];
+    const editor = characterEditors[i];
+
+    if (typeof prompt === 'string' && prompt.trim()) {
+      const success = setProseMirrorText(editor, prompt);
+      if (success) {
+        successCount++;
+      } else {
+        warnings.push(`キャラクタープロンプト${i + 1}の設定に失敗しました`);
+      }
+    }
+  }
+
+  if (characterPrompts.length > characterEditors.length) {
+    warnings.push(`利用可能なキャラクタープロンプト欄数（${characterEditors.length}）を超えています`);
+  }
+
+  return {
+    success: successCount > 0,
     warnings,
   };
 }
