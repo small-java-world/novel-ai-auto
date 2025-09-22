@@ -10,6 +10,7 @@ const elements = {
   imageCount: document.getElementById('imageCount'),
   seed: document.getElementById('seed'),
   filenameTemplate: document.getElementById('filenameTemplate'),
+  stickyPopup: document.getElementById('stickyPopup'),
   progressSection: document.getElementById('progressSection'),
   progressFill: document.getElementById('progressFill'),
   progressText: document.getElementById('progressText'),
@@ -62,6 +63,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadSelectorProfiles();
   setupEventListeners();
   renderVersion();
+  applyStickyPopupPreference();
   updateUI();
   addLog('ポップアップが初期化されました');
 });
@@ -262,15 +264,65 @@ function setupEventListeners() {
     });
   }
 
+  if (elements.stickyPopup) {
+    elements.stickyPopup.addEventListener('change', handleStickyPopupChange);
+  }
+
   // Listen for background script messages
   chrome.runtime.onMessage.addListener(handleMessage);
+}
+
+function handleStickyPopupChange() {
+  const enabled = !!elements.stickyPopup?.checked;
+  chrome.storage.local.set({ stickyPopup: enabled }).catch(() => {});
+  if (enabled) {
+    openDetachedWindow();
+  }
+}
+
+async function applyStickyPopupPreference() {
+  try {
+    const { stickyPopup } = await chrome.storage.local.get('stickyPopup');
+    if (elements.stickyPopup) elements.stickyPopup.checked = !!stickyPopup;
+    if (stickyPopup) {
+      // すでに別ウィンドウで開いている場合もあるので、二重オープン防止のため軽い遅延
+      setTimeout(() => {
+        openDetachedWindow();
+      }, 50);
+    }
+  } catch (_) {}
 }
 
 // Open popup UI in a detached regular window
 async function openDetachedWindow() {
   try {
-    const url = chrome.runtime.getURL('popup/popup.html');
-    await chrome.windows.create({ url, type: 'popup', width: 480, height: 720, focused: true });
+    // 既存ウィンドウ or タブがあればフォーカス
+    const { stickyPopupTabId } = await chrome.storage.local.get('stickyPopupTabId');
+    const existingTabId = typeof stickyPopupTabId === 'number' ? stickyPopupTabId : null;
+    if (existingTabId !== null) {
+      try {
+        await chrome.tabs.update(existingTabId, { active: true });
+        const t = await chrome.tabs.get(existingTabId);
+        if (t?.windowId) await chrome.windows.update(t.windowId, { focused: true });
+        return;
+      } catch (_) {
+        try { await chrome.storage.local.remove('stickyPopupTabId'); } catch {}
+      }
+    }
+
+    // 別タブで開く（拡張内URL）
+    const url = chrome.runtime.getURL('popup/popup.html?detached=1');
+    const tab = await chrome.tabs.create({ url, active: true });
+    if (tab && typeof tab.id === 'number') {
+      try { await chrome.storage.local.set({ stickyPopupTabId: tab.id }); } catch {}
+      const closeListener = async (tabId, removeInfo) => {
+        if (tabId === tab.id) {
+          try { await chrome.storage.local.remove('stickyPopupTabId'); } catch {}
+          try { chrome.tabs.onRemoved.removeListener(closeListener); } catch {}
+        }
+      };
+      try { chrome.tabs.onRemoved.addListener(closeListener); } catch {}
+    }
   } catch (e) {
     console.error('Failed to open detached window:', e);
     addLog(`別ウィンドウを開けませんでした: ${e.message || String(e)}`, 'error');

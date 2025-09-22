@@ -194,6 +194,13 @@
                            aria-describedby="filename-help" aria-required="false">
                     <div id="filename-help" class="sr-only">保存ファイル名のテンプレート。{date}, {prompt}, {seed}, {idx}が利用可能</div>
                 </div>
+
+				<!-- UI 固定（ポップアップが外部クリックで閉じないように別ウィンドウで開く） -->
+				<div class="setting-group">
+					<label class="label" for="stickyPopup">
+						<input type="checkbox" id="stickyPopup"> UIを固定（別タブで開く）
+					</label>
+				</div>
             </section>
 
             <!-- Progress Display -->

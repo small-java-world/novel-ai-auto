@@ -19,7 +19,6 @@ import {
 } from './utils/multi-character-sequence';
 import {
   findPerImageDownloadButtons,
-  findDownloadZipButton,
   findDownloadForImage,
   clickDownloadButton,
   waitForDownloadButtons,
@@ -674,16 +673,16 @@ async function applyNegativePrompt(value: string | undefined): Promise<void> {
 
       diag('negative-candidates', { count: candidates.length });
       for (let i = 0; i < candidates.length; i++) {
-        const candidate = candidates[i];
-        const beforeText = readElementValue(candidate).slice(0, 100);
+        const candidate = candidates[i] as HTMLElement;
+        const beforeText = readElementValue(candidate as HTMLElement).slice(0, 100);
         console.log('DIAG: negative-strategy-2-candidate', {
           tag: candidate.tagName,
           dataNegative: candidate.getAttribute('data-negative'),
           testId: candidate.getAttribute('data-testid'),
           before: beforeText,
         });
-        setInputValue(candidate, text);
-        const afterText = readElementValue(candidate);
+        setInputValue(candidate as HTMLElement, text);
+        const afterText = readElementValue(candidate as HTMLElement);
         diag('negative-after-set', { strategy: 2, length: afterText.length, sample: afterText.slice(0, 120) });
         return true;
       }
@@ -1370,7 +1369,7 @@ async function clickPrimaryDownloadButton(): Promise<boolean> {
       return { score, reasons };
     }
 
-    const annotated = candidates.map((el) => {
+    let annotated = candidates.map((el) => {
       const { score, reasons } = scoreCandidate(el);
       const br = el.getBoundingClientRect();
       return {
@@ -1403,6 +1402,54 @@ async function clickPrimaryDownloadButton(): Promise<boolean> {
       });
     } catch {}
 
+    // ヒントベース候補（aria/title/img/src/use=save|download）: 候補0件時の救済
+    if (annotated.length === 0) {
+      try {
+        // ホバーで制御表示
+        if (targetImg) {
+          const opts = { bubbles: true, cancelable: true, composed: true } as any;
+          targetImg.dispatchEvent(new MouseEvent('mouseover', opts));
+          targetImg.dispatchEvent(new MouseEvent('mousemove', { ...opts, clientX: targetImg.getBoundingClientRect().right - 4, clientY: targetImg.getBoundingClientRect().top + 4 }));
+          await new Promise((r) => setTimeout(r, 250));
+        }
+      } catch {}
+
+      const hintScope: Element = overlayOr(scopeForList);
+      const hintSel = [
+        '[title*="save" i]','[aria-label*="save" i]','[data-testid*="save" i]',
+        '[title*="download" i]','[aria-label*="download" i]','[data-testid*="download" i]',
+        'img[src*="save" i]','img[src*="download" i]','svg[aria-label*="save" i]','svg[aria-label*="download" i]','use[href*="save" i]','use[href*="download" i]'
+      ].join(',');
+      const hintNodes = Array.from(hintScope.querySelectorAll(hintSel)) as HTMLElement[];
+      const hintButtons: HTMLElement[] = [];
+      for (const node of hintNodes) {
+        const clickable = (node.closest('button, [role="button"], a') as HTMLElement) || node;
+        if (clickable && !isInBlockedContext(clickable)) hintButtons.push(clickable);
+      }
+      const dedup = Array.from(new Set(hintButtons));
+      annotated = dedup.map((el) => {
+        const { score, reasons } = scoreCandidate(el);
+        const br = el.getBoundingClientRect();
+        return {
+          el,
+          score,
+          reasons: ['hint', ...reasons],
+          tag: el.tagName,
+          classes: (el.className || '').toString(),
+          ariaLabel: el.getAttribute('aria-label') || '',
+          title: el.getAttribute('title') || '',
+          text: (el.textContent || '').slice(0, 40) || '',
+          rect: { w: Math.round(br.width), h: Math.round(br.height) },
+        };
+      }).sort((a, b) => b.score - a.score);
+      try { diag('dl-hint-candidates', { total: annotated.length, top: annotated.slice(0, 5).map(a => ({ score: Number(a.score.toFixed(2)), reasons: a.reasons, tag: a.tag, classes: a.classes })) }); } catch {}
+    }
+
+    function overlayOr(base: Element): Element {
+      const ov = document.querySelector('[role="dialog"], .ReactModal__Content, .Dialog') as HTMLElement | null;
+      return ov || base;
+    }
+
     if (!button && annotated.length > 0 && annotated[0].score > -50) {
       button = annotated[0].el;
       try { diag('dl-selected', { strategy: 'scored-near-image', score: annotated[0].score, classes: annotated[0].classes }); } catch {}
@@ -1429,13 +1476,21 @@ async function clickPrimaryDownloadButton(): Promise<boolean> {
       // オーバーレイを開いてから再検索（画像ビューア内の保存ボタン）
       try {
         await clickElementRobustly(targetImg);
-        await new Promise((r) => setTimeout(r, 200));
+        await new Promise((r) => setTimeout(r, 250));
         const overlay = document.querySelector('[role="dialog"], .ReactModal__Content, .Dialog') as HTMLElement | null;
         if (overlay) {
-          const inOverlay = findPerImageDownloadButtons(overlay);
-          if (inOverlay && inOverlay.length > 0) {
-            button = inOverlay[0];
-            try { diag('dl-selected', { strategy: 'overlay', classes: (button as HTMLElement).className || '' }); } catch {}
+          // オーバーレイ内の save/download 明示ボタン優先
+          const explicit = overlay.querySelector('button[aria-label*="save" i], button[title*="save" i], [data-testid*="save" i], button[aria-label*="download" i], button[title*="download" i]') as HTMLElement | null;
+          if (explicit) {
+            button = explicit;
+            try { diag('dl-selected', { strategy: 'overlay-explicit', classes: (button as HTMLElement).className || '' }); } catch {}
+          }
+          if (!button) {
+            const inOverlay = findPerImageDownloadButtons(overlay);
+            if (inOverlay && inOverlay.length > 0) {
+              button = inOverlay[0];
+              try { diag('dl-selected', { strategy: 'overlay', classes: (button as HTMLElement).className || '' }); } catch {}
+            }
           }
         }
       } catch {}
@@ -1456,6 +1511,27 @@ async function clickPrimaryDownloadButton(): Promise<boolean> {
       }
     }
     diag('download-button-not-found-simple');
+
+    // 最終フォールバック: 表示中の画像の data/blob を直接ダウンロード
+    try {
+      if (targetImg && typeof targetImg.src === 'string' && targetImg.src.length > 0) {
+        const href = await resolveDownloadHrefFromImage(targetImg);
+        if (href) {
+          const a = document.createElement('a');
+          a.href = href;
+          a.download = `novelai_${Date.now()}.png`;
+          a.rel = 'noopener';
+          a.target = '_blank';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => { try { a.remove(); } catch {} }, 0);
+          diag('dl-fallback-anchor', { kind: href.startsWith('data:') ? 'data' : href.startsWith('blob:') ? 'blob' : 'http', hrefSample: href.slice(0, 60) });
+          return true;
+        }
+      }
+    } catch (e) {
+      diag('dl-fallback-error', { error: (e as any)?.message || String(e) });
+    }
     return false;
   } catch (e) {
     diag('download-button-error-simple', { error: (e as any)?.message || String(e) });
@@ -1463,8 +1539,28 @@ async function clickPrimaryDownloadButton(): Promise<boolean> {
   }
 }
 
+async function resolveDownloadHrefFromImage(img: HTMLImageElement): Promise<string | null> {
+  try {
+    const src = img.src || '';
+    if (src.startsWith('data:')) return src;
+    if (src.startsWith('blob:')) {
+      const r = await fetch(src);
+      const b = await r.blob();
+      return await new Promise<string>((resolve) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(String(fr.result || ''));
+        fr.onerror = () => resolve('');
+        fr.readAsDataURL(b);
+      });
+    }
+    return src || null;
+  } catch {
+    return null;
+  }
+}
+
 // ===== 生成完了待機 =====
-async function waitForGenerationCompletion(timeoutMs: number): Promise<void> {
+async function _waitForGenerationCompletion(timeoutMs: number): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   let lastImageCount = 0;
   let lastNow: string | null = null;
@@ -1528,10 +1624,10 @@ async function waitForGenerationCompletion(timeoutMs: number): Promise<void> {
 }
 
 // ===== 補助: クリック強化・確認ダイアログ対応・診断 =====
-let NETWORK_PROBES_INSTALLED = false;
+let _NETWORK_PROBES_INSTALLED = false;
 async function installNetworkProbes(): Promise<void> {
   // ページCSPのため、ネットワークプローブ注入は無効化（webRequest/ダウンロードAPIで代替）
-  NETWORK_PROBES_INSTALLED = true;
+  _NETWORK_PROBES_INSTALLED = true;
 }
 
 async function clickElementRobustly(el: HTMLElement): Promise<void> {
@@ -1601,7 +1697,7 @@ async function waitForCondition(predicate: () => boolean, timeoutMs: number): Pr
 }
 
 // ===== NovelAI 内蔵ダウンロードの優先クリック → URL取得 =====
-async function tryBuiltInDownload(timeoutMs: number): Promise<string | null> {
+async function _tryBuiltInDownload(timeoutMs: number): Promise<string | null> {
   const deadline = Date.now() + timeoutMs;
   try {
     diag('builtin-download-start-new-version', { timestamp: new Date().toISOString() });
@@ -1676,7 +1772,7 @@ async function tryBuiltInDownload(timeoutMs: number): Promise<string | null> {
     console.log('[ダウンロード] 追加検索結果:', additionalButtons.length);
 
     if (additionalButtons.length > 0) {
-      for (const button of Array.from(additionalButtons)) {
+      for (const button of Array.from(additionalButtons) as HTMLElement[]) {
         console.log('[ダウンロード] 追加検索ボタン:', {
           tag: button.tagName,
           ariaLabel: button.getAttribute('aria-label'),
@@ -1685,7 +1781,7 @@ async function tryBuiltInDownload(timeoutMs: number): Promise<string | null> {
         });
 
         try {
-          button.click();
+          (button as HTMLElement).click?.();
           console.log('[ダウンロード] 追加検索ボタンをクリック');
           await new Promise((r) => setTimeout(r, 500));
 
@@ -1840,7 +1936,7 @@ function logSelectorExploration(elementType: ElementType): void {
 }
 
 // ===== 背景経由の保存／サイト発火DL待機ユーティリティ =====
-function downloadViaBackground(url: string, filename: string): Promise<boolean> {
+function _downloadViaBackground(url: string, filename: string): Promise<boolean> {
   return new Promise((resolve) => {
     try {
       chrome.runtime.sendMessage({ type: 'DOWNLOAD_IMAGE', url, filename }, (res) => {

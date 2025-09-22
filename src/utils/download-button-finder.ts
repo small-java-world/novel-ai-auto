@@ -15,8 +15,20 @@ export function findPerImageDownloadButtons(root: Document | Element = document)
   const blockedCtx = '.osano, [class*="consent" i]';
   const container = (scope.closest(blockedCtx) ? null : scope) || scope;
 
+  // 直接候補
   const btns = Array.from(container.querySelectorAll('button, [role="button"], a, [data-testid]')) as HTMLElement[];
-  return btns.filter(b => {
+
+  // 子孫に save/download 系のヒントを持つ要素から親のクリック要素に昇格
+  const descendantHints = Array.from(container.querySelectorAll('[title*="save" i], [aria-label*="save" i], [title*="download" i], [aria-label*="download" i], [data-testid*="save" i], [data-testid*="download" i], img[src*="save" i], img[alt*="save" i], svg[aria-label*="save" i], use[href*="save" i]')) as HTMLElement[];
+  const wrappedFromHints: HTMLElement[] = [];
+  for (const el of descendantHints) {
+    const clickable = (el.closest('button, [role="button"], a') as HTMLElement) || el;
+    if (clickable) wrappedFromHints.push(clickable);
+  }
+
+  const pool = Array.from(new Set<HTMLElement>([...btns, ...wrappedFromHints]));
+
+  return pool.filter(b => {
     // 非表示/ゼロサイズは除外
     const r = b.getBoundingClientRect();
     if (r.width === 0 || r.height === 0) return false;
