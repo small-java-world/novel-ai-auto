@@ -43,6 +43,9 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 const loginDetectionChannel = createLoginDetectionChannel();
 
+// Track last tab that clicked a download button (for mapping downloads without tabId)
+let lastClickedTabId: number | null = null;
+
 // ===== In-memory log buffer with persistence =====
 const MAX_LOG_ENTRIES = 2000;
 let diagLogBuffer: any[] = [];
@@ -141,11 +144,18 @@ try {
         tabId: (item as any)?.tabId,
       };
       console.log('DIAG: dl-created', info);
+      try { addLog('DL_CREATED_RAW', info); } catch {}
       // 記録: 完了時に対象タブへ通知するためのマッピング
       try {
-        if (typeof (item as any)?.tabId === 'number') {
+        const explicitTabId = (item as any)?.tabId;
+        if (typeof explicitTabId === 'number') {
           (globalThis as any).__dlTabMap = (globalThis as any).__dlTabMap || new Map<number, number>();
-          (globalThis as any).__dlTabMap.set(item.id, (item as any).tabId);
+          (globalThis as any).__dlTabMap.set(item.id, explicitTabId);
+        } else if (typeof lastClickedTabId === 'number') {
+          (globalThis as any).__dlTabMap = (globalThis as any).__dlTabMap || new Map<number, number>();
+          (globalThis as any).__dlTabMap.set(item.id, lastClickedTabId);
+          try { addLog('DL_CREATED_MAPPED', { id: item.id, mappedTabId: lastClickedTabId }); } catch {}
+          // one-shot mapping; keep lastClickedTabId for subsequent clicks
         }
       } catch {}
       const tabId = (item as any)?.tabId;
@@ -304,6 +314,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         try {
           console.log('DIAG: download-clicked', (message as any)?.info || null);
           addLog('DL_CLICKED', (message as any)?.info || null);
+          if (typeof sender?.tab?.id === 'number') {
+            lastClickedTabId = sender!.tab!.id!;
+            try { addLog('DL_CLICKED_TAB', { tabId: lastClickedTabId }); } catch {}
+          }
         } catch {}
         break;
       case 'NETWORK_ACTIVITY':
@@ -412,54 +426,95 @@ export async function handleStartGeneration(
 
     // Send generation command to content script with retry
     if (tab.id) {
-      // Normalize prompt to the shape expected by content script
-      // - If popup sent a composite { common, characters }, flatten to { positive, negative }
-      // - Otherwise pass through
       const composite = message?.prompt;
-      let normalizedPrompt: any = composite;
-      try {
-        if (composite && typeof composite === 'object' && Array.isArray(composite.characters)) {
-          const commonPos = (composite.common?.positive ?? '').toString();
-          const commonNeg = (composite.common?.negative ?? '').toString();
-          const firstChar = composite.characters[0] ?? {};
-          const charPos = (firstChar.positive ?? '').toString();
-          const charNeg = (firstChar.negative ?? '').toString();
-          normalizedPrompt = {
-            positive: [commonPos, charPos].filter((s) => s && s.trim().length > 0).join(', '),
-            negative: [commonNeg, charNeg].filter((s) => s && s.trim().length > 0).join(', '),
-          };
-        }
-      } catch {
-        normalizedPrompt = composite;
-      }
 
       // Merge settings.imageCount into parameters.count if not provided
-      const params = { ...(message.parameters || {}) } as any;
+      const baseParams = { ...(message.parameters || {}) } as any;
       if (
-        (params.count === undefined || params.count === null) &&
+        (baseParams.count === undefined || baseParams.count === null) &&
         typeof message?.settings?.imageCount === 'number'
       ) {
-        params.count = message.settings.imageCount;
+        baseParams.count = message.settings.imageCount;
       }
 
-      // Prepare the message for content script
-      const csMessage: any = {
-        type: 'APPLY_PROMPT',
-        prompt: normalizedPrompt,
-        parameters: params,
-      };
-
-      // Only forward selectorProfile if it's a valid, non-auto profile
-      if (
+      const selectorProfileFromPopup =
         typeof message.selectorProfile === 'string' &&
         message.selectorProfile.trim().length > 0 &&
         message.selectorProfile !== 'auto'
-      ) {
-        csMessage.selectorProfile = message.selectorProfile;
-      }
+          ? message.selectorProfile
+          : undefined;
 
-      // Retry sending message to content script with exponential backoff
-      await sendMessageWithRetry(tab.id, csMessage);
+      // If multi-character payload, run sequentially per character
+      if (composite && typeof composite === 'object' && Array.isArray(composite.characters)) {
+        addLog('START_PAYLOAD_SHAPE', { composite: true, characters: composite.characters.length });
+        addLog('MULTI_START', { characters: composite.characters.length });
+
+        const commonPos = (composite.common?.positive ?? '').toString();
+        const commonNeg = (composite.common?.negative ?? '').toString();
+
+        // If user requested only 1 image (count===1), run only the first character by default
+        const lastIndex = baseParams.count === 1 ? Math.min(1, composite.characters.length) : composite.characters.length;
+        for (let idx = 0; idx < lastIndex; idx++) {
+          const ch = composite.characters[idx] ?? {};
+          const charPos = (ch.positive ?? '').toString();
+          const charNeg = (ch.negative ?? '').toString();
+          const mergedPrompt = {
+            positive: [commonPos, charPos]
+              .filter((s) => s && s.trim().length > 0)
+              .join(', '),
+            negative: [commonNeg, charNeg]
+              .filter((s) => s && s.trim().length > 0)
+              .join(', '),
+          };
+
+          const csMessage: any = {
+            type: 'APPLY_PROMPT',
+            prompt: mergedPrompt,
+            parameters: baseParams,
+          };
+          // Prefer character-specific selector profile over popup default
+          const profile = (ch.selectorProfile as string | undefined) || selectorProfileFromPopup;
+          if (typeof profile === 'string' && profile.trim().length > 0) {
+            csMessage.selectorProfile = profile;
+          }
+          csMessage.charMeta = {
+            id: (ch.id as string) || `char-${idx + 1}`,
+            name: (ch.name as string) || `Character ${idx + 1}`,
+            index: idx,
+            total: lastIndex,
+          };
+
+          addLog('MULTI_CHAR_APPLY', {
+            index: idx,
+            name: ch.name || ch.id || `char-${idx + 1}`,
+            posLen: mergedPrompt.positive.length,
+            negLen: mergedPrompt.negative.length,
+          });
+
+          await sendMessageWithRetry(tab.id, csMessage);
+          const ok = await waitForSingleRunDone(300000); // up to 5 minutes per character
+          addLog(ok ? 'MULTI_CHAR_DONE' : 'MULTI_CHAR_ERROR', {
+            index: idx,
+            name: ch.name || ch.id || `char-${idx + 1}`,
+            ok,
+          });
+          if (!ok) break;
+        }
+        if (baseParams.count === 1 && composite.characters.length > 1) {
+          addLog('MULTI_CHAR_SKIPPED', { skipped: composite.characters.length - 1 });
+        }
+      } else {
+        addLog('START_PAYLOAD_SHAPE', { composite: false, characters: 0 });
+        // Single prompt path
+        const normalizedPrompt = composite;
+        const csMessage: any = {
+          type: 'APPLY_PROMPT',
+          prompt: normalizedPrompt,
+          parameters: baseParams,
+        };
+        if (selectorProfileFromPopup) csMessage.selectorProfile = selectorProfileFromPopup;
+        await sendMessageWithRetry(tab.id, csMessage);
+      }
     }
 
     _sendResponse({ success: true });
@@ -470,6 +525,42 @@ export async function handleStartGeneration(
       error: error instanceof Error ? error.message : String(error),
     });
   }
+}
+
+async function waitForSingleRunDone(timeoutMs: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      try { chrome.runtime.onMessage.removeListener(listener); } catch {}
+      resolve(false);
+    }, timeoutMs);
+
+    function finish(ok: boolean) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try { chrome.runtime.onMessage.removeListener(listener); } catch {}
+      resolve(ok);
+    }
+
+    function listener(msg: any) {
+      try {
+        if (!msg || typeof msg !== 'object') return;
+        if (msg.type === 'GENERATION_COMPLETE') {
+          finish(true);
+        } else if (msg.type === 'GENERATION_ERROR') {
+          finish(false);
+        }
+      } catch {}
+    }
+
+    try { chrome.runtime.onMessage.addListener(listener); } catch {
+      clearTimeout(timer);
+      resolve(false);
+    }
+  });
 }
 
 /**

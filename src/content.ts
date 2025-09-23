@@ -98,17 +98,20 @@ const FALLBACK_SELECTOR_CONFIG: Record<ElementType, SelectorConfig> = {
   'negative-input': {
     selectors: [
       '#negative-prompt-input',
-      'div[data-slate-editor] [contenteditable="true"][data-negative="true"]',
+      '.prompt-input-box-undesired-content .ProseMirror',
+      '.prompt-input-box-negative-prompt .ProseMirror',
+      '.prompt-input-box-undesired-content',
+      '.prompt-input-box-negative-prompt',
       '[data-testid="negative-prompt"] [contenteditable="true"]',
       '[data-testid="negative-prompt"] textarea',
-      '[data-testid="negative-prompt"]',
       '[role="textbox"][contenteditable="true"][data-negative="true"]',
       'div[contenteditable="true"][data-field="negative"]',
+      '#__next textarea[placeholder*="negative" i]',
       'textarea[aria-label*="negative" i]',
       'textarea[placeholder*="negative" i]',
       'textarea[name="negative"]',
       'textarea[id*="negative" i]',
-      '.prompt-negative textarea',
+      '.prompt-negative textarea'
     ],
     timeout: DEFAULT_SELECTOR_TIMEOUT,
   },
@@ -305,6 +308,8 @@ function normalizeSelectorOverrides(data: unknown): Partial<Record<ElementType, 
       selectedProfileName = defaultNames.find((n) => n in profiles) || Object.keys(profiles)[0];
     }
 
+    try { diag('selector-profile-selected', { profile: selectedProfileName }); } catch {}
+
     const selected = profiles[selectedProfileName] || {};
     const selectorsMap = (selected.selectors || {}) as Record<string, unknown>;
     return buildOverridesFromFlatMap(selectorsMap);
@@ -366,9 +371,13 @@ function applySelectorOverrides(overrides: Partial<Record<ElementType, SelectorC
       continue;
     }
 
+    // Merge override selectors with fallback selectors to avoid overly-narrow profiles breaking resolution
+    const fallbackSelectors = (FALLBACK_SELECTOR_CONFIG as any)?.[elementType]?.selectors ?? [];
+    const mergedSelectors = Array.from(new Set([...(config.selectors || []), ...fallbackSelectors]));
+
     SELECTOR_CONFIG_MAP[elementType] = {
       ...config,
-      selectors: [...config.selectors],
+      selectors: mergedSelectors,
     };
   }
 }
@@ -461,6 +470,8 @@ async function handleApplyPrompt(
     try {
       await installNetworkProbes();
     } catch {}
+    // Click toggle to enable editing if required by UI
+    try { await clickEnableButtonIfPresent(); } catch {}
     if (!checkLoginStatus()) {
       try {
         chrome.runtime.sendMessage({
@@ -501,10 +512,37 @@ async function handleApplyPrompt(
         ? (message as any).prompt.negative
         : undefined;
 
+    try {
+      diag('apply-payload', {
+        charMeta: (message as any)?.charMeta || null,
+        selectorProfile: (message as any)?.selectorProfile || null,
+        posLen: (positivePrompt || '').length,
+        negLen: (negativePrompt || '').toString().length,
+      });
+    } catch {}
+
     setInputValue(promptInput, positivePrompt);
     diag('positive-set', { length: positivePrompt?.length ?? 0 });
+    // Confirm current field and also log nearby caption-scoped values
+    try {
+      const anchors = findElementsIncludingText(['キャラクター1', 'キャラクター２', 'キャラクター2', 'キャラクター']);
+      if (anchors.length > 0) {
+        const near = readNearbyPromptFields(anchors[0]);
+        diag('confirm-readback-near-caption', { caption: (anchors[0].textContent || '').trim().slice(0, 40), positiveLen: (near.positive || '').length, negativeLen: (near.negative || '').length });
+      } else {
+        const near = readNearbyPromptFields(promptInput);
+        diag('confirm-readback-generic', { positiveLen: (near.positive || '').length, negativeLen: (near.negative || '').length });
+      }
+    } catch {}
     await applyNegativePrompt(negativePrompt);
     diag('negative-set', { length: negativePrompt?.length ?? 0 });
+    // After negative apply, capture readback again for verification
+    try {
+      const anchors = findElementsIncludingText(['キャラクター1', 'キャラクター２', 'キャラクター2', 'キャラクター']);
+      const baseEl = anchors[0] || promptInput;
+      const near = readNearbyPromptFields(baseEl as HTMLElement);
+      diag('confirm-readback-after-negative', { positiveLen: (near.positive || '').length, negativeLen: (near.negative || '').length });
+    } catch {}
 
     const currentValue =
       (promptInput as any).value ?? (promptInput as HTMLElement).textContent ?? '';
@@ -520,6 +558,7 @@ async function handleApplyPrompt(
       typeof message.parameters?.count === 'number' && Number.isFinite(message.parameters.count)
         ? Math.max(1, Math.floor(message.parameters.count))
         : 1;
+    diag('run-parameters', { requestedCount: count });
 
     _sendResponse({ success: true });
 
@@ -530,6 +569,7 @@ async function handleApplyPrompt(
       let successfulCount = 0;
       let hadError = false;
       for (let i = 0; i < count; i++) {
+        diag('next-iteration-start', { index: i + 1, total: count });
         if (CANCEL_REQUESTED) {
           chrome.runtime.sendMessage({ type: 'GENERATION_ERROR', error: 'cancelled' });
           break;
@@ -558,8 +598,14 @@ async function handleApplyPrompt(
             await new Promise((r) => setTimeout(r, 500));
             await clickPrimaryDownloadButton();
           }
-          diag('site-download-wait-start', { timeoutMs: 120000 });
-          await waitForSiteDownloadComplete(120000);
+           // 生成を詰まらせないため、作成検知（onCreated）で次ループへ進む
+           diag('site-download-wait-start', { timeoutMs: 120000 });
+           const ev = await waitForSiteDownloadCreatedOrComplete(10000);
+           diag('site-download-event', { event: ev });
+           // 完了検知はバックグラウンドで待つ（成否はDIAGに記録）
+           void waitForSiteDownloadComplete(120000)
+             .then(() => diag('site-download-complete-async'))
+             .catch((e) => diag('site-download-error-async', { error: (e as any)?.message || String(e) }));
           successfulCount++;
           chrome.runtime.sendMessage({ type: 'GENERATION_PROGRESS', progress: { current: successfulCount, total: count } });
           continue;
@@ -642,12 +688,25 @@ async function applyNegativePrompt(value: string | undefined): Promise<void> {
     text: text.substring(0, 100),
   });
 
-  // セレクタ探索結果のダンプ（どのセレクタが当たるか）
   try { logSelectorExploration('negative-input'); } catch {}
 
-  // Try multiple strategies to find and set negative prompt
   const strategies = [
-    // Strategy 1: Use configured selector
+    // Strategy 0: If ProseMirror editor exists, insert via its root and check for label siblings
+    async () => {
+      try {
+        const editor = document.querySelector('.ProseMirror') as HTMLElement | null;
+        if (!editor) return false;
+        // Heuristic: find label containing Negative/Undesired near the editor
+        const label = editor.closest('[class*="prompt-input-box"], [class*="negative"], [aria-label], [role="group"]');
+        if (label) {
+          setInputValue(editor, text);
+          const after = readElementValue(editor);
+          diag('negative-after-set', { strategy: 0, length: after.length, sample: after.slice(0, 120) });
+          return true;
+        }
+      } catch {}
+      return false;
+    },
     async () => {
       const target = await resolveNegativePromptInput();
       if (target) {
@@ -664,11 +723,9 @@ async function applyNegativePrompt(value: string | undefined): Promise<void> {
       }
       return false;
     },
-
-    // Strategy 2: Search for any contenteditable with negative indicators
     async () => {
       const candidates = document.querySelectorAll(
-        'div[contenteditable="true"][data-negative="true"], [data-testid*="negative" i] [contenteditable="true"], [role="textbox"][contenteditable="true"][data-negative="true"], textarea[placeholder*="negative" i], textarea[aria-label*="negative" i]'
+        'div[contenteditable="true"][data-negative="true"], [data-testid*="negative" i] [contenteditable="true"], [role="textbox"][contenteditable="true"][data-negative="true"], textarea[placeholder*="negative" i], textarea[aria-label*="negative" i], .prompt-input-box-undesired-content .ProseMirror, .prompt-input-box-negative-prompt .ProseMirror'
       ) as NodeListOf<HTMLElement>;
 
       diag('negative-candidates', { count: candidates.length });
@@ -688,8 +745,6 @@ async function applyNegativePrompt(value: string | undefined): Promise<void> {
       }
       return false;
     },
-
-    // Strategy 3: Search for textarea with negative-related attributes
     async () => {
       const textareas = document.querySelectorAll('textarea') as NodeListOf<HTMLTextAreaElement>;
       for (let i = 0; i < textareas.length; i++) {
@@ -970,6 +1025,54 @@ function normalizeText(input: string | null | undefined): string {
   return toHalfWidth(txt).replace(/\s+/g, ' ').trim();
 }
 
+// Try to click an enable/toggle button before editing, if present
+async function clickEnableButtonIfPresent(): Promise<void> {
+  try {
+    const btn = document.querySelector('button.sc-4f026a5f-2.iaNkyw') as HTMLButtonElement | null;
+    if (!btn) return;
+    const label = (btn.textContent || '').trim();
+    // Only click when the button looks like a toggle and is not disabled
+    const disabled = btn.getAttribute('aria-disabled') === 'true' || (btn as any).disabled === true;
+    if (disabled) return;
+    await clickElementRobustly(btn);
+    diag('enable-toggle-clicked', { label: label.slice(0, 40) });
+    await new Promise((r) => setTimeout(r, 150));
+  } catch {}
+}
+
+function findElementsIncludingText(patterns: string[]): HTMLElement[] {
+  try {
+    const all = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6, label, div, span')) as HTMLElement[];
+    const out: HTMLElement[] = [];
+    const lowers = patterns.map((p) => normalizeText(p));
+    for (const el of all) {
+      const t = normalizeText(el.textContent || '');
+      if (lowers.some((p) => p.length > 0 && t.includes(p))) {
+        out.push(el);
+      }
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+function readNearbyPromptFields(anchor: HTMLElement): { positive?: string; negative?: string } {
+  const scope: HTMLElement = (anchor.closest('[class*="section"], [role="group"], [class*="card"], [class*="panel"]') as HTMLElement) || anchor.parentElement || document.body;
+  // Positive: prefer ProseMirror without [data-negative]
+  const posEl = (scope.querySelector('.ProseMirror:not([data-negative])') as HTMLElement)
+    || (scope.querySelector('textarea') as HTMLElement)
+    || (scope.querySelector('[contenteditable="true"]') as HTMLElement);
+  // Negative: prefer elements with negative hints
+  const negEl = (scope.querySelector('.prompt-input-box-undesired-content .ProseMirror, .prompt-input-box-negative-prompt .ProseMirror') as HTMLElement)
+    || (scope.querySelector('[data-negative="true"]') as HTMLElement)
+    || (scope.querySelector('textarea[aria-label*="negative" i], textarea[placeholder*="negative" i]') as HTMLElement);
+  return {
+    positive: posEl ? readElementValue(posEl) : undefined,
+    negative: negEl ? readElementValue(negEl) : undefined,
+  };
+}
+
 function setNumericInputValue(element: HTMLInputElement, value: number): void {
   let resolved = value;
   if (element.min !== '') {
@@ -1015,7 +1118,30 @@ async function applyParameters(parameters: GenerationParameters): Promise<void> 
     await setSeed(parameters.seed);
   }
   if (typeof parameters.steps === 'number' && Number.isFinite(parameters.steps)) {
-    await setSteps(parameters.steps);
+    try {
+      await setSteps(parameters.steps);
+    } catch (error) {
+      // 【エラーハンドリング】: stepsバリデーションエラーをキャッチしてUIに送信
+      const errorMessage = error instanceof Error ? error.message : 'Steps設定でエラーが発生しました';
+      
+      try {
+        chrome.runtime.sendMessage({
+          type: 'GENERATION_ERROR',
+          error: errorMessage,
+          step: 'parameters-application',
+          data: { 
+            parameter: 'steps',
+            value: parameters.steps,
+            maxAllowed: 27
+          },
+        });
+      } catch {
+        // メッセージ送信エラーは無視
+      }
+      
+      // 【例外再投げ】: エラーを上位に伝播
+      throw error;
+    }
   }
   if (typeof parameters.cfgScale === 'number' && Number.isFinite(parameters.cfgScale)) {
     await setCfgScale(parameters.cfgScale);
@@ -1038,6 +1164,32 @@ async function setSeed(seed: number): Promise<void> {
 }
 
 async function setSteps(steps: number): Promise<void> {
+  // 【バリデーション】: steps値が28以上の場合はエラーとして処理
+  if (steps >= 28) {
+    const errorMessage = `Steps値が制限を超えています: ${steps} (最大値: 27)`;
+    
+    // 【UIログ表示】: エラーメッセージをUIに送信
+    try {
+      chrome.runtime.sendMessage({
+        type: 'GENERATION_DIAGNOSTICS',
+        step: 'steps-validation',
+        data: { 
+          error: errorMessage,
+          steps: steps,
+          maxAllowed: 27
+        },
+      });
+    } catch {
+      // メッセージ送信エラーは無視
+    }
+    
+    // 【コンソールログ】: デバッグ用のログ出力
+    console.error('Steps validation failed:', errorMessage);
+    
+    // 【エラー例外】: バリデーション失敗で例外を投げる
+    throw new Error(errorMessage);
+  }
+  
   const element = await resolveElement('steps-input', { required: false });
   if (element instanceof HTMLInputElement) {
     setNumericInputValue(element, steps);
@@ -1523,6 +1675,8 @@ async function clickPrimaryDownloadButton(): Promise<boolean> {
           a.rel = 'noopener';
           a.target = '_blank';
           document.body.appendChild(a);
+            try { chrome.runtime.sendMessage({ type: 'DOWNLOAD_CLICKED', info: { strategy: 'fallback-anchor' } }); } catch {}
+            diag('download-clicked-fallback');
           a.click();
           setTimeout(() => { try { a.remove(); } catch {} }, 0);
           diag('dl-fallback-anchor', { kind: href.startsWith('data:') ? 'data' : href.startsWith('blob:') ? 'blob' : 'http', hrefSample: href.slice(0, 60) });
@@ -1968,6 +2122,44 @@ function waitForSiteDownloadComplete(timeoutMs: number): Promise<void> {
         if (msg.type === 'SITE_DOWNLOAD_COMPLETE') {
           diag('site-download-complete', { id: msg.downloadId });
           done();
+        } else if (msg.type === 'SITE_DOWNLOAD_ERROR') {
+          diag('site-download-error', { id: msg.downloadId, error: msg.error });
+          clearTimeout(timer);
+          try { chrome.runtime.onMessage.removeListener(listener); } catch {}
+          reject(new Error(String(msg.error || 'site-download-error')));
+        }
+      } catch {}
+    }
+
+    try { chrome.runtime.onMessage.addListener(listener); } catch {
+      clearTimeout(timer);
+      reject(new Error('listener-attach-failed'));
+    }
+  });
+}
+
+function waitForSiteDownloadCreatedOrComplete(timeoutMs: number): Promise<'created' | 'complete'> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      try { chrome.runtime.onMessage.removeListener(listener); } catch {}
+      reject(new Error('site-download-created-timeout'));
+    }, timeoutMs);
+
+    function done(result: 'created' | 'complete') {
+      clearTimeout(timer);
+      try { chrome.runtime.onMessage.removeListener(listener); } catch {}
+      resolve(result);
+    }
+
+    function listener(msg: any) {
+      try {
+        if (!msg || typeof msg !== 'object') return;
+        if (msg.type === 'SITE_DOWNLOAD_COMPLETE') {
+          diag('site-download-complete', { id: msg.downloadId });
+          done('complete');
+        } else if (msg.type === 'DOWNLOAD_DETECTED') {
+          diag('site-download-created', { id: msg?.item?.id, url: (msg?.item?.url || '').slice(0, 120) });
+          done('created');
         } else if (msg.type === 'SITE_DOWNLOAD_ERROR') {
           diag('site-download-error', { id: msg.downloadId, error: msg.error });
           clearTimeout(timer);

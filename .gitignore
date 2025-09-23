@@ -110,3 +110,7 @@ test-results.xml
 
 # Local development
 .local/
+log/*.json
+icons/*.json
+output/**
+chrome-profile/**

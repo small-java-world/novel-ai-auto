@@ -7,14 +7,15 @@
       "steps": 28,
       "cfgScale": 7,
       "sampler": "euler_a"
-    }
+    },
+    "imageCount": 3
   },
   {
     "name": "アニメ風キャラクター",
     "prompt": "anime girl, masterpiece, best quality, detailed face, beautiful eyes, flowing hair",
     "negative": "low quality, blurry, bad anatomy, deformed",
     "parameters": {
-      "steps": 32,
+      "steps": 27,
       "cfgScale": 8,
       "sampler": "euler_a"
     }
@@ -24,7 +25,7 @@
     "prompt": "cyberpunk city, neon lights, futuristic, night scene, detailed architecture, atmospheric",
     "negative": "low quality, blurry, pixelated",
     "parameters": {
-      "steps": 30,
+      "steps": 27,
       "cfgScale": 7.5,
       "sampler": "dpm_2m"
     }
@@ -44,7 +45,7 @@
     "prompt": "space scene, stars, galaxies, nebula, cosmic, beautiful colors, high detail",
     "negative": "low quality, blurry, earth elements",
     "parameters": {
-      "steps": 30,
+      "steps": 27,
       "cfgScale": 6.5,
       "sampler": "dpm_2m"
     }
@@ -64,7 +65,7 @@
     "prompt": "portrait, realistic, professional photography, detailed face, natural lighting, {best quality}, {masterpiece}",
     "negative": "anime, cartoon, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped, worst quality, low quality",
     "parameters": {
-      "steps": 30,
+      "steps": 27,
       "cfgScale": 6,
       "sampler": "euler_a"
     }
@@ -84,7 +85,7 @@
     "prompt": "cyborg, cyberpunk, futuristic, neon lights, mechanical parts, {best quality}, {masterpiece}",
     "negative": "medieval, fantasy, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped, worst quality, low quality",
     "parameters": {
-      "steps": 30,
+      "steps": 27,
       "cfgScale": 6,
       "sampler": "euler_a"
     }
@@ -100,11 +101,11 @@
     }
   },
   {
-    "name": "設定１",
+    "name": "設定１（テスト用28以上）",
     "prompt": "masterpiece, best quality, highres, detailed, cinematic lighting",
     "negative": "lowres, bad anatomy, blurry, extra digits, watermark, signature",
     "parameters": {
-      "steps": 28,
+      "steps": 35,
       "cfgScale": 7,
       "sampler": "euler_a"
     },

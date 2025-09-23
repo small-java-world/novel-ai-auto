@@ -500,6 +500,9 @@ function handleMessage(message, _sender, _sendResponse) {
     case 'GENERATION_ERROR':
       handleGenerationError(message);
       break;
+    case 'GENERATION_DIAGNOSTICS':
+      handleGenerationDiagnostics(message);
+      break;
     default:
       // Ignore messages without type (like START_GENERATION responses)
       // Also ignore APPLY_PROMPT messages (these are for content script)
@@ -550,6 +553,21 @@ function handleGenerationError(message) {
   currentJob = null;
   updateUI();
   addLog(`生成中にエラーが発生しました: ${message.error}`, 'error');
+}
+
+/**
+ * Handle generation diagnostics
+ */
+function handleGenerationDiagnostics(message) {
+  // 【Stepsバリデーションエラー】: ログに表示
+  if (message.step === 'steps-validation' && message.data?.error) {
+    const { error, steps, maxAllowed } = message.data;
+    addLog(`⚠️ ${error}`, 'error');
+    addLog(`💡 プロンプト設定でsteps値を${maxAllowed}以下に変更してください`, 'warning');
+  } else if (message.data?.error) {
+    // 【その他の診断エラー】: 一般的な診断メッセージを表示
+    addLog(`診断: ${message.data.error}`, 'warning');
+  }
 }
 
 /**
