@@ -452,8 +452,11 @@ export async function handleStartGeneration(
         const commonPos = (composite.common?.positive ?? '').toString();
         const commonNeg = (composite.common?.negative ?? '').toString();
 
-        // If user requested only 1 image (count===1), run only the first character by default
-        const lastIndex = baseParams.count === 1 ? Math.min(1, composite.characters.length) : composite.characters.length;
+        // Policy switch: even when count===1, process all characters once (can be made configurable via UI)
+        const processAllCharacters = true;
+        const lastIndex = processAllCharacters
+          ? composite.characters.length
+          : (baseParams.count === 1 ? Math.min(1, composite.characters.length) : composite.characters.length);
         for (let idx = 0; idx < lastIndex; idx++) {
           const ch = composite.characters[idx] ?? {};
           const charPos = (ch.positive ?? '').toString();

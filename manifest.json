@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "NovelAI Auto Generator Enhanced",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "NovelAI画像生成自動化拡張機能 - 新しいダウンロードシステム搭載版",
   "permissions": ["storage", "tabs", "downloads", "webRequest"],
   "host_permissions": ["https://novelai.net/*", "https://*.novelai.net/*"],

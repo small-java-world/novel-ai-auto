@@ -30,13 +30,13 @@ console.log('📦 新機能: 多層防御ダウンロードシステム搭載');
 console.log('🔧 Build Time:', new Date().toISOString());
 
 // ページタイトルも一時的に変更してバージョン確認
-document.title = `${document.title} [v1.0.1 Enhanced]`;
+document.title = `${document.title} [v1.0.2 Enhanced FIXED]`;
 
 diag('content-script-enhanced-version', {
-  version: '1.0.1',
+  version: '1.0.2-FIXED',
   name: 'Enhanced',
   timestamp: new Date().toISOString(),
-  features: ['multi-layer-download', 'enhanced-logging', 'cache-busted']
+  features: ['multi-layer-download', 'enhanced-logging', 'cache-busted', 'debug-logging-enabled']
 });
 
 // 複数回のバージョン確認
@@ -53,6 +53,40 @@ setTimeout(() => {
     sessionStorage.setItem('novelai-enhanced-shown', 'true');
   }
 }, 3000);
+
+// Multi-character internal event handler
+document.addEventListener('novelai-apply-prompt-internal', async (e: any) => {
+  try {
+    const { type, prompt, selectorProfile, parameters } = e.detail;
+
+    // Reuse existing handleApplyPrompt function
+    const mockMessage = {
+      type,
+      prompt,
+      selectorProfile,
+      parameters
+    };
+
+    const mockSendResponse = (response: any) => {
+      // Dispatch completion event
+      const completionEvent = new CustomEvent('novelai-prompt-applied', {
+        detail: response
+      });
+      document.dispatchEvent(completionEvent);
+    };
+
+    await handleApplyPrompt(mockMessage as any, mockSendResponse);
+  } catch (error) {
+    // Dispatch error event
+    const errorEvent = new CustomEvent('novelai-prompt-applied', {
+      detail: {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      }
+    });
+    document.dispatchEvent(errorEvent);
+  }
+});
 
 function diag(step: string, data?: any): void {
   try {
@@ -386,13 +420,167 @@ function isElementType(value: string): value is ElementType {
   return (ELEMENT_TYPES as string[]).includes(value);
 }
 
+/**
+ * --- HOTFIX: Robust main positive prompt writer ---
+ * 1) 正しいエディタ特定（XPath優先→CSS→ラベル近傍）
+ * 2) 可視化＆編集可能化（scroll/focus/ロック解除）
+ * 3) 多段フォールバックで確実に入力（insertText→paste→innerText/value）
+ * 4) 読み戻し検証（失敗時1回だけ再試行）
+ */
+
+async function resolveMainPositiveEditor(): Promise<HTMLElement> {
+  const tried: string[] = [];
+  const byXP = (xp: string) => {
+    tried.push(`XP:${xp}`);
+    const r = document.evaluate(xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+    return r.singleNodeValue as HTMLElement | null;
+  };
+  const xps = [
+    "//*[contains(normalize-space(),'プロンプト')]/following::textarea[1]",
+    "//*[contains(normalize-space(),'プロンプト')]/following::*[@contenteditable='true'][1]",
+    "//*[contains(normalize-space(),'Prompt')]/following::textarea[1]",
+    "//*[contains(normalize-space(),'Prompt')]/following::*[@contenteditable='true'][1]",
+    "//textarea[contains(@placeholder,'Positive') or contains(@aria-label,'Positive')]",
+    "//textarea[@rows and not(@readonly)]",
+  ];
+  for (const xp of xps) { const el = byXP(xp); if (el) return el; }
+  const css = [
+    '.prompt-input-box-prompt .ProseMirror',
+    '.prompt-input-box-prompt textarea',
+    '.prompt-input-box-base-prompt .ProseMirror',
+    '.prompt-input-box-base-prompt textarea',
+    '.ProseMirror[contenteditable="true"]',
+  ];
+  for (const sel of css) {
+    tried.push(`CSS:${sel}`);
+    const el = document.querySelector<HTMLElement>(sel);
+    if (el) return el;
+  }
+  const label = Array.from(document.querySelectorAll<HTMLElement>('label,span,div,p'))
+    .find(n => /^(プロンプト|Prompt)$/i.test(n.textContent?.trim() ?? ''));
+  if (label) {
+    const scope = label.closest('[class]') ?? label.parentElement ?? document.body;
+    const el = scope.querySelector<HTMLElement>('.ProseMirror, textarea');
+    if (el) return el;
+  }
+  console.warn('resolveMainPositiveEditor: not found', tried);
+  throw new Error('Positive prompt field not found');
+}
+
+function ensureEditableAndVisible(el: HTMLElement) {
+  el.scrollIntoView({ block: 'center' });
+  const st = getComputedStyle(el);
+  if (st.display === 'none' || st.visibility === 'hidden') {
+    throw new Error('Editor is hidden');
+  }
+  const row = el.closest('[class]') ?? el.parentElement ?? undefined;
+  const locked = (el as any).readOnly === true || (el as any).disabled === true;
+  if (locked && row) {
+    const sw = row.querySelector<HTMLElement>('[role="switch"],button[aria-pressed],button[aria-checked]');
+    sw?.click();
+  }
+  el.focus({ preventScroll: true });
+}
+
+function fire(el: HTMLElement, type: string, init?: any) {
+  const IE = (window as any).InputEvent;
+  el.dispatchEvent(IE ? new IE(type, { bubbles: true, ...init }) : new Event(type, { bubbles: true }));
+}
+
+async function writeToEditor(el: HTMLElement, text: string) {
+  const val = String(text ?? '');
+  if (el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement) {
+    const setter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(el), 'value')?.set;
+    if (setter) setter.call(el, val); else (el as any).value = val;
+    fire(el, 'input'); fire(el, 'change'); (el as HTMLElement).blur(); fire(el, 'focusout');
+    return;
+  }
+  const isCE = (el as any).isContentEditable || el.getAttribute('contenteditable') === 'true';
+  if (isCE) {
+    try {
+      const sel = window.getSelection(); sel?.removeAllRanges();
+      const r = document.createRange(); r.selectNodeContents(el); sel?.addRange(r);
+      document.execCommand('selectAll', false);
+      const ok = document.execCommand('insertText', false, val);
+      if (ok) { fire(el,'input'); fire(el,'change'); (el as HTMLElement).blur(); fire(el,'focusout'); return; }
+    } catch {}
+    try {
+      const dt = new DataTransfer(); dt.setData('text/plain', val);
+      el.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true }));
+      fire(el,'input'); fire(el,'change'); (el as HTMLElement).blur(); fire(el,'focusout'); return;
+    } catch {}
+    try { (el as HTMLElement).innerText = val; } catch { (el as HTMLElement).textContent = val; }
+    fire(el,'input'); fire(el,'change'); (el as HTMLElement).blur(); fire(el,'focusout'); return;
+  }
+  const sub = el.querySelector<HTMLElement>('.ProseMirror, textarea, input[type="text"]');
+  if (sub && sub !== el) return writeToEditor(sub, val);
+  throw new Error('Unsupported editor element');
+}
+
+function norm(s: string) { return String(s ?? '').replace(/\s+/g, ' ').trim(); }
+async function confirmApplied(el: HTMLElement, expect: string, tag = 'main-positive') {
+  const actual = (el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement) ? el.value : (el.textContent ?? '');
+  const ok = norm(actual).startsWith(norm(expect).slice(0, 24));
+  console.debug(`[confirm] ${tag}`, { ok, actual: (actual||'').slice(0,80) });
+  if (!ok) throw new Error(`${tag}: readback mismatch`);
+}
+
+export async function applyMainPositivePrompt(text: string) {
+  const el = await resolveMainPositiveEditor();
+  ensureEditableAndVisible(el);
+  try {
+    await writeToEditor(el, text);
+    await confirmApplied(el, text, 'main-positive');
+  } catch (e) {
+    console.warn('main-positive first attempt failed, retrying once...', e);
+    try {
+      const sel = window.getSelection(); sel?.removeAllRanges();
+      const r = document.createRange(); r.selectNodeContents(el); sel?.addRange(r);
+      document.execCommand('delete', false);
+    } catch {}
+    await writeToEditor(el, text);
+    await confirmApplied(el, text, 'main-positive-retry');
+  }
+}
+
 // Simple cancellation flag for in-flight generation
 let CANCEL_REQUESTED = false;
+
+// Last character name for better fallback filename
+let LAST_CHARACTER_NAME: string | null = null;
+let LAST_DOWNLOAD_TARGET_IMAGE: HTMLImageElement | null = null;
+let LAST_DOWNLOAD_USED_FALLBACK = false;
 
 // Multi-character sequence handler
 const multiCharacterHandler = new MultiCharacterSequenceHandler();
 
+// Expose handleApplyPrompt for multi-character handler
+(window as any).handleApplyPromptFunction = handleApplyPrompt;
+
+// Force cache bust with timestamp
+console.log('CONTENT_SCRIPT_LOADED_v1.0.2:', new Date().toISOString());
+
 chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) => {
+  console.log('DEBUG: Received message in content script v1.0.2:', {
+    type: message.type,
+    hasCharacters: 'characters' in message,
+    charactersCount: 'characters' in message ? (message as any).characters?.length : 'N/A',
+    timestamp: new Date().toISOString()
+  });
+
+  // Handle hotfix message first
+  if (message.type === 'APPLY_MAIN_POSITIVE_HOTFIX') {
+    (async () => {
+      try {
+        await applyMainPositivePrompt((message as any).text ?? '');
+        sendResponse({ ok: true });
+      } catch (e) {
+        sendResponse({ ok: false, error: String(e) });
+      }
+    })();
+    return true;
+  }
+
   switch (message.type) {
     case 'PING':
       // Respond to ping to indicate content script is ready
@@ -414,11 +602,15 @@ chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) =
       });
       break;
     case 'APPLY_MULTI_CHARACTER_PROMPT':
+      console.log('DEBUG: Handling APPLY_MULTI_CHARACTER_PROMPT', {
+        charactersCount: (message as MultiCharacterMessage).characters?.length,
+        hasCommon: !!(message as MultiCharacterMessage).common
+      });
       multiCharacterHandler
         .handleMultiCharacterSequence(message as MultiCharacterMessage, sendResponse)
         .catch((error) => {
           const errorMessage = error instanceof Error ? error.message : String(error);
-          console.error('Failed to handle multi-character sequence:', errorMessage);
+          console.error('CRITICAL: Failed to handle multi-character sequence:', errorMessage);
           try {
             sendResponse?.({ success: false, error: errorMessage });
           } catch (e) {
@@ -521,28 +713,92 @@ async function handleApplyPrompt(
       });
     } catch {}
 
-    setInputValue(promptInput, positivePrompt);
-    diag('positive-set', { length: positivePrompt?.length ?? 0 });
-    // Confirm current field and also log nearby caption-scoped values
+    // Capture last character name for fallback download naming
+    try {
+      const nm = (message as any)?.charMeta?.name;
+      LAST_CHARACTER_NAME = typeof nm === 'string' && nm.trim().length > 0 ? nm.trim() : null;
+    } catch {}
+
+    // Prompt sending disabled per user request.
+    // setInputValue(promptInput, positivePrompt);
+    // diag('positive-set', { length: positivePrompt?.length ?? 0 });
+    // try {
+    //   await confirmTextApplied(promptInput, positivePrompt || '', 'positive');
+    //   diag('positive-confirm-ok', { len: (positivePrompt || '').length });
+    // } catch (e) {
+    //   diag('positive-confirm-failed', { error: (e as any)?.message || String(e) });
+    // }
+    // Enhanced logging: Before setting negative prompt
     try {
       const anchors = findElementsIncludingText(['キャラクター1', 'キャラクター２', 'キャラクター2', 'キャラクター']);
       if (anchors.length > 0) {
         const near = readNearbyPromptFields(anchors[0]);
-        diag('confirm-readback-near-caption', { caption: (anchors[0].textContent || '').trim().slice(0, 40), positiveLen: (near.positive || '').length, negativeLen: (near.negative || '').length });
+        const negEl = findNegativePromptElement();
+        diag('confirm-readback-near-caption-before', {
+          caption: (anchors[0].textContent || '').trim().slice(0, 40),
+          positiveLen: (near.positive || '').length,
+          negativeLen: (near.negative || '').length,
+          negativeSample: (near.negative || '').slice(0, 50),
+          negativeElementFound: !!negEl,
+          negativeElementTag: negEl?.tagName,
+          negativeElementClass: negEl?.className
+        });
       } else {
         const near = readNearbyPromptFields(promptInput);
-        diag('confirm-readback-generic', { positiveLen: (near.positive || '').length, negativeLen: (near.negative || '').length });
+        const negEl = findNegativePromptElement();
+        diag('confirm-readback-generic-before', {
+          positiveLen: (near.positive || '').length,
+          negativeLen: (near.negative || '').length,
+          negativeSample: (near.negative || '').slice(0, 50),
+          negativeElementFound: !!negEl,
+          negativeElementTag: negEl?.tagName,
+          negativeElementClass: negEl?.className
+        });
       }
-    } catch {}
-    await applyNegativePrompt(negativePrompt);
-    diag('negative-set', { length: negativePrompt?.length ?? 0 });
-    // After negative apply, capture readback again for verification
+    } catch (error) {
+      diag('confirm-readback-before-error', { error: String(error) });
+    }
+
+    // await applyNegativePrompt(negativePrompt);
+    // diag('negative-set', { length: negativePrompt?.length ?? 0 });
+    try {
+      const negEl = findNegativePromptElement();
+      if (negEl && (negativePrompt ?? '').toString().length > 0) {
+        await confirmTextApplied(negEl, (negativePrompt ?? '').toString(), 'negative');
+        diag('negative-confirm-ok', { len: (negativePrompt ?? '').toString().length });
+      }
+    } catch (e) {
+      diag('negative-confirm-failed', { error: (e as any)?.message || String(e) });
+    }
+
+    // Enhanced logging: After setting negative prompt - detailed verification
     try {
       const anchors = findElementsIncludingText(['キャラクター1', 'キャラクター２', 'キャラクター2', 'キャラクター']);
       const baseEl = anchors[0] || promptInput;
       const near = readNearbyPromptFields(baseEl as HTMLElement);
-      diag('confirm-readback-after-negative', { positiveLen: (near.positive || '').length, negativeLen: (near.negative || '').length });
-    } catch {}
+      const negEl = findNegativePromptElement();
+
+      // Also get the expected text to compare
+      const expectedText = negativePrompt || '';
+      const actualText = near.negative || '';
+      const isMatch = actualText.includes(expectedText.slice(0, 20)) || expectedText.includes(actualText.slice(0, 20));
+
+      diag('confirm-readback-after-negative-detailed', {
+        positiveLen: (near.positive || '').length,
+        negativeLen: actualText.length,
+        negativeSample: actualText.slice(0, 100),
+        expectedLen: expectedText.length,
+        expectedSample: expectedText.slice(0, 100),
+        contentMatch: isMatch,
+        negativeElementFound: !!negEl,
+        negativeElementTag: negEl?.tagName,
+        negativeElementClass: negEl?.className,
+        elementId: negEl?.id || 'no-id',
+        elementDataAttrs: negEl ? Array.from(negEl.attributes).filter(attr => attr.name.startsWith('data-')).map(attr => `${attr.name}="${attr.value}"`).join(' ') : 'none'
+      });
+    } catch (error) {
+      diag('confirm-readback-after-error', { error: String(error) });
+    }
 
     const currentValue =
       (promptInput as any).value ?? (promptInput as HTMLElement).textContent ?? '';
@@ -592,23 +848,57 @@ async function handleApplyPrompt(
 
         // ダウンロードボタンを押下（URL抽出はしない）
         try {
-          const clicked = await clickPrimaryDownloadButton();
+          let clicked = await clickPrimaryDownloadButton();
           if (!clicked) {
             // 追加の短い待機後に再試行
             await new Promise((r) => setTimeout(r, 500));
-            await clickPrimaryDownloadButton();
+            clicked = await clickPrimaryDownloadButton();
           }
+
+          if (!clicked && !LAST_DOWNLOAD_USED_FALLBACK) {
+            diag('download-button-click-failed');
+            throw new Error('download-button-failed');
+          }
+
+          if (LAST_DOWNLOAD_USED_FALLBACK) {
+            successfulCount++;
+            chrome.runtime.sendMessage({
+              type: 'GENERATION_PROGRESS',
+              progress: { current: successfulCount, total: count },
+            });
+            continue;
+          }
+
            // 生成を詰まらせないため、作成検知（onCreated）で次ループへ進む
            diag('site-download-wait-start', { timeoutMs: 120000 });
-           const ev = await waitForSiteDownloadCreatedOrComplete(10000);
-           diag('site-download-event', { event: ev });
-           // 完了検知はバックグラウンドで待つ（成否はDIAGに記録）
-           void waitForSiteDownloadComplete(120000)
-             .then(() => diag('site-download-complete-async'))
-             .catch((e) => diag('site-download-error-async', { error: (e as any)?.message || String(e) }));
-          successfulCount++;
-          chrome.runtime.sendMessage({ type: 'GENERATION_PROGRESS', progress: { current: successfulCount, total: count } });
-          continue;
+          try {
+            const ev = await waitForSiteDownloadCreatedOrComplete(10000);
+            diag('site-download-event', { event: ev });
+            void waitForSiteDownloadComplete(120000)
+              .then(() => diag('site-download-complete-async'))
+              .catch((err) =>
+                diag('site-download-error-async', { error: (err as any)?.message || String(err) })
+              );
+            successfulCount++;
+            chrome.runtime.sendMessage({
+              type: 'GENERATION_PROGRESS',
+              progress: { current: successfulCount, total: count },
+            });
+            continue;
+          } catch (waitError) {
+            diag('site-download-timeout', { error: (waitError as any)?.message || String(waitError) });
+            const fallbackOk = await attemptFallbackDownloadFromLastTarget();
+            if (fallbackOk) {
+              diag('site-download-timeout-fallback-success');
+              successfulCount++;
+              chrome.runtime.sendMessage({
+                type: 'GENERATION_PROGRESS',
+                progress: { current: successfulCount, total: count },
+              });
+              continue;
+            }
+            throw waitError;
+          }
         } catch (e) {
           hadError = true;
           diag('site-download-timeout', { error: (e as any)?.message || String(e) });
@@ -665,20 +955,101 @@ function handleGetPageState(_sendResponse: (_response: unknown) => void): void {
 }
 
 async function resolvePromptInput(): Promise<HTMLElement> {
-  const element = await resolveElement('prompt-input');
-  if (element) {
-    return element;
+  const tried: string[] = [];
+
+  const byXPath = (xp: string): HTMLElement | null => {
+    tried.push(`XPATH:${xp}`);
+    const r = document.evaluate(xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+    return (r.singleNodeValue as HTMLElement) ?? null;
+  };
+
+  // 1) Selenium実績のXPath（日本語/英語UI両対応）を最優先
+  const xpaths = [
+    "//*[contains(normalize-space(),'プロンプト')]/following::textarea[1]",
+    "//*[contains(normalize-space(),'プロンプト')]/following::*[@contenteditable='true'][1]",
+    "//textarea[contains(@placeholder,'Positive') or contains(@aria-label,'Positive')]",
+    "//textarea[@rows and not(@readonly)]",
+    "//*[contains(normalize-space(),'Prompt')]/following::textarea[1]",
+    "//*[contains(normalize-space(),'Prompt')]/following::*[@contenteditable='true'][1]",
+  ];
+  for (const xp of xpaths) {
+    try {
+      const el = byXPath(xp);
+      if (el) return el;
+    } catch {}
   }
-  throw new Error('Prompt input field is not available');
+
+  // 2) 既存の設定プロファイルから解決（CSS）
+  try {
+    const element = await resolveElement('prompt-input');
+    if (element) return element;
+  } catch {}
+
+  // 3) 追加CSS候補
+  const cssCandidates = [
+    '.prompt-input-box-prompt .ProseMirror',
+    '.prompt-input-box-prompt textarea',
+    '.prompt-input-box-base-prompt textarea',
+    '.prompt-input-box-base-prompt .ProseMirror',
+    '.ProseMirror[contenteditable="true"]',
+  ];
+  for (const sel of cssCandidates) {
+    tried.push(`CSS:${sel}`);
+    try {
+      const el = document.querySelector<HTMLElement>(sel);
+      if (el) return el;
+    } catch {}
+  }
+
+  // 4) 近傍探索（ラベル→親→子孫）
+  try {
+    const label = Array.from(document.querySelectorAll<HTMLElement>('label, span, div, p'))
+      .find((n) => /^(プロンプト|Prompt)$/i.test((n.textContent || '').trim()));
+    if (label) {
+      const scope = label.closest('[class]') || label.parentElement || document.body;
+      const el = scope.querySelector<HTMLElement>('.ProseMirror, textarea');
+      if (el) return el;
+    }
+  } catch {}
+
+  // 5) 可視・最前面エディタ優先（ans2.md: pickTopVisibleEditor）
+  try {
+    const top = pickTopVisibleEditor();
+    if (top) return top;
+  } catch {}
+
+  console.warn('resolvePromptInput: not found. tried=', tried);
+  throw new Error('Positive prompt field not found');
 }
 
 async function resolveNegativePromptInput(): Promise<HTMLElement | null> {
-  const element = await resolveElement('negative-input', { required: false });
-  if (!element) {
-    return null;
+  const byXPath = (xp: string): HTMLElement | null => {
+    const r = document.evaluate(xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+    return (r.singleNodeValue as HTMLElement) ?? null;
+  };
+
+  // 1) XPath 優先（日本語/英語UI）
+  const negXPath = [
+    "//*[contains(normalize-space(),'除外したい要素')]/following::textarea[1]",
+    "//*[contains(normalize-space(),'Undesired') or contains(normalize-space(),'Negative')]/following::textarea[1]",
+    "//*[contains(normalize-space(),'除外したい要素')]/following::*[@contenteditable='true'][1]",
+    "//textarea[contains(@placeholder,'Negative') or contains(@aria-label,'Negative')]",
+    "(//textarea[@rows and not(@readonly)])[last()]",
+  ];
+  for (const xp of negXPath) {
+    try {
+      const el = byXPath(xp);
+      if (el) return el;
+    } catch {}
   }
 
-  return element;
+  // 2) 既存プロファイル
+  try {
+    const element = await resolveElement('negative-input', { required: false });
+    if (element) return element;
+  } catch {}
+
+  return null;
 }
 
 async function applyNegativePrompt(value: string | undefined): Promise<void> {
@@ -690,18 +1061,57 @@ async function applyNegativePrompt(value: string | undefined): Promise<void> {
 
   try { logSelectorExploration('negative-input'); } catch {}
 
+  // Prefer semantic target first
+  const targetPicked = findNegativeEditor();
+  if (targetPicked) {
+    try {
+      diag('negative-target-picked', {
+        path: _domPath(targetPicked),
+        id: targetPicked.id || 'no-id',
+        cls: targetPicked.className || '',
+      });
+    } catch {}
+    setInputValue(targetPicked as HTMLElement, text);
+    await confirmAppliedWithProof(targetPicked as HTMLElement, text, 'negative');
+    diag('negative-confirm-ok', { len: text.length });
+    return;
+  }
+
   const strategies = [
-    // Strategy 0: If ProseMirror editor exists, insert via its root and check for label siblings
+    // Strategy 0: Find multiple ProseMirror editors and use the correct one
     async () => {
       try {
-        const editor = document.querySelector('.ProseMirror') as HTMLElement | null;
-        if (!editor) return false;
-        // Heuristic: find label containing Negative/Undesired near the editor
-        const label = editor.closest('[class*="prompt-input-box"], [class*="negative"], [aria-label], [role="group"]');
-        if (label) {
-          setInputValue(editor, text);
-          const after = readElementValue(editor);
+        const editors = document.querySelectorAll('.ProseMirror') as NodeListOf<HTMLElement>;
+        diag('prosemirror-editors-found', { count: editors.length });
+        for (let i = 0; i < editors.length; i++) {
+          const editor = editors[i];
+          const container = editor.closest('div, section, fieldset');
+          const containerText = container ? container.textContent || '' : '';
+          if (containerText.includes('除外') || containerText.includes('Negative') ||
+              containerText.includes('Undesired') || containerText.includes('ネガティブ')) {
+            diag('negative-prosemirror-candidate', {
+              index: i,
+              containerText: containerText.slice(0, 100),
+              editorText: (editor.textContent || '').slice(0, 50)
+            });
+            editor.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' as any });
+            await new Promise(r => setTimeout(r, 50));
+            setInputValue(editor, text);
+            const after = readElementValue(editor);
+            diag('negative-after-set', { strategy: 0, length: after.length, sample: after.slice(0, 120) });
+            await confirmAppliedWithProof(editor, text, 'negative');
+            return true;
+          }
+        }
+        if (editors.length >= 2) {
+          const secondEditor = editors[1];
+          diag('trying-second-prosemirror', { count: editors.length });
+          secondEditor.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' as any });
+          await new Promise(r => setTimeout(r, 50));
+          setInputValue(secondEditor, text);
+          const after = readElementValue(secondEditor);
           diag('negative-after-set', { strategy: 0, length: after.length, sample: after.slice(0, 120) });
+          await confirmAppliedWithProof(secondEditor, text, 'negative');
           return true;
         }
       } catch {}
@@ -719,15 +1129,15 @@ async function applyNegativePrompt(value: string | undefined): Promise<void> {
         setInputValue(target as HTMLElement, text);
         const afterText = readElementValue(target as HTMLElement);
         diag('negative-after-set', { strategy: 1, length: afterText.length, sample: afterText.slice(0, 120) });
+        await confirmAppliedWithProof(target as HTMLElement, text, 'negative');
         return true;
       }
       return false;
     },
     async () => {
       const candidates = document.querySelectorAll(
-        'div[contenteditable="true"][data-negative="true"], [data-testid*="negative" i] [contenteditable="true"], [role="textbox"][contenteditable="true"][data-negative="true"], textarea[placeholder*="negative" i], textarea[aria-label*="negative" i], .prompt-input-box-undesired-content .ProseMirror, .prompt-input-box-negative-prompt .ProseMirror'
+        'div[contenteditable="true"][data-negative="true"], [data-testid*="negative" i] [contenteditable="true"], [role="textbox"][contenteditable="true"][data-negative="true"], textarea[placeholder*="negative" i], textarea[aria-label*="negative" i], .prompt-input-box-undesired-content .ProseMirror, .prompt-input-box-negative-prompt .ProseMirror, [class*="undesired"] .ProseMirror, [class*="negative"] .ProseMirror, [aria-label*="除外" i] .ProseMirror, [aria-label*="negative" i] .ProseMirror'
       ) as NodeListOf<HTMLElement>;
-
       diag('negative-candidates', { count: candidates.length });
       for (let i = 0; i < candidates.length; i++) {
         const candidate = candidates[i] as HTMLElement;
@@ -741,6 +1151,7 @@ async function applyNegativePrompt(value: string | undefined): Promise<void> {
         setInputValue(candidate as HTMLElement, text);
         const afterText = readElementValue(candidate as HTMLElement);
         diag('negative-after-set', { strategy: 2, length: afterText.length, sample: afterText.slice(0, 120) });
+        await confirmAppliedWithProof(candidate as HTMLElement, text, 'negative');
         return true;
       }
       return false;
@@ -753,7 +1164,6 @@ async function applyNegativePrompt(value: string | undefined): Promise<void> {
         const ariaLabel = (textarea.getAttribute('aria-label') || '').toLowerCase();
         const name = (textarea.name || '').toLowerCase();
         const id = (textarea.id || '').toLowerCase();
-
         if (
           placeholder.includes('negative') ||
           ariaLabel.includes('negative') ||
@@ -765,9 +1175,38 @@ async function applyNegativePrompt(value: string | undefined): Promise<void> {
           setInputValue(textarea, text);
           const afterText = readElementValue(textarea);
           diag('negative-after-set', { strategy: 3, length: afterText.length, sample: afterText.slice(0, 120) });
+          await confirmAppliedWithProof(textarea, text, 'negative');
           return true;
         }
       }
+      return false;
+    },
+    async () => {
+      try {
+        const editors = document.querySelectorAll('.ProseMirror') as NodeListOf<HTMLElement>;
+        diag('fallback-prosemirror-try', { count: editors.length });
+        for (let i = 1; i < editors.length; i++) {
+          const editor = editors[i];
+          const currentText = readElementValue(editor);
+          diag('fallback-prosemirror-attempt', {
+            index: i,
+            currentLength: currentText.length,
+            sample: currentText.slice(0, 50)
+          });
+          editor.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' as any });
+          await new Promise(r => setTimeout(r, 100));
+          setInputValue(editor, text);
+          await new Promise(r => setTimeout(r, 100));
+          const after = readElementValue(editor);
+          if (after.includes(text.slice(0, 20))) {
+            diag('negative-after-set', { strategy: 4, length: after.length, sample: after.slice(0, 120) });
+            await confirmAppliedWithProof(editor, text, 'negative');
+            return true;
+          } else {
+            diag('fallback-prosemirror-failed', { index: i, expected: text.slice(0, 20), actual: after.slice(0, 20) });
+          }
+        }
+      } catch {}
       return false;
     },
   ];
@@ -935,56 +1374,72 @@ function checkLoginStatus(): boolean {
 }
 
 function setInputValue(element: HTMLElement, value: string): void {
-  const normalised = typeof value === 'string' ? value : String(value ?? '');
+  const text = typeof value === 'string' ? value : String(value ?? '');
 
-  element.focus();
+  // 可視化＆フォーカス
+  try { element.scrollIntoView({ block: 'center' }); } catch {}
+  try { (element as HTMLElement).focus({ preventScroll: true } as any); } catch { try { element.focus(); } catch {} }
 
-  // Standard inputs/textareas
-  if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
-    element.value = normalised;
-    if (element instanceof HTMLTextAreaElement) {
-      element.textContent = normalised;
-    }
-    element.defaultValue = normalised;
-    element.setAttribute('value', normalised);
-    element.dispatchEvent(new Event('input', { bubbles: true }));
-    element.dispatchEvent(new Event('change', { bubbles: true }));
+  const fire = (type: string, init?: any) =>
+    element.dispatchEvent(new ((window as any).InputEvent || Event)(type, { bubbles: true, ...(init || {}) }));
+
+  // ネイティブ <textarea>/<input>
+  if (element instanceof HTMLTextAreaElement || element instanceof HTMLInputElement) {
+    try {
+      const setter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), 'value')?.set;
+      if (setter) setter.call(element, text); else (element as any).value = text;
+    } catch { (element as any).value = text; }
+    try { (element as any).defaultValue = text; element.setAttribute('value', text); } catch {}
+    fire('input'); fire('change'); fire('blur');
+    try {
+      const FocusEventCtor = (window as any).FocusEvent as any;
+      const ev = FocusEventCtor ? new FocusEventCtor('focusout', { bubbles: true }) : new Event('focusout', { bubbles: true });
+      element.dispatchEvent(ev);
+    } catch {}
     return;
   }
 
-  // contenteditable elements
-  const isEditable =
-    (element as any).isContentEditable === true ||
-    element.getAttribute('contenteditable') === 'true';
+  // contenteditable (ProseMirror/Slate等)
+  const isEditable = (element as any).isContentEditable === true || element.getAttribute('contenteditable') === 'true';
   if (isEditable) {
+    // 1) Selection + insertText
+    let insertedOk = false;
     try {
-      // Try execCommand path to inform editors like Slate/ProseMirror
-      const selection = window.getSelection();
-      if (selection) {
-        selection.removeAllRanges();
-        const range = document.createRange();
-        range.selectNodeContents(element);
-        selection.addRange(range);
-      }
-      // Select all then insert text
+      const sel = window.getSelection(); sel?.removeAllRanges();
+      const range = document.createRange(); range.selectNodeContents(element); sel?.addRange(range);
       // eslint-disable-next-line deprecation/deprecation
       document.execCommand('selectAll', false);
       // eslint-disable-next-line deprecation/deprecation
-      const inserted = document.execCommand('insertText', false, normalised);
-      if (!inserted) {
-        element.textContent = normalised;
-      }
-    } catch {
-      element.textContent = normalised;
-    }
-    // Fire input-like events to trigger frameworks' listeners
-    element.dispatchEvent(new Event('input', { bubbles: true }));
-    element.dispatchEvent(new Event('change', { bubbles: true }));
-    // Commit edits in some editors that listen to blur/focusout
-    element.dispatchEvent(new Event('blur'));
-    element.dispatchEvent(new Event('focusout', { bubbles: true } as any));
+      insertedOk = document.execCommand('insertText', false, text);
+      if (insertedOk) { fire('input'); fire('change'); (element as any).blur?.(); fire('focusout'); }
+    } catch {}
+
+    // 2) Paste 駆動（常に追いpasteで確度を上げる）
+    try { void writeRichPaste(element, text); } catch {}
+
+    if (insertedOk) return;
+
+    // 3) 直接書き換え
+    try { (element as any).innerText = text; } catch { (element as any).textContent = text; }
+    fire('input'); fire('change'); (element as any).blur?.(); fire('focusout');
     return;
   }
+
+  // 最終手段: 子孫に .ProseMirror / textarea を探して再帰
+  try {
+    const fallback = element.querySelector<HTMLElement>('.ProseMirror, textarea, input[type="text"]');
+    if (fallback && fallback !== element) { setInputValue(fallback, text); return; }
+  } catch {}
+}
+
+async function confirmTextApplied(el: HTMLElement, expected: string, label: string) {
+  const actual = (el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement)
+    ? el.value
+    : (el.textContent ?? '');
+  const norm = (s: string) => s.replace(/\s+/g, ' ').trim();
+  const ok = norm(actual).startsWith(norm(expected).slice(0, 24));
+  console.debug(`[confirm] ${label}`, { ok, actual: actual.slice(0,80), expected: expected.slice(0,80) });
+  if (!ok) throw new Error(`${label}: readback mismatch`);
 }
 
 function readElementValue(element: HTMLElement): string {
@@ -1059,22 +1514,94 @@ function findElementsIncludingText(patterns: string[]): HTMLElement[] {
 
 function readNearbyPromptFields(anchor: HTMLElement): { positive?: string; negative?: string } {
   const scope: HTMLElement = (anchor.closest('[class*="section"], [role="group"], [class*="card"], [class*="panel"]') as HTMLElement) || anchor.parentElement || document.body;
+
   // Positive: prefer ProseMirror without [data-negative]
   const posEl = (scope.querySelector('.ProseMirror:not([data-negative])') as HTMLElement)
     || (scope.querySelector('textarea') as HTMLElement)
     || (scope.querySelector('[contenteditable="true"]') as HTMLElement);
-  // Negative: prefer elements with negative hints
-  const negEl = (scope.querySelector('.prompt-input-box-undesired-content .ProseMirror, .prompt-input-box-negative-prompt .ProseMirror') as HTMLElement)
-    || (scope.querySelector('[data-negative="true"]') as HTMLElement)
-    || (scope.querySelector('textarea[aria-label*="negative" i], textarea[placeholder*="negative" i]') as HTMLElement);
+
+  // Negative: Use same detection strategies as applyNegativePrompt()
+  const negEl = findNegativePromptElement();
+
   return {
     positive: posEl ? readElementValue(posEl) : undefined,
     negative: negEl ? readElementValue(negEl) : undefined,
   };
 }
 
+/**
+ * Find negative prompt element using same strategies as applyNegativePrompt()
+ * This ensures read operations target the same elements as write operations
+ */
+function findNegativePromptElement(): HTMLElement | null {
+  // Strategy 0: Context-aware ProseMirror detection
+  try {
+    const editors = document.querySelectorAll('.ProseMirror') as NodeListOf<HTMLElement>;
+
+    // Look for negative prompt editor by container context
+    for (let i = 0; i < editors.length; i++) {
+      const editor = editors[i];
+      const container = editor.closest('div, section, fieldset');
+      const containerText = container ? container.textContent || '' : '';
+
+      // Look for negative/undesired indicators in container
+      if (containerText.includes('除外') || containerText.includes('Negative') ||
+          containerText.includes('Undesired') || containerText.includes('ネガティブ')) {
+        return editor;
+      }
+    }
+
+    // If no negative-specific editor found, try second ProseMirror (common pattern)
+    if (editors.length >= 2) {
+      return editors[1];
+    }
+  } catch {}
+
+  // Strategy 1: Enhanced CSS selectors (same as applyNegativePrompt strategy 2)
+  const candidates = document.querySelectorAll(
+    'div[contenteditable="true"][data-negative="true"], [data-testid*="negative" i] [contenteditable="true"], [role="textbox"][contenteditable="true"][data-negative="true"], textarea[placeholder*="negative" i], textarea[aria-label*="negative" i], .prompt-input-box-undesired-content .ProseMirror, .prompt-input-box-negative-prompt .ProseMirror, [class*="undesired"] .ProseMirror, [class*="negative"] .ProseMirror, [aria-label*="除外" i] .ProseMirror, [aria-label*="negative" i] .ProseMirror'
+  ) as NodeListOf<HTMLElement>;
+
+  if (candidates.length > 0) {
+    return candidates[0];
+  }
+
+  // Strategy 2: Textarea detection by attributes (same as applyNegativePrompt strategy 3)
+  const textareas = document.querySelectorAll('textarea') as NodeListOf<HTMLTextAreaElement>;
+  for (let i = 0; i < textareas.length; i++) {
+    const textarea = textareas[i];
+    const placeholder = (textarea.placeholder || '').toLowerCase();
+    const ariaLabel = (textarea.getAttribute('aria-label') || '').toLowerCase();
+    const name = (textarea.name || '').toLowerCase();
+    const id = (textarea.id || '').toLowerCase();
+
+    if (
+      placeholder.includes('negative') ||
+      ariaLabel.includes('negative') ||
+      name.includes('negative') ||
+      id.includes('negative')
+    ) {
+      return textarea;
+    }
+  }
+
+  // Strategy 3: Fallback to all ProseMirror editors except the first one
+  try {
+    const editors = document.querySelectorAll('.ProseMirror') as NodeListOf<HTMLElement>;
+    if (editors.length >= 2) {
+      return editors[1]; // Skip first editor (usually positive prompt)
+    }
+  } catch {}
+
+  return null;
+}
+
 function setNumericInputValue(element: HTMLInputElement, value: number): void {
   let resolved = value;
+
+  // Focus first (like Selenium)
+  element.focus();
+
   if (element.min !== '') {
     const minValue = Number(element.min);
     if (!Number.isNaN(minValue)) {
@@ -1089,9 +1616,12 @@ function setNumericInputValue(element: HTMLInputElement, value: number): void {
   }
 
   if (element.type === 'number') {
+    // Clear first like Selenium clear()
+    element.value = '';
     element.valueAsNumber = resolved;
     element.dispatchEvent(new Event('input', { bubbles: true }));
     element.dispatchEvent(new Event('change', { bubbles: true }));
+    element.blur();
     return;
   }
 
@@ -1149,9 +1679,10 @@ async function applyParameters(parameters: GenerationParameters): Promise<void> 
   if (typeof parameters.sampler === 'string' && parameters.sampler.trim().length > 0) {
     await setSampler(parameters.sampler.trim());
   }
-  if (typeof parameters.count === 'number' && Number.isFinite(parameters.count)) {
-    await setImageCount(parameters.count);
-  }
+  // UIへの生成枚数適用は無効化（ユーザー要望）
+  // if (typeof parameters.count === 'number' && Number.isFinite(parameters.count)) {
+  //   await setImageCount(parameters.count);
+  // }
 }
 
 async function setSeed(seed: number): Promise<void> {
@@ -1263,16 +1794,18 @@ async function startGeneration(): Promise<void> {
     await new Promise((r) => setTimeout(r, 150));
   }
 
-  // Ensure element is visible in viewport to avoid blocked events
+  // Selenium-style: ensure element is visible and perform safe click
   try {
     (element as HTMLElement).scrollIntoView({
       block: 'center',
       inline: 'center',
       behavior: 'instant' as any,
     });
+    // Small pause after scroll (like Selenium ActionChains)
+    await new Promise(r => setTimeout(r, 100));
   } catch {}
 
-  // Robust click sequence
+  // Selenium-style safe click with retry
   await clickElementRobustly(element as HTMLElement);
 
   // Fallback: also try Enter / Ctrl+Enter on prompt editor
@@ -1321,6 +1854,25 @@ async function startGeneration(): Promise<void> {
 }
 
 function fallbackFindGenerateControl(): HTMLElement | null {
+  // Selenium-style find_first approach with multiple strategies
+  const seleniumStrategies = [
+    // Direct XPath selectors from Selenium code
+    "//button[contains(.,'1枚のみ生成') and not(@disabled)]",
+    "//button[contains(.,'生成') and not(@disabled)]",
+    "//button[contains(.,'Generate') and not(@disabled)]"
+  ];
+
+  // Try Selenium XPath approach first
+  for (const xpath of seleniumStrategies) {
+    try {
+      const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+      if (result.singleNodeValue) {
+        return result.singleNodeValue as HTMLElement;
+      }
+    } catch {}
+  }
+
+  // Fallback to original selector-based approach
   const selector = [
     '[data-testid*="generate" i]',
     '[data-action*="generate" i]',
@@ -1351,13 +1903,14 @@ function fallbackFindGenerateControl(): HTMLElement | null {
 
 // ===== シンプル完了判定: 生成ボタンの 無効化→再有効化 サイクル待機 =====
 async function waitForGenerateButtonCycle(timeoutMs: number): Promise<void> {
+  // Selenium-style WebDriverWait equivalent
   const deadline = Date.now() + timeoutMs;
   let sawDisabled = false;
   let lastState: 'disabled' | 'enabled' | 'unknown' = 'unknown';
 
   function findCurrentGenerateButton(): HTMLElement | null {
     try {
-      // interactable=false で無効状態でも拾えるようにする
+      // Selenium-style: try multiple strategies
       return (
         (waitlessResolveGenerate(false)) ||
         fallbackFindGenerateControl()
@@ -1445,6 +1998,10 @@ async function waitForGenerateButtonCycle(timeoutMs: number): Promise<void> {
 async function clickPrimaryDownloadButton(): Promise<boolean> {
   // 直近画像の近傍ボタン優先 → ギャラリー内スコープ → 監視フォールバック
   try {
+
+    LAST_DOWNLOAD_USED_FALLBACK = false;
+
+    LAST_DOWNLOAD_TARGET_IMAGE = null;
     const gallery = (document.querySelector('.novelai-gallery, .image-gallery, [data-testid*="gallery" i]') as HTMLElement | null) || document.body;
     try { diag('dl-gallery', { scoped: gallery !== document.body, classes: (gallery as HTMLElement).className || null }); } catch {}
     const imgs = Array.from(gallery.querySelectorAll('img')) as HTMLImageElement[];
@@ -1453,6 +2010,8 @@ async function clickPrimaryDownloadButton(): Promise<boolean> {
       const img = imgs[i];
       if (img.naturalWidth > 0 && img.naturalHeight > 0) { targetImg = img; break; }
     }
+    LAST_DOWNLOAD_TARGET_IMAGE = targetImg;
+
     try {
       if (targetImg) {
         const r = targetImg.getBoundingClientRect();
@@ -1608,7 +2167,7 @@ async function clickPrimaryDownloadButton(): Promise<boolean> {
     }
 
     if (!button) {
-      // フォールバック: ギャラリー全体で先頭候補
+      // フォールバック: ギャラリー全体で先頭候補（Deep探索対応済み）
       const buttons = findPerImageDownloadButtons(gallery);
       button = buttons[0] || null;
       try { if (button) diag('dl-selected', { strategy: 'gallery-first', classes: (button as HTMLElement).className || '' }); } catch {}
@@ -1671,10 +2230,14 @@ async function clickPrimaryDownloadButton(): Promise<boolean> {
         if (href) {
           const a = document.createElement('a');
           a.href = href;
-          a.download = `novelai_${Date.now()}.png`;
+          const base = (LAST_CHARACTER_NAME && LAST_CHARACTER_NAME.trim().length > 0) ? safeSlug(LAST_CHARACTER_NAME) : 'novelai';
+          const ts = new Date().toISOString().replace(/[:.]/g, '-');
+          a.download = `${base}_${ts}.png`;
           a.rel = 'noopener';
           a.target = '_blank';
           document.body.appendChild(a);
+
+          LAST_DOWNLOAD_USED_FALLBACK = true;
             try { chrome.runtime.sendMessage({ type: 'DOWNLOAD_CLICKED', info: { strategy: 'fallback-anchor' } }); } catch {}
             diag('download-clicked-fallback');
           a.click();
@@ -1712,6 +2275,76 @@ async function resolveDownloadHrefFromImage(img: HTMLImageElement): Promise<stri
     return null;
   }
 }
+async function attemptFallbackDownloadFromLastTarget(): Promise<boolean> {
+
+  try {
+
+    if (!LAST_DOWNLOAD_TARGET_IMAGE) {
+
+      return false;
+
+    }
+
+    const href = await resolveDownloadHrefFromImage(LAST_DOWNLOAD_TARGET_IMAGE);
+
+    if (!href) {
+
+      return false;
+
+    }
+
+    const a = document.createElement('a');
+
+    a.href = href;
+
+    const base = LAST_CHARACTER_NAME && LAST_CHARACTER_NAME.trim().length > 0 ? safeSlug(LAST_CHARACTER_NAME) : 'novelai';
+
+    const ts = new Date().toISOString().replace(/[:.]/g, '-');
+
+    a.download = `${base}_${ts}.png`;
+
+    a.rel = 'noopener';
+
+    a.target = '_blank';
+
+    document.body.appendChild(a);
+
+    LAST_DOWNLOAD_USED_FALLBACK = true;
+
+    try { chrome.runtime.sendMessage({ type: 'DOWNLOAD_CLICKED', info: { strategy: 'timeout-fallback' } }); } catch {}
+
+    diag('download-clicked-timeout-fallback');
+
+    a.click();
+
+    setTimeout(() => {
+
+      try { a.remove(); } catch {}
+
+    }, 0);
+
+    diag('dl-fallback-anchor', {
+
+      kind: href.startsWith('data:') ? 'data' : href.startsWith('blob:') ? 'blob' : 'http',
+
+      hrefSample: href.slice(0, 60),
+
+    });
+
+    return true;
+
+  } catch (e) {
+
+    diag('dl-timeout-fallback-error', { error: (e as any)?.message || String(e) });
+
+    return false;
+
+  }
+
+}
+
+
+
 
 // ===== 生成完了待機 =====
 async function _waitForGenerationCompletion(timeoutMs: number): Promise<void> {
@@ -1786,9 +2419,15 @@ async function installNetworkProbes(): Promise<void> {
 
 async function clickElementRobustly(el: HTMLElement): Promise<void> {
   try {
+    // Selenium-style: scroll into view first with pause
+    el.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' as any });
+    await new Promise(r => setTimeout(r, 50)); // Small pause like Selenium ActionChains
+
     const rect = el.getBoundingClientRect();
     const center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
     const opts = { bubbles: true, cancelable: true, composed: true } as any;
+
+    // Selenium-style mouse event sequence with move simulation
     el.dispatchEvent(new PointerEvent('pointerover', opts));
     el.dispatchEvent(new MouseEvent('mouseover', opts));
     el.dispatchEvent(new PointerEvent('pointerenter', opts));
@@ -2089,6 +2728,20 @@ function logSelectorExploration(elementType: ElementType): void {
   } catch {}
 }
 
+function safeSlug(input: string): string {
+  try {
+    return input
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '') // strip diacritics
+      .replace(/[^a-z0-9-_]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 80);
+  } catch {
+    return 'novelai';
+  }
+}
+
 // ===== 背景経由の保存／サイト発火DL待機ユーティリティ =====
 function _downloadViaBackground(url: string, filename: string): Promise<boolean> {
   return new Promise((resolve) => {
@@ -2175,3 +2828,113 @@ function waitForSiteDownloadCreatedOrComplete(timeoutMs: number): Promise<'creat
     }
   });
 }
+
+function pickTopVisibleEditor(scope: ParentNode = document): HTMLElement | null {
+  try {
+    const candidates = Array.from(scope.querySelectorAll<HTMLElement>('.ProseMirror, textarea'))
+      .filter((el) => {
+        const r = el.getBoundingClientRect();
+        const style = getComputedStyle(el);
+        return r.width > 0 && r.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+      })
+      .sort((a, b) => {
+        const za = parseInt(getComputedStyle(a).zIndex || '0') || 0;
+        const zb = parseInt(getComputedStyle(b).zIndex || '0') || 0;
+        return zb - za;
+      });
+    return candidates[0] || null;
+  } catch {
+    return null;
+  }
+}
+
+async function writeRichPaste(el: HTMLElement, text: string): Promise<void> {
+  try {
+    // Select all then delete
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    sel?.addRange(range);
+    // eslint-disable-next-line deprecation/deprecation
+    document.execCommand('delete', false);
+
+    // DataTransfer paste
+    const dt = new DataTransfer();
+    dt.setData('text/plain', text);
+    const pasteEvt = new ClipboardEvent('paste', { clipboardData: dt, bubbles: true } as any);
+    el.dispatchEvent(pasteEvt);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  } catch {}
+}
+
+// ===== Negative editor robust resolver (semantic-first) =====
+function findNegativeEditor(): HTMLElement | null {
+  try {
+    const label = Array.from(document.querySelectorAll<HTMLElement>('label, span, div, p'))
+      .find((n) => /(除外したい要素|Undesired|Negative)/i.test(n.textContent || ''));
+    if (label) {
+      const scope = (label.closest('[class]') as HTMLElement) || label.parentElement || document.body;
+      const near = scope.querySelector<HTMLElement>('.ProseMirror, textarea');
+      if (near) return near;
+    }
+    const negInCards = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-testid*="character-card" i], [class*="character-card" i]')
+    )
+      .map((card) => card.querySelector<HTMLElement>('[placeholder*="Negative" i], .ProseMirror, textarea'))
+      .filter(Boolean) as HTMLElement[];
+    if (negInCards[0]) return negInCards[negInCards.length - 1];
+    const byAttr = document.querySelector<HTMLElement>(
+      'textarea[placeholder*="Negative" i], textarea[aria-label*="Negative" i]'
+    );
+    if (byAttr) return byAttr;
+    const editors = Array.from(document.querySelectorAll<HTMLElement>('.ProseMirror'));
+    const mainPos = document.querySelector<HTMLElement>('.prompt-input-box-prompt .ProseMirror');
+    const candidates = editors.filter((e) => e !== mainPos);
+    return candidates[0] || null;
+  } catch {
+    return null;
+  }
+}
+
+function _domPath(el: Element): string {
+  try {
+    const parts: string[] = [];
+    for (let e: Element | null = el; e && e.nodeType === 1; e = e.parentElement) {
+      const siblings = Array.from(e.parentElement?.children || []).filter((n) => n.tagName === e.tagName);
+      const idx = siblings.indexOf(e) + 1;
+      const cls = (e as HTMLElement).classList ? '.' + Array.from((e as HTMLElement).classList).join('.') : '';
+      parts.unshift(`${e.tagName.toLowerCase()}${e.id ? '#' + e.id : ''}${cls}${idx > 1 ? `:nth-of-type(${idx})` : ''}`);
+    }
+    return parts.join(' > ');
+  } catch {
+    return 'n/a';
+  }
+}
+
+async function confirmAppliedWithProof(el: HTMLElement, expect: string, tag: string): Promise<void> {
+  const actual = el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement ? el.value : el.textContent || '';
+  const norm = (s: string) => String(s ?? '').replace(/\s+/g, ' ').trim();
+  const ok = norm(actual).startsWith(norm(expect).slice(0, 24));
+  try {
+    diag('confirm-proof', {
+      tag,
+      ok,
+      path: _domPath(el),
+      id: (el as HTMLElement).id || 'no-id',
+      cls: (el as HTMLElement).className || '',
+      sample: String(actual).slice(0, 120),
+      attrs: (el as HTMLElement)
+        .getAttributeNames()
+        .reduce((m: Record<string, string>, k) => ((m[k] = (el as HTMLElement).getAttribute(k) || ''), m), {} as Record<string, string>),
+    });
+  } catch {}
+  if (!ok) throw new Error(`${tag}: readback mismatch`);
+}
+
+
+
+
+
+

@@ -55,6 +55,7 @@ el.blur();
 """, element, value)
 
 # ====== ドライバ構築 ======
+
 def build_driver() -> webdriver.Chrome:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     PROFILE_DIR.mkdir(parents=True, exist_ok=True)

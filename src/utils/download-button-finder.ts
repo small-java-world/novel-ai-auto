@@ -15,11 +15,37 @@ export function findPerImageDownloadButtons(root: Document | Element = document)
   const blockedCtx = '.osano, [class*="consent" i]';
   const container = (scope.closest(blockedCtx) ? null : scope) || scope;
 
-  // 直接候補
-  const btns = Array.from(container.querySelectorAll('button, [role="button"], a, [data-testid]')) as HTMLElement[];
+  // Shadow/Portal を跨いで探索するヘルパー
+  function queryAllDeep(selectors: string[], roots: (Document | ShadowRoot | Element)[] = [document]): HTMLElement[] {
+    const out: HTMLElement[] = [];
+    const nextRoots: (ShadowRoot | Element)[] = [];
+    for (const r of roots) {
+      const parent = (r as any).shadowRoot ? (r as any).shadowRoot as ShadowRoot : (r as ParentNode);
+      for (const sel of selectors) {
+        try {
+          out.push(...Array.from((parent as ParentNode).querySelectorAll<HTMLElement>(sel)));
+        } catch {}
+      }
+      try {
+        (parent as ParentNode).querySelectorAll<HTMLElement>('*').forEach((el) => {
+          const sr = (el as any).shadowRoot as ShadowRoot | undefined;
+          if (sr) nextRoots.push(sr);
+        });
+      } catch {}
+    }
+    return nextRoots.length ? [...out, ...queryAllDeep(selectors, nextRoots)] : out;
+  }
 
-  // 子孫に save/download 系のヒントを持つ要素から親のクリック要素に昇格
-  const descendantHints = Array.from(container.querySelectorAll('[title*="save" i], [aria-label*="save" i], [title*="download" i], [aria-label*="download" i], [data-testid*="save" i], [data-testid*="download" i], img[src*="save" i], img[alt*="save" i], svg[aria-label*="save" i], use[href*="save" i]')) as HTMLElement[];
+  // 直接候補（深い探索）
+  const btns = queryAllDeep(['button', '[role="button"]', 'a', '[data-testid]'], [container]);
+
+  // 子孫に save/download 系のヒントを持つ要素から親のクリック要素に昇格（深い探索）
+  const hintSelectors = [
+    '[title*="save" i]', '[aria-label*="save" i]', '[title*="download" i]', '[aria-label*="download" i]',
+    '[data-testid*="save" i]', '[data-testid*="download" i]', 'img[src*="save" i]', 'img[alt*="save" i]',
+    'svg[aria-label*="save" i]', 'use[href*="save" i]'
+  ];
+  const descendantHints = queryAllDeep(hintSelectors, [container]);
   const wrappedFromHints: HTMLElement[] = [];
   for (const el of descendantHints) {
     const clickable = (el.closest('button, [role="button"], a') as HTMLElement) || el;
@@ -28,7 +54,7 @@ export function findPerImageDownloadButtons(root: Document | Element = document)
 
   const pool = Array.from(new Set<HTMLElement>([...btns, ...wrappedFromHints]));
 
-  return pool.filter(b => {
+  return pool.filter((b) => {
     // 非表示/ゼロサイズは除外
     const r = b.getBoundingClientRect();
     if (r.width === 0 || r.height === 0) return false;
@@ -39,8 +65,8 @@ export function findPerImageDownloadButtons(root: Document | Element = document)
     const t = (b.textContent || '').trim().toLowerCase();
     const aria = (b.getAttribute('aria-label') || '').toLowerCase();
     const title = (b.getAttribute('title') || '').toLowerCase();
-    const className = (b.className || '').toString().toLowerCase();
     const testid = (b.getAttribute('data-testid') || '').toLowerCase();
+    const className = (b.className || '').toString().toLowerCase();
 
     // 厳格: save/download/保存 の語義ベースのみ（ZIP/一括は除外）
     const zipLike = /(zip|archive|一括|まとめて)/i;
@@ -54,10 +80,13 @@ export function findPerImageDownloadButtons(root: Document | Element = document)
     // a[download] は強いシグナル
     const isAnchorDownload = b.tagName === 'A' && (b as HTMLAnchorElement).hasAttribute('download');
 
-    // 汎用SVGのみは不採用（誤検出の原因）
-    const isGenericSvgOnly = !hasSemantic && !isAnchorDownload;
+    // クラスヒューリスティック（UIマイナー変更に強くする）
+    const classHeuristic = /(download|save)/i.test(className) || /(sc-883533e0-1|sc-4f026a5f-2)/.test(className);
 
-    return (hasSemantic || isAnchorDownload) && !isGenericSvgOnly;
+    // 汎用SVGのみは不採用（誤検出の原因）
+    const isGenericSvgOnly = !hasSemantic && !isAnchorDownload && !classHeuristic;
+
+    return (hasSemantic || isAnchorDownload || classHeuristic) && !isGenericSvgOnly;
   });
 }
 

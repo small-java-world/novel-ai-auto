@@ -47,7 +47,11 @@
       "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/utils/download-button-finder.test.ts --reporter=verbose)",
       "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/utils/download-button-finder.test.ts)",
       "WebSearch",
-      "WebFetch(domain:greasyfork.org)"
+      "WebFetch(domain:greasyfork.org)",
+      "Read(//c/Users/kawan/Downloads/**)",
+      "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/utils/multi-character-sequence.selenium.test.ts --reporter=verbose)",
+      "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/content-selenium-improvements.test.ts --reporter=verbose)",
+      "Bash(VITEST_EXCLUDE=\"\" npx vitest run src/content-selenium-improvements.test.ts src/utils/multi-character-sequence.selenium.test.ts --reporter=verbose)"
     ],
     "deny": [],
     "ask": []
